@@ -1,6 +1,6 @@
 ---
-description: Code Style Guide for Typescript
-globs: 
+description: 
+globs: *.ts
 alwaysApply: false
 ---
 # Spring Bean Navigator 코딩 스타일 가이드

@@ -41,7 +41,7 @@ Kotlin Spring 프로젝트를 지원하여 Java와 Kotlin이 혼재된 현대적
 ## 상세 작업 목록
 
 ### 1. Kotlin 파서 구현 (우선순위: 높음)
-- [ ] **1.1** `src/parsers/kotlinFileParser.ts` 생성
+- [ ] **1.1** `src/parsers/kotlin-file-parser.ts` 생성
   - Kotlin 파일 기본 파싱
   - 클래스 선언 추출
   - 기본 생성자 매개변수 추출
@@ -54,7 +54,7 @@ Kotlin Spring 프로젝트를 지원하여 Java와 Kotlin이 혼재된 현대적
   - 사이트 타겟 어노테이션 분석
 
 ### 2. Kotlin Spring Bean 탐지기 구현 (우선순위: 높음)
-- [ ] **2.1** `src/detectors/kotlinSpringDetector.ts` 생성
+- [ ] **2.1** `src/detectors/kotlin-spring-detector.ts` 생성
   - Kotlin @Component, @Service, @Repository, @Controller 탐지
   - Kotlin @Configuration 및 @Bean 메소드 탐지
   - 기본 생성자 기반 주입 탐지
@@ -65,7 +65,7 @@ Kotlin Spring 프로젝트를 지원하여 Java와 Kotlin이 혼재된 현대적
   - @Autowired 사이트 타겟 어노테이션 처리
 
 ### 3. 언어별 파서 통합 (우선순위: 높음)
-- [ ] **3.1** `src/parsers/fileParserFactory.ts` 생성
+- [ ] **3.1** `src/parsers/file-parser-factory.ts` 생성
   - 파일 확장자 기반 파서 선택
   - Java/Kotlin 파서 인터페이스 통일
   - 공통 AST 모델 정의
@@ -75,17 +75,17 @@ Kotlin Spring 프로젝트를 지원하여 Java와 Kotlin이 혼재된 현대적
   - 언어별 특화 처리 분리
 
 ### 4. Kotlin 타입 정의 (우선순위: 중간)
-- [ ] **4.1** `src/types/kotlinTypes.ts` 생성
+- [ ] **4.1** `src/models/kotlin-types.ts` 생성
   - Kotlin 프로퍼티 정보 인터페이스
   - Kotlin 생성자 정보 인터페이스
   - Kotlin 어노테이션 정보 인터페이스
 
 - [ ] **4.2** 공통 타입 확장
-  - `src/types/springTypes.ts` 확장
+  - `src/models/spring-types.ts` 확장
   - 언어 중립적 Bean 정보 모델
 
 ### 5. CodeLens Provider 확장 (우선순위: 중간)
-- [ ] **5.1** `src/providers/codeLensProvider.ts` 확장
+- [ ] **5.1** `src/providers/code-lens-provider.ts` 확장
   - Kotlin 파일 지원 추가
   - Kotlin 프로퍼티에 CodeLens 표시
   - 생성자 매개변수에 CodeLens 표시
@@ -95,13 +95,13 @@ Kotlin Spring 프로젝트를 지원하여 Java와 Kotlin이 혼재된 현대적
   - val/var 프로퍼티 구분 표시
 
 ### 6. 네비게이션 기능 확장 (우선순위: 중간)
-- [ ] **6.1** `src/providers/navigationProvider.ts` 확장
+- [ ] **6.1** `src/providers/navigation-provider.ts` 확장
   - Kotlin 프로퍼티에서 Bean으로 이동
   - Java ↔ Kotlin Bean 간 네비게이션
   - 혼합 프로젝트에서의 Bean 검색
 
 ### 7. Bean 해결자 확장 (우선순위: 높음)
-- [ ] **7.1** `src/utils/beanResolver.ts` 확장
+- [ ] **7.1** `src/utils/bean-resolver.ts` 확장
   - Kotlin Bean 정의 검색
   - Java/Kotlin Bean 통합 검색
   - 타입 호환성 검사 (Java ↔ Kotlin)

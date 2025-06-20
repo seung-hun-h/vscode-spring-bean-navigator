@@ -26,7 +26,7 @@ Lombok 어노테이션으로 생성되는 생성자를 통한 의존성 주입�
 ## 상세 작업 목록
 
 ### 1. Lombok 어노테이션 파서 구현 (우선순위: 높음)
-- [ ] **1.1** `src/parsers/javaFileParser.ts` 확장
+- [ ] **1.1** `src/parsers/java-file-parser.ts` 확장
   - Lombok 어노테이션 탐지 로직 추가
   - 클래스 레벨 어노테이션 분석
   - import 문에서 Lombok 사용 여부 확인
@@ -37,7 +37,7 @@ Lombok 어노테이션으로 생성되는 생성자를 통한 의존성 주입�
   - 필드 접근 제어자 분석
 
 ### 2. Lombok 생성자 시뮬레이션 (우선순위: 높음)
-- [ ] **2.1** `src/detectors/lombokDetector.ts` 생성
+- [ ] **2.1** `src/detectors/lombok-detector.ts` 생성
   - @RequiredArgsConstructor 시뮬레이션
     - final 필드 기반 생성자 매개변수 생성
     - @NonNull 필드 기반 생성자 매개변수 생성
@@ -49,24 +49,24 @@ Lombok 어노테이션으로 생성되는 생성자를 통한 의존성 주입�
   - Phase 2의 생성자 주입 로직과 통합
 
 ### 3. 필드 기반 주입 탐지 (우선순위: 높음)
-- [ ] **3.1** `src/detectors/springBeanDetector.ts` 확장
+- [ ] **3.1** `src/detectors/spring-bean-detector.ts` 확장
   - Lombok 어노테이션이 있는 클래스에서 final 필드 주입 탐지
   - @NonNull 필드 주입 탐지
   - 가상 생성자와 실제 Bean 매핑
 
 ### 4. CodeLens Provider 확장 (우선순위: 중간)
-- [ ] **4.1** `src/providers/codeLensProvider.ts` 확장
+- [ ] **4.1** `src/providers/code-lens-provider.ts` 확장
   - final 필드에 "Constructor Injected (Lombok)" 표시
   - @NonNull 필드에 "Constructor Injected (Lombok)" 표시
   - Lombok 기반 주입임을 명시하는 다른 아이콘/텍스트
 
 ### 5. 네비게이션 기능 확장 (우선순위: 중간)
-- [ ] **5.1** `src/providers/navigationProvider.ts` 확장
+- [ ] **5.1** `src/providers/navigation-provider.ts` 확장
   - Lombok 필드에서 Bean 구현체로 이동
   - Lombok 생성자 정보 표시 (툴팁 등)
 
 ### 6. 타입 정의 확장 (우선순위: 중간)
-- [ ] **6.1** `src/types/springTypes.ts` 확장
+- [ ] **6.1** `src/models/spring-types.ts` 확장
   - Lombok 어노테이션 정보 인터페이스
   - 가상 생성자 정보 인터페이스
   - Lombok 기반 주입 정보 인터페이스

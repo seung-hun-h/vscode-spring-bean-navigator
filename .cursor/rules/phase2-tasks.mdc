@@ -26,19 +26,19 @@ alwaysApply: false
 ## 상세 작업 목록
 
 ### 1. Java 파서 확장 (우선순위: 높음)
-- [ ] **1.1** `src/parsers/javaFileParser.ts` 확장
+- [ ] **1.1** `src/parsers/java-file-parser.ts` 확장
   - 생성자 정의 추출 로직 추가
   - 생성자 매개변수 정보 추출
   - Setter 메소드 탐지 로직 추가
   - 메소드 매개변수 타입 정보 추출
 
 - [ ] **1.2** 타입 정의 확장
-  - `src/types/springTypes.ts` 업데이트
+  - `src/models/spring-types.ts` 업데이트
   - 생성자 주입 정보 인터페이스 추가
   - Setter 주입 정보 인터페이스 추가
 
 ### 2. 주입 패턴 탐지기 확장 (우선순위: 높음)
-- [ ] **2.1** `src/detectors/springBeanDetector.ts` 확장
+- [ ] **2.1** `src/detectors/spring-bean-detector.ts` 확장
   - 생성자 주입 패턴 탐지 로직 추가
   - Setter 주입 패턴 탐지 로직 추가
   - 단일 생성자 자동 주입 규칙 구현
@@ -49,19 +49,19 @@ alwaysApply: false
   - 매개변수 타입과 Bean 타입 매칭
 
 ### 3. CodeLens Provider 확장 (우선순위: 중간)
-- [ ] **3.1** `src/providers/codeLensProvider.ts` 확장
+- [ ] **3.1** `src/providers/code-lens-provider.ts` 확장
   - 생성자 매개변수에 CodeLens 표시
   - Setter 메소드 매개변수에 CodeLens 표시
   - 주입 타입별 다른 아이콘/텍스트 표시
 
 ### 4. 네비게이션 기능 확장 (우선순위: 중간)
-- [ ] **4.1** `src/providers/navigationProvider.ts` 확장
+- [ ] **4.1** `src/providers/navigation-provider.ts` 확장
   - 생성자 매개변수에서 Bean으로 이동
   - Setter 매개변수에서 Bean으로 이동
   - 주입 타입 정보 표시
 
 ### 5. Bean 해결자 확장 (우선순위: 높음)
-- [ ] **5.1** `src/utils/beanResolver.ts` 확장
+- [ ] **5.1** `src/utils/bean-resolver.ts` 확장
   - 매개변수 타입 기반 Bean 검색 강화
   - 제네릭 타입 처리 개선
   - 인터페이스 기반 주입 처리

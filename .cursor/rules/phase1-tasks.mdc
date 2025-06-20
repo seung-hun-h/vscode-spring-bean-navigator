@@ -10,21 +10,21 @@ Java 파일에서 @Autowired 어노테이션이 붙은 필드를 탐지하고, �
 
 ## 아키텍처 설계
 
-### 디렉토리 구조
+### 디렉토리 구조 (kebab-case 네이밍 적용)
 ```
 src/
 ├── extension.ts (기존)
-├── providers/
-│   ├── codeLensProvider.ts    # CodeLens 아이콘 표시
-│   └── navigationProvider.ts  # 네비게이션 처리
-├── detectors/
-│   └── springBeanDetector.ts  # @Autowired 탐지
-├── parsers/
-│   └── javaFileParser.ts      # Java 파일 파싱
-├── utils/
-│   └── beanResolver.ts        # 빈 정의 검색
-└── types/
-    └── springTypes.ts         # 타입 정의
+├── providers/                 # VSCode 제공자들
+│   ├── code-lens-provider.ts    # CodeLens 아이콘 표시
+│   └── navigation-provider.ts  # 네비게이션 처리
+├── detectors/                 # Bean 탐지 로직
+│   └── spring-bean-detector.ts  # @Autowired 탐지
+├── parsers/                   # 파일 파싱 로직
+│   └── java-file-parser.ts      # Java 파일 파싱
+├── utils/                     # 유틸리티 함수
+│   └── bean-resolver.ts        # 빈 정의 검색
+└── models/                    # 데이터 모델
+    └── spring-types.ts         # 타입 정의
 ```
 
 ## 상세 작업 목록
@@ -36,11 +36,11 @@ src/
   - [package.json](mdc:package.json) 업데이트 (activationEvents, commands, languages 설정 완료)
 
 - [x] **1.2** TypeScript 타입 정의 생성
-  - `src/types/springTypes.ts` 생성 완료
+  - `src/models/spring-types.ts` 생성 완료 (기존 src/types/springTypes.ts)
   - Bean 정보, 주입 정보 인터페이스 정의 완료
 
 ### 2. Java 파일 파서 구현 (우선순위: 높음)
-- [ ] **2.1** `src/parsers/javaFileParser.ts` 생성
+- [ ] **2.1** `src/parsers/java-file-parser.ts` 생성
   - 클래스 정의 추출
   - 필드 선언 추출
   - 어노테이션 파싱
@@ -52,7 +52,7 @@ src/
   - 위치 정보 (라인, 컬럼) 저장
 
 ### 3. Spring Bean 탐지기 구현 (우선순위: 높음)
-- [ ] **3.1** `src/detectors/springBeanDetector.ts` 생성
+- [ ] **3.1** `src/detectors/spring-bean-detector.ts` 생성
   - 워크스페이스 내 Java 파일 스캔
   - @Component, @Service, @Repository, @Controller 클래스 탐지
   - @Configuration 클래스의 @Bean 메소드 탐지
@@ -63,13 +63,13 @@ src/
   - 캐싱 메커니즘 구현
 
 ### 4. Bean 해결자 구현 (우선순위: 높음)
-- [ ] **4.1** `src/utils/beanResolver.ts` 생성
+- [ ] **4.1** `src/utils/bean-resolver.ts` 생성
   - 타입 기반 Bean 검색
   - 인터페이스 → 구현체 매핑
   - 다중 구현체 처리
 
 ### 5. CodeLens Provider 구현 (우선순위: 중간)
-- [ ] **5.1** `src/providers/codeLensProvider.ts` 생성
+- [ ] **5.1** `src/providers/code-lens-provider.ts` 생성
   - VSCode CodeLensProvider 인터페이스 구현
   - @Autowired 필드 위치에 렌즈 표시
   - "Go to Bean Implementation" 텍스트 표시
@@ -79,7 +79,7 @@ src/
   - 성능 최적화 (필요한 경우에만 재계산)
 
 ### 6. 네비게이션 Provider 구현 (우선순위: 중간)
-- [ ] **6.1** `src/providers/navigationProvider.ts` 생성
+- [ ] **6.1** `src/providers/navigation-provider.ts` 생성
   - Command 핸들러 구현
   - Bean 구현체로의 이동 로직
   - 여러 구현체가 있을 경우 선택 UI
