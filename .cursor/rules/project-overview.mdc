@@ -50,3 +50,6 @@ Spring Bean Navigator는 Java/Kotlin Spring 프레임워크 개발자를 위한 
 - `BeanDefinitionProvider`: 빈 정의 정보 제공
 - `NavigationProvider`: 빈 구현체로의 네비게이션 처리
 - `CodeLensProvider`: Editor에 아이콘 표시
+
+## 테스트
+- [test-strategy.mdc](mdc:.cursor/rules/test-strategy.mdc)를 참고하여 메서드를 작성할 때 마다 테스트를 작성한다
