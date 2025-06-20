@@ -186,4 +186,22 @@ export interface BeanResolutionResult {
     resolved?: BeanDefinition;
     /** 가능한 Bean 후보들 */
     candidates: BeanDefinition[];
+}
+
+/**
+ * Bean 선택을 위한 QuickPick 아이템
+ */
+export interface BeanQuickPickItem extends vscode.QuickPickItem {
+    /** 연관된 Bean 정의 */
+    bean: BeanDefinition;
+}
+
+/**
+ * Bean 표시 정보
+ */
+export interface BeanDisplayInfo {
+    /** 클래스 이름 (패키지 제외) */
+    className: string;
+    /** 패키지 이름 */
+    packageName: string;
 } 
