@@ -3,7 +3,6 @@ import * as vscode from 'vscode';
 import { SpringCodeLensProvider } from '../../providers/code-lens-provider';
 import { BeanResolver } from '../../utils/bean-resolver';
 import { SpringBeanDetector } from '../../detectors/spring-bean-detector';
-import { TestUtils } from '../helpers/test-utils';
 
 suite('SpringCodeLensProvider', () => {
     let provider: SpringCodeLensProvider;
