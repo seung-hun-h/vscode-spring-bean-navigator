@@ -104,6 +104,16 @@ export interface BeanDefinition {
     definitionType: 'class' | 'method'; // @Component 등의 클래스 또는 @Bean 메소드
     /** Bean을 정의하는 어노테이션 */
     annotation: SpringAnnotationType;
+    
+    // 편의 속성들 (getter로 구현하거나 별도 헬퍼로 제공)
+    /** Bean 이름 (name과 동일, 테스트 호환성) */
+    beanName: string;
+    /** 클래스 이름 (타입에서 패키지 제외) */
+    className: string;
+    /** 어노테이션 타입 (annotation과 동일, 테스트 호환성) */
+    annotationType: SpringAnnotationType;
+    /** 완전한 클래스 이름 (패키지 포함) */
+    fullyQualifiedName: string;
 }
 
 /**

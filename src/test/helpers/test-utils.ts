@@ -112,6 +112,9 @@ export class TestUtils {
         type: string = 'TestService',
         implementationClass: string = 'com.example.TestService'
     ): BeanDefinition {
+        const className = type;
+        const fullyQualifiedName = implementationClass;
+        
         return {
             name,
             type,
@@ -119,7 +122,12 @@ export class TestUtils {
             fileUri: this.createMockUri(`/test/${type}.java`),
             position: this.createPosition(0, 0),
             definitionType: 'class',
-            annotation: SpringAnnotationType.SERVICE
+            annotation: SpringAnnotationType.SERVICE,
+            // 편의 속성들
+            beanName: name,
+            className,
+            annotationType: SpringAnnotationType.SERVICE,
+            fullyQualifiedName
         };
     }
 
@@ -320,6 +328,155 @@ export class JavaSampleGenerator {
             public ExternalService externalService() {
                 return new ExternalService();
             }
+        }
+        `.trim();
+    }
+
+    /**
+     * @Service 어노테이션이 있는 Java 클래스 (Spring Bean 탐지용)
+     */
+    public static serviceClass(): string {
+        return `
+        package com.example.service;
+
+        import org.springframework.stereotype.Service;
+
+        @Service
+        public class UserService {
+            public void saveUser() {
+                // 구현
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * @Controller 어노테이션이 있는 Java 클래스
+     */
+    public static controllerClass(): string {
+        return `
+        package com.example.controller;
+
+        import org.springframework.stereotype.Controller;
+
+        @Controller
+        public class UserController {
+            public String getUsers() {
+                return "users";
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * @RestController 어노테이션이 있는 Java 클래스
+     */
+    public static restControllerClass(): string {
+        return `
+        package com.example.controller;
+
+        import org.springframework.web.bind.annotation.RestController;
+
+        @RestController
+        public class ApiController {
+            public String getApi() {
+                return "api";
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * @Configuration 어노테이션만 있는 Java 클래스
+     */
+    public static configurationOnlyClass(): string {
+        return `
+        package com.example.config;
+
+        import org.springframework.context.annotation.Configuration;
+
+        @Configuration
+        public class AppConfig {
+            // 설정 클래스
+        }
+        `.trim();
+    }
+
+    /**
+     * @Configuration과 @Bean 메소드들이 있는 Java 클래스
+     */
+    public static configurationWithBeanMethods(): string {
+        return `
+        package com.example.config;
+
+        import org.springframework.context.annotation.Bean;
+        import org.springframework.context.annotation.Configuration;
+
+        @Configuration
+        public class DatabaseConfig {
+            
+            @Bean
+            public DataSource dataSource() {
+                return new HikariDataSource();
+            }
+            
+            @Bean
+            public EntityManagerFactory entityManagerFactory() {
+                return new LocalEntityManagerFactory();
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * 여러 Spring Bean 어노테이션이 있는 Java 클래스
+     */
+    public static multipleBeansClass(): string {
+        return `
+        package com.example.mixed;
+
+        import org.springframework.stereotype.Service;
+        import org.springframework.stereotype.Repository;
+
+        @Service
+        public class UserService {
+            // 서비스 구현
+        }
+
+        @Repository
+        class UserRepository {
+            // 레포지토리 구현
+        }
+        `.trim();
+    }
+
+    /**
+     * Spring 어노테이션이 없는 일반 Java 클래스
+     */
+    public static plainJavaClass(): string {
+        return `
+        package com.example.plain;
+
+        public class PlainJavaClass {
+            public void doSomething() {
+                // 일반 Java 클래스
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * 커스텀 Bean 이름을 가진 Service 클래스
+     */
+    public static customBeanNameService(): string {
+        return `
+        package com.example.service;
+
+        import org.springframework.stereotype.Service;
+
+        @Service("customUserService")
+        public class UserService {
+            // 구현
         }
         `.trim();
     }

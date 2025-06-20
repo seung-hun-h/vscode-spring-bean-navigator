@@ -428,8 +428,9 @@ export class JavaFileParser {
     private parseAnnotation(annotation: any, lines: string[]): AnnotationInfo | undefined {
         try {
             let annotationName: string | undefined;
+            let parameters = new Map<string, string>();
             
-            // 실제 구조: annotation.children = ['At', 'typeName']
+            // 실제 구조: annotation.children = ['At', 'typeName'] 또는 ['At', 'typeName', 'LParen', 'elementValuePairList', 'RParen']
             if (annotation.children?.typeName?.[0]?.children?.Identifier?.[0]?.image) {
                 annotationName = annotation.children.typeName[0].children.Identifier[0].image;
             } else {
@@ -445,6 +446,9 @@ export class JavaFileParser {
                 return undefined;
             }
 
+            // 어노테이션 매개변수 파싱 시도
+            parameters = this.extractAnnotationParameters(annotation);
+
             const springAnnotationType = this.mapToSpringAnnotationType(annotationName);
             if (!springAnnotationType) {
                 return undefined;
@@ -458,7 +462,7 @@ export class JavaFileParser {
                 type: springAnnotationType,
                 line: position.line,
                 column: position.character,
-                parameters: new Map() // 매개변수는 추후 구현
+                parameters
             };
 
             return annotationInfo;
@@ -467,6 +471,60 @@ export class JavaFileParser {
             console.error('어노테이션 파싱 실패:', error);
             return undefined;
         }
+    }
+
+    /**
+     * 어노테이션 매개변수를 추출합니다.
+     */
+    private extractAnnotationParameters(annotation: any): Map<string, string> {
+        const parameters = new Map<string, string>();
+        
+        try {
+            // @Service("value") 형태의 단일 값
+            if (annotation.children?.LParen && annotation.children?.StringLiteral) {
+                const value = annotation.children.StringLiteral[0].image;
+                // 따옴표 제거
+                const cleanValue = value.replace(/["']/g, '');
+                parameters.set('value', cleanValue);
+                return parameters;
+            }
+            
+            // elementValuePairList 구조 확인 (향후 확장용)
+            if (annotation.children?.elementValuePairList) {
+                // TODO: 더 복잡한 매개변수 구조 파싱
+            }
+            
+            // 모든 자식 노드를 탐색해서 문자열 리터럴 찾기
+            const findStringLiterals = (node: any): string[] => {
+                const literals: string[] = [];
+                
+                if (node?.image && typeof node.image === 'string' && (node.image.startsWith('"') || node.image.startsWith("'"))) {
+                    literals.push(node.image.replace(/["']/g, ''));
+                }
+                
+                if (node?.children) {
+                    for (const key of Object.keys(node.children)) {
+                        if (Array.isArray(node.children[key])) {
+                            for (const child of node.children[key]) {
+                                literals.push(...findStringLiterals(child));
+                            }
+                        }
+                    }
+                }
+                
+                return literals;
+            };
+            
+            const literals = findStringLiterals(annotation);
+            if (literals.length > 0) {
+                parameters.set('value', literals[0]);
+            }
+            
+        } catch (error) {
+            console.error('어노테이션 매개변수 추출 실패:', error);
+        }
+        
+        return parameters;
     }
 
     /**
