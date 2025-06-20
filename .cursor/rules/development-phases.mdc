@@ -1,0 +1,75 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Spring Bean Navigator 개발 단계 (Development Phases)
+
+## 개발 단계 개요
+Spring Bean Navigator VSCode Extension은 4단계로 나누어 개발됩니다. 각 단계는 이전 단계의 기능을 확장하며, 점진적으로 완성도를 높여갑니다.
+
+## Phase 1: @Autowired 어노테이션 탐지
+**목표**: Java 파일에서 @Autowired 어노테이션이 붙은 필드를 탐지하고 해당 빈 구현체로 네비게이션 제공
+
+### 핵심 기능
+- @Autowired 필드 탐지
+- Spring Bean 정의 검색 (@Component, @Service, @Repository, @Controller, @Bean)
+- CodeLens를 통한 시각적 표시
+- 클릭으로 빈 구현체 이동
+
+### 개발 우선순위
+1. **높음**: 기본 @Autowired 필드 탐지
+2. **높음**: 간단한 @Service, @Component 빈 찾기
+3. **중간**: CodeLens UI 구현
+4. **중간**: 네비게이션 기능
+
+## Phase 2: 생성자 주입 및 Setter 주입 지원
+**목표**: @Autowired가 없는 생성자 주입과 Setter 주입 패턴 지원
+
+### 핵심 기능
+- 생성자 매개변수 타입 기반 빈 주입 탐지
+- Setter 메소드의 @Autowired 어노테이션 탐지
+- 복잡한 빈 의존성 그래프 처리
+
+### 개발 우선순위
+1. **높음**: 생성자 주입 패턴 탐지
+2. **중간**: Setter 주입 패턴 탐지
+3. **낮음**: 의존성 순환 참조 경고
+
+## Phase 3: Lombok 어노테이션 지원
+**목표**: Lombok 어노테이션으로 생성되는 생성자 주입 지원
+
+### 핵심 기능
+- @RequiredArgsConstructor 어노테이션 처리
+- @AllArgsConstructor 어노테이션 처리
+- final 필드 기반 의존성 주입 탐지
+
+### 개발 우선순위
+1. **높음**: @RequiredArgsConstructor 지원
+2. **중간**: @AllArgsConstructor 지원
+3. **낮음**: 기타 Lombok 어노테이션 지원
+
+## Phase 4: Kotlin 지원 확장
+**목표**: Kotlin Spring 프로젝트 지원
+
+### 핵심 기능
+- Kotlin 파일 파싱
+- Kotlin Spring 어노테이션 탐지
+- Kotlin 생성자 주입 패턴 지원
+
+### 개발 우선순위
+1. **높음**: Kotlin 파일 파싱 기능
+2. **높음**: Kotlin Spring 어노테이션 탐지
+3. **중간**: Kotlin 특화 기능 지원
+
+## 현재 진행 상황
+- **진행 중**: Phase 1 - @Autowired 어노테이션 탐지
+- **대기 중**: Phase 2, 3, 4
+
+## 참고 파일
+- 메인 엔트리포인트: [src/extension.ts](mdc:src/extension.ts)
+- 프로젝트 설정: [package.json](mdc:package.json)
+- 빌드 설정: [webpack.config.js](mdc:webpack.config.js)
+
+## 다음 단계
+Phase 1 완료 후 Phase 2로 진행하며, 각 단계별로 충분한 테스트와 검증을 거쳐야 합니다.

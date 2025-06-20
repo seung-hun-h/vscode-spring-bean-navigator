@@ -1,0 +1,140 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Phase 3: Lombok 어노테이션 지원 - 작업 목록
+
+## 목표
+Lombok 어노테이션으로 생성되는 생성자를 통한 의존성 주입을 지원하여, 현대적인 Spring 개발 패턴을 완전히 지원합니다.
+
+## 전제 조건
+- Phase 2 완료 ([생성자 주입 및 Setter 주입](mdc:.cursor/rules/phase2-tasks.mdc))
+- Lombok 라이브러리에 대한 이해
+
+## 새로운 기능 요구사항
+
+### 지원할 Lombok 어노테이션
+- `@RequiredArgsConstructor`: final 필드와 @NonNull 필드에 대한 생성자 생성
+- `@AllArgsConstructor`: 모든 필드에 대한 생성자 생성
+- `@NoArgsConstructor`: 기본 생성자 생성 (주입과 무관하지만 분석 필요)
+
+### 주입 패턴 분석
+- final 필드 기반 의존성 주입 탐지
+- @NonNull 어노테이션 필드 처리
+
+## 상세 작업 목록
+
+### 1. Lombok 어노테이션 파서 구현 (우선순위: 높음)
+- [ ] **1.1** `src/parsers/javaFileParser.ts` 확장
+  - Lombok 어노테이션 탐지 로직 추가
+  - 클래스 레벨 어노테이션 분석
+  - import 문에서 Lombok 사용 여부 확인
+
+- [ ] **1.2** 필드 분석 확장
+  - final 키워드 필드 탐지
+  - @NonNull 어노테이션 필드 탐지
+  - 필드 접근 제어자 분석
+
+### 2. Lombok 생성자 시뮬레이션 (우선순위: 높음)
+- [ ] **2.1** `src/detectors/lombokDetector.ts` 생성
+  - @RequiredArgsConstructor 시뮬레이션
+    - final 필드 기반 생성자 매개변수 생성
+    - @NonNull 필드 기반 생성자 매개변수 생성
+  - @AllArgsConstructor 시뮬레이션
+    - 모든 필드 기반 생성자 매개변수 생성
+
+- [ ] **2.2** 가상 생성자 정보 생성
+  - 실제로는 존재하지 않는 생성자의 매개변수 정보 생성
+  - Phase 2의 생성자 주입 로직과 통합
+
+### 3. 필드 기반 주입 탐지 (우선순위: 높음)
+- [ ] **3.1** `src/detectors/springBeanDetector.ts` 확장
+  - Lombok 어노테이션이 있는 클래스에서 final 필드 주입 탐지
+  - @NonNull 필드 주입 탐지
+  - 가상 생성자와 실제 Bean 매핑
+
+### 4. CodeLens Provider 확장 (우선순위: 중간)
+- [ ] **4.1** `src/providers/codeLensProvider.ts` 확장
+  - final 필드에 "Constructor Injected (Lombok)" 표시
+  - @NonNull 필드에 "Constructor Injected (Lombok)" 표시
+  - Lombok 기반 주입임을 명시하는 다른 아이콘/텍스트
+
+### 5. 네비게이션 기능 확장 (우선순위: 중간)
+- [ ] **5.1** `src/providers/navigationProvider.ts` 확장
+  - Lombok 필드에서 Bean 구현체로 이동
+  - Lombok 생성자 정보 표시 (툴팁 등)
+
+### 6. 타입 정의 확장 (우선순위: 중간)
+- [ ] **6.1** `src/types/springTypes.ts` 확장
+  - Lombok 어노테이션 정보 인터페이스
+  - 가상 생성자 정보 인터페이스
+  - Lombok 기반 주입 정보 인터페이스
+
+### 7. 고급 기능 (우선순위: 낮음)
+- [ ] **7.1** 복합 Lombok 어노테이션 처리
+  - @Data, @Value 어노테이션 처리 (생성자 관련 부분만)
+  - 어노테이션 매개변수 처리 (staticName, access 등)
+
+- [ ] **7.2** 상속 관계에서의 Lombok 처리
+  - 부모 클래스의 Lombok 어노테이션 고려
+  - 필드 상속과 생성자 생성 규칙
+
+### 8. 테스트 구현 (우선순위: 중간)
+- [ ] **8.1** @RequiredArgsConstructor 테스트
+  - final 필드 기반 주입 탐지 테스트
+  - @NonNull 필드 기반 주입 탐지 테스트
+  - CodeLens 표시 테스트
+
+- [ ] **8.2** @AllArgsConstructor 테스트
+  - 모든 필드 기반 주입 탐지 테스트
+  - 복잡한 필드 조합 테스트
+
+- [ ] **8.3** 통합 테스트
+  - 실제 Lombok이 적용된 프로젝트에서 테스트
+  - Phase 1, 2 기능과의 호환성 테스트
+
+### 9. 에러 처리 및 최적화 (우선순위: 낮음)
+- [ ] **9.1** Lombok 없는 환경에서의 처리
+  - Lombok 라이브러리 부재 시 경고
+  - 우아한 기능 저하 (degradation)
+
+- [ ] **9.2** 성능 최적화
+  - Lombok 어노테이션 분석 캐싱
+  - 가상 생성자 정보 캐싱
+
+## 완료 기준
+- [ ] @RequiredArgsConstructor가 붙은 클래스의 final 필드 탐지
+- [ ] @AllArgsConstructor가 붙은 클래스의 모든 필드 탐지
+- [ ] Lombok 기반 필드에 CodeLens 표시
+- [ ] CodeLens 클릭으로 Bean 구현체 이동
+- [ ] Lombok 특화 테스트 모두 통과
+
+## 구현 예시
+```java
+@Service
+@RequiredArgsConstructor  // final 필드에 대한 생성자 자동 생성
+public class UserService {
+    private final UserRepository userRepository; // 생성자 주입됨
+    private final EmailService emailService;    // 생성자 주입됨
+    private String tempData; // 생성자 주입 안됨 (final 아님)
+    
+    // Lombok이 다음과 같은 생성자를 자동 생성:
+    // public UserService(UserRepository userRepository, EmailService emailService) {
+    //     this.userRepository = userRepository;
+    //     this.emailService = emailService;
+    // }
+}
+```
+
+## 기술적 도전사항
+- 컴파일 타임에 생성되는 코드를 소스 코드 분석으로 시뮬레이션
+- Lombok 설정 파일 (lombok.config) 고려
+- IDE의 Lombok 플러그인과의 호환성
+
+## 예상 완료 시간
+- 기본 기능: 1-2주
+- 고급 기능 및 테스트: 추가 1주
+
+## 다음 Phase 준비사항
+Phase 4를 위한 Kotlin 언어 분석 도구 및 Spring Kotlin 특화 기능 연구

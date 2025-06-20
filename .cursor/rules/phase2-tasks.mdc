@@ -1,0 +1,124 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Phase 2: 생성자 주입 및 Setter 주입 지원 - 작업 목록
+
+## 목표
+@Autowired가 없는 생성자 주입과 Setter 주입 패턴을 지원하여 Spring의 권장 주입 방식을 완전히 지원합니다.
+
+## 전제 조건
+- Phase 1 완료 ([@Autowired 어노테이션 탐지](mdc:.cursor/rules/phase1-tasks.mdc))
+- 기본 Java 파서 및 Bean 탐지기 구현 완료
+
+## 새로운 기능 요구사항
+
+### 생성자 주입 (Constructor Injection)
+- Spring Framework 5.0+ 에서는 생성자가 하나만 있으면 @Autowired 생략 가능
+- 생성자 매개변수 타입을 기반으로 Bean 주입 탐지
+- 복수 생성자가 있는 경우 @Autowired가 붙은 생성자만 처리
+
+### Setter 주입 (Setter Injection)
+- @Autowired가 붙은 setter 메소드 탐지
+- 메소드 매개변수 타입 기반 Bean 주입 탐지
+
+## 상세 작업 목록
+
+### 1. Java 파서 확장 (우선순위: 높음)
+- [ ] **1.1** `src/parsers/javaFileParser.ts` 확장
+  - 생성자 정의 추출 로직 추가
+  - 생성자 매개변수 정보 추출
+  - Setter 메소드 탐지 로직 추가
+  - 메소드 매개변수 타입 정보 추출
+
+- [ ] **1.2** 타입 정의 확장
+  - `src/types/springTypes.ts` 업데이트
+  - 생성자 주입 정보 인터페이스 추가
+  - Setter 주입 정보 인터페이스 추가
+
+### 2. 주입 패턴 탐지기 확장 (우선순위: 높음)
+- [ ] **2.1** `src/detectors/springBeanDetector.ts` 확장
+  - 생성자 주입 패턴 탐지 로직 추가
+  - Setter 주입 패턴 탐지 로직 추가
+  - 단일 생성자 자동 주입 규칙 구현
+
+- [ ] **2.2** 복잡한 주입 시나리오 처리
+  - 다중 생성자 중 @Autowired 생성자 선택
+  - Setter 메소드 명명 규칙 검증 (setXxx 패턴)
+  - 매개변수 타입과 Bean 타입 매칭
+
+### 3. CodeLens Provider 확장 (우선순위: 중간)
+- [ ] **3.1** `src/providers/codeLensProvider.ts` 확장
+  - 생성자 매개변수에 CodeLens 표시
+  - Setter 메소드 매개변수에 CodeLens 표시
+  - 주입 타입별 다른 아이콘/텍스트 표시
+
+### 4. 네비게이션 기능 확장 (우선순위: 중간)
+- [ ] **4.1** `src/providers/navigationProvider.ts` 확장
+  - 생성자 매개변수에서 Bean으로 이동
+  - Setter 매개변수에서 Bean으로 이동
+  - 주입 타입 정보 표시
+
+### 5. Bean 해결자 확장 (우선순위: 높음)
+- [ ] **5.1** `src/utils/beanResolver.ts` 확장
+  - 매개변수 타입 기반 Bean 검색 강화
+  - 제네릭 타입 처리 개선
+  - 인터페이스 기반 주입 처리
+
+### 6. 의존성 그래프 분석 (우선순위: 낮음)
+- [ ] **6.1** 순환 의존성 탐지
+  - Bean 간 의존성 그래프 구성
+  - 순환 참조 경고 표시
+  - 의존성 트리 시각화 (향후 확장)
+
+### 7. 테스트 확장 (우선순위: 중간)
+- [ ] **7.1** 생성자 주입 테스트
+  - 단일 생성자 자동 주입 테스트
+  - 다중 생성자 @Autowired 선택 테스트
+  - 매개변수 타입 매칭 테스트
+
+- [ ] **7.2** Setter 주입 테스트
+  - @Autowired setter 메소드 탐지 테스트
+  - 명명 규칙 검증 테스트
+  - Bean 해결 테스트
+
+### 8. 성능 최적화 (우선순위: 낮음)
+- [ ] **8.1** 캐싱 메커니즘 강화
+  - 생성자 정보 캐싱
+  - 메소드 정보 캐싱
+  - 의존성 그래프 캐싱
+
+## 완료 기준
+- [ ] 단일 생성자가 있는 클래스에서 자동 주입 탐지
+- [ ] @Autowired가 붙은 생성자의 매개변수 탐지
+- [ ] @Autowired setter 메소드 탐지
+- [ ] 생성자/setter 매개변수에 CodeLens 표시
+- [ ] CodeLens 클릭으로 Bean 구현체 이동
+- [ ] 모든 테스트 통과
+
+## 구현 예시
+```java
+@Service
+public class UserService {
+    private final UserRepository userRepository; // 생성자 주입
+    private EmailService emailService; // Setter 주입
+    
+    // 단일 생성자 - @Autowired 생략 가능
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+    
+    @Autowired
+    public void setEmailService(EmailService emailService) {
+        this.emailService = emailService;
+    }
+}
+```
+
+## 예상 완료 시간
+- 기본 기능: 1-2주
+- 테스트 및 최적화: 추가 1주
+
+## 다음 Phase 준비사항
+Phase 3을 위한 Lombok 어노테이션 분석 및 처리 방법 연구
