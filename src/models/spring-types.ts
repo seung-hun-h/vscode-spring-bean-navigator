@@ -176,4 +176,14 @@ export interface SpringProjectCache {
     fileParseCache: Map<string, JavaFileParseResult>;
     /** 마지막 업데이트 시간 */
     lastUpdated: Date;
+}
+
+/**
+ * Bean 해결 결과
+ */
+export interface BeanResolutionResult {
+    /** 해결된 Bean (유일한 후보가 있을 경우) */
+    resolved?: BeanDefinition;
+    /** 가능한 Bean 후보들 */
+    candidates: BeanDefinition[];
 } 
