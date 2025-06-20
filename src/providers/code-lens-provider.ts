@@ -32,33 +32,75 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
         if (!this.isJavaFile(document)) {
             return [];
         }
-
         const codeLenses: vscode.CodeLens[] = [];
 
         try {
             // Java 파일 파싱하여 @Autowired 필드 찾기
             const content = document.getText();
+            console.log('📄 Java 파일 내용 길이:', content.length);
+            
             const parseResult = await this.javaParser.parseJavaFile(document.uri, content);
+            console.log('🔍 파싱 결과:', {
+                errors: parseResult.errors.length,
+                classes: parseResult.classes.length,
+                injections: parseResult.injections.length
+            });
             
             if (parseResult.errors.length > 0) {
-                // 파싱 에러가 있으면 빈 배열 반환
+                console.log('❌ 파싱 에러:', parseResult.errors);
                 return [];
             }
 
             // 각 주입 정보에 대해 CodeLens 생성
+            console.log('🎯 주입 정보들:', parseResult.injections);
             for (const injection of parseResult.injections) {
+                console.log('🔧 CodeLens 생성 중:', {
+                    targetType: injection.targetType,
+                    targetName: injection.targetName,
+                    position: {
+                        line: injection.position.line,
+                        character: injection.position.character
+                    },
+                    range: {
+                        start: {
+                            line: injection.range.start.line,
+                            character: injection.range.start.character
+                        },
+                        end: {
+                            line: injection.range.end.line,
+                            character: injection.range.end.character
+                        }
+                    }
+                });
+                
                 const codeLens = await this.createCodeLensForInjection(injection, document);
                 if (codeLens) {
+                    console.log('✅ CodeLens 생성됨:', {
+                        range: {
+                            start: {
+                                line: codeLens.range.start.line,
+                                character: codeLens.range.start.character
+                            },
+                            end: {
+                                line: codeLens.range.end.line,
+                                character: codeLens.range.end.character
+                            }
+                        },
+                        command: codeLens.command?.title
+                    });
                     codeLenses.push(codeLens);
+                } else {
+                    console.log('❌ CodeLens 생성 실패');
                 }
             }
 
         } catch (error) {
-            console.error('CodeLens 제공 중 오류 발생:', error);
+            console.error('❌ CodeLens 제공 중 오류 발생:', error);
             // 에러 발생 시 빈 배열 반환
             return [];
         }
 
+        console.log(`🎉 총 ${codeLenses.length}개 CodeLens 반환`);
         return codeLenses;
     }
 

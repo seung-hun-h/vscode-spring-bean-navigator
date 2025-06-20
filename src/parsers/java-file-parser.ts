@@ -26,6 +26,10 @@ export class JavaFileParser {
       * @returns 파싱 결과
       */
      public async parseJavaFile(fileUri: vscode.Uri, content: string): Promise<JavaFileParseResult> {
+         console.log('🔧 Java 파일 파싱 시작:', fileUri.fsPath);
+         console.log('📝 파일 내용 길이:', content.length);
+         console.log('📝 파일 내용 미리보기:', content.substring(0, 200) + '...');
+         
          const result: JavaFileParseResult = {
              classes: [],
              beanDefinitions: [],
@@ -36,20 +40,35 @@ export class JavaFileParser {
          try {
              // Dynamic import for java-parser
              const { parse } = await import('java-parser');
+             console.log('📦 java-parser 로드 완료');
+             
              const cst = parse(content);
+             console.log('🔍 CST 파싱 완료');
+             
              const classes = this.extractClasses(cst, fileUri, content);
+             console.log('📋 클래스 정보 추출 완료:', classes.length, '개');
              
              result.classes = classes;
              
              // @Autowired 필드 탐지
+             console.log('🎯 @Autowired 필드 탐지 시작');
              const injections = this.extractAutowiredFields(classes);
+             console.log('💉 주입 정보 탐지 완료:', injections.length, '개');
+             
              result.injections = injections;
              
          } catch (error) {
              const errorMessage = error instanceof Error ? error.message : 'Unknown parsing error';
              result.errors.push(`Java 파일 파싱 실패: ${errorMessage}`);
+             console.error('❌ Java 파일 파싱 실패:', error);
          }
 
+         console.log('🏁 Java 파일 파싱 완료:', {
+             classes: result.classes.length,
+             injections: result.injections.length,
+             errors: result.errors.length
+         });
+         
          return result;
      }
 
@@ -548,8 +567,27 @@ export class JavaFileParser {
      * AST 노드의 위치 정보를 계산합니다.
      */
     private calculatePosition(node: any, lines: string[]): vscode.Position {
-        // 실제 구현에서는 CST의 위치 정보를 사용해야 함
-        // 여기서는 임시로 0,0을 반환
+        // CST에서 실제 위치 정보 추출 시도
+        try {
+            if (node?.location?.startLine !== undefined && node?.location?.startColumn !== undefined) {
+                // 1-based를 0-based로 변환
+                return new vscode.Position(node.location.startLine - 1, node.location.startColumn - 1);
+            }
+            
+            // image가 있는 경우 파일 내용에서 해당 텍스트 찾기
+            if (node?.image && typeof node.image === 'string') {
+                for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                    const columnIndex = lines[lineIndex].indexOf(node.image);
+                    if (columnIndex >= 0) {
+                        return new vscode.Position(lineIndex, columnIndex);
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('위치 계산 실패:', error);
+        }
+        
+        // fallback: 0,0 반환
         return new vscode.Position(0, 0);
     }
 
@@ -571,21 +609,42 @@ export class JavaFileParser {
       * @returns @Autowired 필드들의 주입 정보
       */
      private extractAutowiredFields(classes: ClassInfo[]): InjectionInfo[] {
+         console.log('🎯 extractAutowiredFields 시작, 클래스 수:', classes.length);
          const injections: InjectionInfo[] = [];
 
          for (const classInfo of classes) {
+             console.log('🔍 클래스 분석:', classInfo.name, '- 필드 수:', classInfo.fields.length);
+             
              for (const field of classInfo.fields) {
+                 console.log('📋 필드 분석:', field.name, '- 타입:', field.type, '- 어노테이션 수:', field.annotations.length);
+                 
+                 // 필드의 어노테이션들 로그
+                 field.annotations.forEach(ann => {
+                     console.log('  📝 어노테이션:', ann.name, '- 타입:', ann.type);
+                 });
+                 
                  // @Autowired 어노테이션이 있는 필드인지 확인
                  const autowiredAnnotation = field.annotations.find(
                      annotation => annotation.type === SpringAnnotationType.AUTOWIRED
                  );
 
                  if (autowiredAnnotation) {
+                     console.log('✅ @Autowired 필드 발견:', field.name, '- 타입:', field.type);
+                     
+                     // 실제 위치 찾기 (fallback)
+                     const actualPosition = this.findFieldPositionInContent(classInfo, field.name, field.type);
+                     
                      const injection: InjectionInfo = {
                          targetType: field.type,
                          injectionType: InjectionType.FIELD,
-                         position: field.position,
-                         range: field.range,
+                         position: actualPosition || field.position,
+                         range: new vscode.Range(
+                             actualPosition || field.position, 
+                             new vscode.Position(
+                                 (actualPosition || field.position).line, 
+                                 (actualPosition || field.position).character + field.name.length
+                             )
+                         ),
                          targetName: field.name,
                          // resolvedBean과 candidateBeans는 나중에 BeanResolver에서 설정
                          resolvedBean: undefined,
@@ -593,11 +652,58 @@ export class JavaFileParser {
                      };
 
                      injections.push(injection);
+                 } else {
+                     console.log('❌ @Autowired 어노테이션 없음:', field.name);
                  }
              }
          }
 
+         console.log('🏁 extractAutowiredFields 완료, 주입 정보 수:', injections.length);
          return injections;
+     }
+
+     /**
+      * 파일 내용에서 실제 필드 위치를 찾습니다.
+      */
+     private findFieldPositionInContent(classInfo: ClassInfo, fieldName: string, fieldType: string): vscode.Position | undefined {
+         try {
+             // 파일 내용 가져오기
+             const document = vscode.workspace.textDocuments.find(doc => doc.uri.toString() === classInfo.fileUri.toString());
+             if (!document) {
+                 return undefined;
+             }
+             
+             const content = document.getText();
+             const lines = content.split('\n');
+             
+             // @Autowired와 필드 선언 패턴 찾기
+             for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                 const line = lines[lineIndex];
+                 
+                 // @Autowired 어노테이션 찾기
+                 if (line.includes('@Autowired')) {
+                     // 다음 몇 줄에서 해당 필드 찾기
+                     for (let nextLineIndex = lineIndex + 1; nextLineIndex < Math.min(lineIndex + 5, lines.length); nextLineIndex++) {
+                         const nextLine = lines[nextLineIndex];
+                         
+                         // 필드 선언 패턴: "타입 필드명" 또는 "private 타입 필드명"
+                         const fieldPattern = new RegExp(`\\b${fieldType}\\s+${fieldName}\\b`);
+                         if (fieldPattern.test(nextLine)) {
+                             const columnIndex = nextLine.indexOf(fieldName);
+                             if (columnIndex >= 0) {
+                                 console.log('📍 실제 필드 위치 찾음:', {line: nextLineIndex, character: columnIndex});
+                                 return new vscode.Position(nextLineIndex, columnIndex);
+                             }
+                         }
+                     }
+                 }
+             }
+             
+         } catch (error) {
+             console.warn('필드 위치 찾기 실패:', error);
+         }
+         
+         return undefined;
      }
 
      /**

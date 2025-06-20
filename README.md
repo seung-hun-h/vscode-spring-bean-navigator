@@ -1,71 +1,63 @@
-# vscode-spring-bean-navigator README
+# Spring Bean Navigator
 
-This is the README for your extension "vscode-spring-bean-navigator". After writing up a brief description, we recommend including the following sections.
+Spring Framework 개발자를 위한 VSCode Extension입니다. Java 파일에서 @Autowired 어노테이션이 붙은 필드에 CodeLens를 표시하여 해당 Bean의 구현체로 쉽게 이동할 수 있습니다.
 
-## Features
+## 주요 기능
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- **@Autowired 필드 탐지**: @Autowired 어노테이션이 붙은 필드를 자동으로 감지합니다
+- **Spring Bean 탐지**: @Service, @Component, @Repository, @Controller, @RestController, @Configuration 어노테이션이 붙은 클래스를 Bean으로 인식합니다
+- **CodeLens 표시**: @Autowired 필드 옆에 "Go to Bean" 링크를 표시합니다
+- **Bean 구현체로 이동**: CodeLens를 클릭하면 해당 Bean의 구현체 클래스로 이동합니다
+- **다중 Bean 후보 지원**: 여러 구현체가 있는 경우 선택 UI를 제공합니다
 
-For example if there is an image subfolder under your extension project workspace:
+## 지원하는 Spring 어노테이션
 
-\!\[feature X\]\(images/feature-x.png\)
+- `@Autowired` (필드 주입)
+- `@Service`
+- `@Component` 
+- `@Repository`
+- `@Controller`
+- `@RestController`
+- `@Configuration`
+- `@Bean` (메소드)
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+## 사용 방법
 
-## Requirements
+1. Java 파일을 열고 @Autowired 필드를 확인합니다
+2. 필드 옆에 표시되는 CodeLens를 클릭합니다
+3. Bean 구현체 클래스로 자동 이동됩니다
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+## 명령어
 
-## Extension Settings
+- `Spring Bean Navigator: Refresh Spring Bean Definitions` - Bean 정의를 새로고침합니다
+- `Spring Bean Navigator: Show Bean Count` - 발견된 Bean 개수를 표시합니다
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+## 시스템 요구사항
 
-For example:
+- Visual Studio Code 1.101.0 이상
+- Java 파일 (*.java)
 
-This extension contributes the following settings:
+## 개발 단계
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+- **Phase 1**: @Autowired 어노테이션 탐지 ✅
+- **Phase 2**: 생성자 주입 및 Setter 주입 지원 (예정)
+- **Phase 3**: Lombok 어노테이션 지원 (예정)
+- **Phase 4**: Kotlin 지원 확장 (예정)
 
-## Known Issues
+## 알려진 이슈
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+- 현재 필드 주입(@Autowired)만 지원합니다
+- 생성자 주입은 향후 업데이트에서 지원 예정입니다
 
-## Release Notes
+## 릴리즈 노트
 
-Users appreciate release notes as you update your extension.
+### 0.0.1
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+- 초기 릴리즈
+- @Autowired 필드 탐지 기능
+- Spring Bean 탐지 기능
+- CodeLens를 통한 Bean 네비게이션 기능
 
 ---
 
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+**Spring Framework 개발을 더욱 편리하게!**

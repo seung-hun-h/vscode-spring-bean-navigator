@@ -1,23 +1,44 @@
 {
   "name": "vscode-spring-bean-navigator",
   "displayName": "Spring Bean Navigator",
-  "description": "",
+  "description": "Navigate to Spring Bean implementations from @Autowired fields",
   "version": "0.0.1",
+  "publisher": "spring-bean-navigator",
   "engines": {
-    "vscode": "^1.101.0"
+    "vscode": "^1.90.0"
   },
   "categories": [
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:java"
+    "*"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "spring-bean-navigator.goToBeanImplementation",
-        "title": "Go to Bean Implementation"
+        "command": "spring-bean-navigator.goToBean",
+        "title": "Go to Bean"
+      },
+      {
+        "command": "spring-bean-navigator.selectBean",
+        "title": "Select Bean"
+      },
+      {
+        "command": "spring-bean-navigator.beanNotFound",
+        "title": "Bean Not Found"
+      },
+      {
+        "command": "spring-bean-navigator.refresh",
+        "title": "Refresh Spring Bean Definitions"
+      },
+      {
+        "command": "spring-bean-navigator.showBeanCount",
+        "title": "Show Bean Count"
+      },
+      {
+        "command": "spring-bean-navigator.test",
+        "title": "Test Spring Bean Navigator"
       }
     ],
     "languages": [
@@ -42,7 +63,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.101.0",
+    "@types/vscode": "^1.90.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
