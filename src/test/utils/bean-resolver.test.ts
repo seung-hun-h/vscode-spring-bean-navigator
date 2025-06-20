@@ -1,7 +1,6 @@
 import * as assert from 'assert';
-import * as vscode from 'vscode';
 import { BeanResolver } from '../../utils/bean-resolver';
-import { BeanDefinition, SpringAnnotationType } from '../../models/spring-types';
+import { BeanDefinition } from '../../models/spring-types';
 import { TestUtils } from '../helpers/test-utils';
 
 suite('BeanResolver', () => {

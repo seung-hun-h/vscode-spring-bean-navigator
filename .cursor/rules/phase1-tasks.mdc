@@ -55,7 +55,7 @@ src/
   - **테스트 추가 필요**: @Autowired 탐지 로직 단위 테스트
 
 ### 3. Spring Bean 탐지기 구현 (우선순위: 높음)
-- [ ] **3.1** `src/detectors/spring-bean-detector.ts` 생성
+- [x] **3.1** `src/detectors/spring-bean-detector.ts` 생성
   - 워크스페이스 내 Java 파일 스캔
   - @Component, @Service, @Repository, @Controller 클래스 탐지
   - @Configuration 클래스의 @Bean 메소드 탐지
@@ -64,7 +64,7 @@ src/
     - 다양한 Spring 어노테이션 타입 테스트
     - 잘못된 어노테이션 무시 테스트
 
-- [ ] **3.2** Bean 정의 매핑 테이블 생성
+- [x] **3.2** Bean 정의 매핑 테이블 생성
   - Bean 이름 → 클래스 위치 매핑
   - Bean 타입 → 구현체 매핑
   - 캐싱 메커니즘 구현
@@ -74,7 +74,7 @@ src/
     - 캐시 동작 테스트
 
 ### 4. Bean 해결자 구현 (우선순위: 높음)
-- [ ] **4.1** `src/utils/bean-resolver.ts` 생성
+- [x] **4.1** `src/utils/bean-resolver.ts` 생성
   - 타입 기반 Bean 검색
   - 인터페이스 → 구현체 매핑
   - 다중 구현체 처리
