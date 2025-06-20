@@ -1,14 +1,16 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
 # Spring Bean Navigator 개발 단계 (Development Phases)
 
 ## 개발 단계 개요
 Spring Bean Navigator VSCode Extension은 4단계로 나누어 개발됩니다. 각 단계는 이전 단계의 기능을 확장하며, 점진적으로 완성도를 높여갑니다.
+각 Phase를 진행 할 때마다 진행 표시를 하고, 완료되면 완료 표시를해야합니다.
 
 ## Phase 1: @Autowired 어노테이션 탐지
+[phase1-tasks.mdc](mdc:.cursor/rules/phase1-tasks.mdc)
 **목표**: Java 파일에서 @Autowired 어노테이션이 붙은 필드를 탐지하고 해당 빈 구현체로 네비게이션 제공
 
 ### 핵심 기능
@@ -24,6 +26,7 @@ Spring Bean Navigator VSCode Extension은 4단계로 나누어 개발됩니다. 
 4. **중간**: 네비게이션 기능
 
 ## Phase 2: 생성자 주입 및 Setter 주입 지원
+[phase2-tasks.mdc](mdc:.cursor/rules/phase2-tasks.mdc)
 **목표**: @Autowired가 없는 생성자 주입과 Setter 주입 패턴 지원
 
 ### 핵심 기능
@@ -37,6 +40,7 @@ Spring Bean Navigator VSCode Extension은 4단계로 나누어 개발됩니다. 
 3. **낮음**: 의존성 순환 참조 경고
 
 ## Phase 3: Lombok 어노테이션 지원
+[phase3-tasks.mdc](mdc:.cursor/rules/phase3-tasks.mdc)
 **목표**: Lombok 어노테이션으로 생성되는 생성자 주입 지원
 
 ### 핵심 기능
@@ -50,6 +54,7 @@ Spring Bean Navigator VSCode Extension은 4단계로 나누어 개발됩니다. 
 3. **낮음**: 기타 Lombok 어노테이션 지원
 
 ## Phase 4: Kotlin 지원 확장
+[phase4-tasks.mdc](mdc:.cursor/rules/phase4-tasks.mdc)
 **목표**: Kotlin Spring 프로젝트 지원
 
 ### 핵심 기능

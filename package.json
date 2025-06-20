@@ -9,15 +9,26 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:java"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "vscode-spring-bean-navigator.helloWorld",
-        "title": "Hello World"
+        "command": "spring-bean-navigator.goToBeanImplementation",
+        "title": "Go to Bean Implementation"
+      }
+    ],
+    "languages": [
+      {
+        "id": "java",
+        "extensions": [".java"]
       }
     ]
+  },
+  "dependencies": {
+    "java-parser": "^2.3.4"
   },
   "scripts": {
     "vscode:prepublish": "npm run package",

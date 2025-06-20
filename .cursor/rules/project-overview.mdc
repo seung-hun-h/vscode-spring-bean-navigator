@@ -33,6 +33,7 @@ Spring Bean Navigator는 Java/Kotlin Spring 프레임워크 개발자를 위한 
 - **린팅**: ESLint
 
 ## 개발 단계
+[development-phases.mdc](mdc:.cursor/rules/development-phases.mdc)
 1. **Phase 1**: Java 파일에서 @Autowired 어노테이션 탐지
 2. **Phase 2**: 생성자 주입 및 Setter 주입 지원
 3. **Phase 3**: Lombok 어노테이션 지원 (@RequiredArgsConstructor, @AllArgsConstructor)

@@ -1,6 +1,6 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
 # Phase 1: @Autowired 어노테이션 탐지 - 작업 목록
@@ -30,14 +30,14 @@ src/
 ## 상세 작업 목록
 
 ### 1. 기본 설정 (우선순위: 높음)
-- [ ] **1.1** 필요한 의존성 추가
+- [x] **1.1** 필요한 의존성 추가
   - VSCode API 관련 타입
-  - Java 파일 파싱용 라이브러리 (또는 정규식 사용)
-  - [package.json](mdc:package.json) 업데이트
+  - Java 파일 파싱용 라이브러리 (`java-parser` 추가 완료)
+  - [package.json](mdc:package.json) 업데이트 (activationEvents, commands, languages 설정 완료)
 
-- [ ] **1.2** TypeScript 타입 정의 생성
-  - `src/types/springTypes.ts` 생성
-  - Bean 정보, 주입 정보 인터페이스 정의
+- [x] **1.2** TypeScript 타입 정의 생성
+  - `src/types/springTypes.ts` 생성 완료
+  - Bean 정보, 주입 정보 인터페이스 정의 완료
 
 ### 2. Java 파일 파서 구현 (우선순위: 높음)
 - [ ] **2.1** `src/parsers/javaFileParser.ts` 생성
