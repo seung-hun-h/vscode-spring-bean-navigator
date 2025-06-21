@@ -4,9 +4,10 @@ import {
     FieldInfo, 
     AnnotationInfo, 
     SpringAnnotationType, 
-    BeanDefinition,
-    InjectionInfo,
-    InjectionType
+    BeanDefinition, 
+    InjectionInfo, 
+    InjectionType,
+    ParameterInfo
 } from '../../models/spring-types';
 
 /**
@@ -147,6 +148,22 @@ export class TestUtils {
             targetName,
             resolvedBean: undefined,
             candidateBeans: undefined
+        };
+    }
+
+    /**
+     * ParameterInfo 객체를 생성합니다. (Phase 2에서 추가)
+     */
+    public static createParameterInfo(
+        name: string = 'testParam',
+        type: string = 'TestType',
+        line: number = 1,
+        column: number = 4
+    ): ParameterInfo {
+        return {
+            name,
+            type,
+            position: this.createPosition(line, column)
         };
     }
 }
