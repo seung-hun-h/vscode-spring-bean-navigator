@@ -96,189 +96,80 @@ describe('SetterInjectionDetector', () => {
 ## 상세 작업 목록 (TDD 방식)
 
 ### 1. Java 파서 확장 (우선순위: 높음)
-- [ ] **1.1** 타입 정의 확장 (테스트 먼저!)
-  - **🔴 테스트**: `src/test/models/spring-types.test.ts` 생성
-    ```typescript
-    describe('ConstructorInfo', () => {
-        it('should_haveCorrectStructure_when_constructorInfoCreated', () => {
-            // ConstructorInfo 인터페이스 구조 테스트
-        });
-    });
-    
-    describe('MethodInfo', () => {
-        it('should_identifySetterMethod_when_isSetterMethodTrue', () => {
-            // isSetterMethod 속성 테스트
-        });
-    });
-    ```
-  - **🟢 구현**: `src/models/spring-types.ts` 업데이트
-    ```typescript
-    export interface ConstructorInfo {
-        parameters: ParameterInfo[];
-        position: vscode.Position;
-        range: vscode.Range;
-        hasAutowiredAnnotation: boolean;
-    }
-    
-    export interface MethodInfo {
-        name: string;
-        parameters: ParameterInfo[];
-        position: vscode.Position;
-        range: vscode.Range;
-        annotations: AnnotationInfo[];
-        isSetterMethod: boolean;
-    }
-    
-    export interface ParameterInfo {
-        name: string;
-        type: string;
-        position: vscode.Position;
-    }
-    ```
-  - **🔵 리팩터**: 중복 제거 및 명명 일관성 확인
+- [x] **1.1** 타입 정의 확장 (테스트 먼저!)
+  - **🔴 테스트**: `src/test/models/spring-types.test.ts` 생성 ✅
+  - **🟢 구현**: `src/models/spring-types.ts` 업데이트 ✅
+    - ConstructorInfo, MethodInfo, ParameterInfo 인터페이스 추가
+    - BasePositionInfo 기반 클래스 추가  
+    - InjectionType enum에 CONSTRUCTOR, SETTER 추가
+  - **🔵 리팩터**: 중복 제거 및 명명 일관성 확인 ✅
 
-- [ ] **1.2** 생성자 추출 로직 (테스트 먼저!)
-  - **🔴 테스트**: `src/test/parsers/extractors/constructor-extractor.test.ts` 생성
-    ```typescript
-    describe('ConstructorExtractor', () => {
-        describe('extractConstructors', () => {
-            it('should_extractSingleConstructor_when_classHasOneConstructor', () => {
-                const javaCode = `
-                public class UserService {
-                    public UserService(UserRepository repo) {}
-                }`;
-                // 테스트 로직
-            });
-            
-            it('should_extractMultipleConstructors_when_classHasMultipleConstructors', () => {
-                // 다중 생성자 테스트
-            });
-            
-            it('should_extractParameterInfo_when_constructorHasParameters', () => {
-                // 매개변수 정보 추출 테스트
-            });
-        });
-    });
-    ```
-  - **🟢 구현**: `src/parsers/extractors/constructor-extractor.ts` 생성
-  - **🔵 리팩터**: 성능 및 가독성 개선
+- [x] **1.2** 생성자 추출 로직 (테스트 먼저!)
+  - **🔴 테스트**: `src/test/parsers/extractors/constructor-extractor.test.ts` 생성 ✅
+    - 18개 포괄적 테스트 케이스 작성 및 통과
+  - **🟢 구현**: `src/parsers/extractors/constructor-extractor.ts` 생성 ✅
+    - extractConstructors, parseConstructorDeclaration 구현
+    - detectAutowiredAnnotation, extractParametersFromDeclaration 구현
+    - 복잡한 매개변수 및 어노테이션 처리 지원
+  - **🔵 리팩터**: 성능 및 가독성 개선 ✅
 
-- [ ] **1.3** Setter 메소드 추출 로직 (테스트 먼저!)
-  - **🔴 테스트**: `src/test/parsers/extractors/method-extractor.test.ts` 생성
-    ```typescript
-    describe('MethodExtractor', () => {
-        describe('extractMethods', () => {
-            it('should_extractAutowiredSetters_when_autowiredSetterMethodsExist', () => {
-                const javaCode = `
-                @Autowired
-                public void setUserService(UserService service) {}`;
-                // 테스트 로직
-            });
-            
-            it('should_identifySetterPattern_when_methodNameStartsWithSet', () => {
-                // setXxx 패턴 검증 테스트
-            });
-        });
-    });
-    ```
-  - **🟢 구현**: `src/parsers/extractors/method-extractor.ts` 생성
-  - **🔵 리팩터**: 중복 코드 제거
+- [x] **1.3** Setter 메소드 추출 로직 (테스트 먼저!)
+  - **🔴 테스트**: `src/test/parsers/extractors/setter-extractor.test.ts` 생성 ✅
+    - 23개 포괄적 테스트 케이스 작성 및 통과
+  - **🟢 구현**: `src/parsers/extractors/setter-extractor.ts` 생성 ✅
+    - extractSetterMethods, parseMethodDeclaration 구현
+    - isSetterMethod, detectAutowiredAnnotation 구현
+    - 다중 라인 메서드 및 복잡한 어노테이션 지원
+  - **🔵 리팩터**: 중복 코드 제거 ✅
 
-- [ ] **1.4** Java 파서 통합 (테스트 먼저!)
-  - **🔴 테스트**: `src/test/parsers/java-file-parser.test.ts` 확장
-    ```typescript
-    describe('JavaFileParser', () => {
-        describe('parseConstructorInjections', () => {
-            it('should_parseConstructorInjections_when_validConstructorsExist', () => {
-                // 생성자 주입 파싱 통합 테스트
-            });
-        });
-        
-        describe('parseSetterInjections', () => {
-            it('should_parseSetterInjections_when_validSettersExist', () => {
-                // Setter 주입 파싱 통합 테스트
-            });
-        });
-    });
-    ```
-  - **🟢 구현**: `src/parsers/java-file-parser.ts` 확장
-  - **🔵 리팩터**: 메소드 분리 및 최적화
+- [x] **1.4** Java 파서 통합 (테스트 먼저!)
+  - **🔴 테스트**: `src/test/parsers/java-file-parser.test.ts` 확장 ✅
+    - 생성자/setter 주입 통합 테스트 10+ 케이스 추가
+  - **🟢 구현**: `src/parsers/java-file-parser.ts` 확장 ✅
+    - ConstructorExtractor, SetterExtractor 통합
+    - parseJavaFile 메서드에 생성자/메서드 정보 추가
+  - **🔵 리팩터**: 메소드 분리 및 최적화 ✅
 
 ### 2. 주입 패턴 탐지기 확장 (우선순위: 높음)
-- [ ] **2.1** 생성자 주입 탐지 로직 (테스트 먼저!)
-  - **🔴 테스트**: `src/test/detectors/constructor-injection-detector.test.ts` 생성
-    ```typescript
-    describe('ConstructorInjectionDetector', () => {
-        describe('detectSingleConstructorInjection', () => {
-            it('should_detectInjection_when_singleConstructorExists', () => {
-                // 단일 생성자 자동 주입 탐지 테스트
-            });
-            
-            it('should_notDetectInjection_when_multipleConstructorsExist', () => {
-                // 다중 생성자 시 자동 주입 안함 테스트
-            });
-        });
-        
-        describe('detectAutowiredConstructorInjection', () => {
-            it('should_detectAutowiredConstructor_when_multipleConstructorsWithAutowired', () => {
-                // @Autowired 생성자 선택 테스트
-            });
-        });
-    });
-    ```
-  - **🟢 구현**: `src/detectors/constructor-injection-detector.ts` 생성
-  - **🔵 리팩터**: Spring 규칙 정확성 검증
+- [x] **2.1** 생성자 주입 탐지 로직 (테스트 먼저!)
+  - **🔴 테스트**: `src/test/detectors/constructor-injection-detector.test.ts` 생성 ✅
+    - 16개 포괄적 테스트 케이스 작성 및 통과
+  - **🟢 구현**: `src/detectors/constructor-injection-detector.ts` 생성 ✅
+    - detectSingleConstructorInjection (Spring 5.0+ 단일 생성자 자동 주입)
+    - detectAutowiredConstructorInjection (@Autowired 생성자 선택)
+    - detectAllConstructorInjections (통합 탐지 로직)
+  - **🔵 리팩터**: Spring 규칙 정확성 검증 ✅
 
-- [ ] **2.2** Setter 주입 탐지 로직 (테스트 먼저!)
-  - **🔴 테스트**: `src/test/detectors/setter-injection-detector.test.ts` 생성
-    ```typescript
-    describe('SetterInjectionDetector', () => {
-        describe('detectSetterInjection', () => {
-            it('should_detectSetterInjection_when_autowiredSetterExists', () => {
-                // @Autowired setter 탐지 테스트
-            });
-            
-            it('should_validateSetterNaming_when_setterMethodProvided', () => {
-                // setter 명명 규칙 검증 테스트
-            });
-        });
-    });
-    ```
-  - **🟢 구현**: `src/detectors/setter-injection-detector.ts` 생성
-  - **🔵 리팩터**: 메소드 분리 및 성능 개선
+- [x] **2.2** Setter 주입 탐지 로직 (테스트 먼저!)
+  - **🔴 테스트**: `src/test/detectors/setter-injection-detector.test.ts` 생성 ✅
+    - 15개 포괄적 테스트 케이스 작성 및 통과
+  - **🟢 구현**: `src/detectors/setter-injection-detector.ts` 생성 ✅
+    - detectSetterInjection (@Autowired setter 탐지)
+    - detectAllSetterInjections (모든 클래스 처리)
+    - hasAutowiredAnnotation (어노테이션 검증)
+  - **🔵 리팩터**: 메소드 분리 및 성능 개선 ✅
 
-- [ ] **2.3** Spring Bean 탐지기 통합 (테스트 먼저!)
-  - **🔴 테스트**: `src/test/detectors/spring-bean-detector.test.ts` 확장
-    ```typescript
-    describe('SpringBeanDetector', () => {
-        describe('detectAllInjectionTypes', () => {
-            it('should_detectMixedInjections_when_fieldConstructorSetterCombined', () => {
-                // 혼합 주입 방식 탐지 테스트
-            });
-        });
-    });
-    ```
-  - **🟢 구현**: `src/detectors/spring-bean-detector.ts` 확장
-  - **🔵 리팩터**: 탐지 로직 최적화
+- [x] **2.3** Spring Bean 탐지기 통합 (테스트 먼저!)
+  - **🔴 테스트**: `src/test/detectors/spring-bean-detector.test.ts` 확장 ✅
+    - Phase 2 관련 9개 통합 테스트 추가 및 통과
+  - **🟢 구현**: `src/detectors/spring-bean-detector.ts` 확장 ✅
+    - detectAllInjectionTypes (필드+생성자+setter 통합 탐지)
+    - detectAllInjectionsInClasses (다중 클래스 처리)
+    - ConstructorInjectionDetector, SetterInjectionDetector 통합
+  - **🔵 리팩터**: 탐지 로직 최적화 ✅
 
 ### 3. Bean 해결자 확장 (우선순위: 높음)
-- [ ] **3.1** 매개변수 타입 기반 Bean 검색 (테스트 먼저!)
-  - **🔴 테스트**: `src/test/utils/bean-resolver.test.ts` 확장
-    ```typescript
-    describe('BeanResolver', () => {
-        describe('resolveBeanForParameter', () => {
-            it('should_resolveBean_when_parameterTypeMatchesBeanType', () => {
-                // 매개변수 타입으로 Bean 해결 테스트
-            });
-            
-            it('should_resolveInterfaceImplementation_when_parameterIsInterface', () => {
-                // 인터페이스 매개변수로 구현체 Bean 해결 테스트
-            });
-        });
-    });
-    ```
-  - **🟢 구현**: `src/utils/bean-resolver.ts` 확장
-  - **🔵 리팩터**: 성능 최적화
+- [x] **3.1** 매개변수 타입 기반 Bean 검색 (테스트 먼저!)
+  - **🔴 테스트**: `src/test/utils/bean-resolver.test.ts` 확장 ✅
+    - 14개 포괄적 테스트 케이스 작성 및 통과
+    - resolveBeanForParameter, resolveBeanForConstructor, resolveBeanForMethod 테스트
+    - 인터페이스 구현체 매칭, 다중 후보 처리, 성능/에지 케이스 테스트
+  - **🟢 구현**: `src/utils/bean-resolver.ts` 확장 ✅
+    - resolveBeanForParameter: 단일 매개변수 Bean 해결
+    - resolveBeanForConstructor: 생성자 모든 매개변수 Bean 해결 
+    - resolveBeanForMethod: 메서드 모든 매개변수 Bean 해결
+    - 기존 resolveBeanForInjection 로직 재활용으로 일관성 유지
+  - **🔵 리팩터**: 성능 최적화 ✅
 
 ### 4. CodeLens Provider 확장 (우선순위: 중간)
 - [ ] **4.1** 생성자/Setter CodeLens (테스트 먼저!)
@@ -471,9 +362,10 @@ npm run test:coverage
 ```
 
 ## 완료 기준 (기능 + 테스트)
-- [ ] 단일 생성자가 있는 클래스에서 자동 주입 탐지 + 단위 테스트 통과
-- [ ] @Autowired가 붙은 생성자의 매개변수 탐지 + 단위 테스트 통과
-- [ ] @Autowired setter 메소드 탐지 + 단위 테스트 통과
+- [x] 단일 생성자가 있는 클래스에서 자동 주입 탐지 + 단위 테스트 통과
+- [x] @Autowired가 붙은 생성자의 매개변수 탐지 + 단위 테스트 통과
+- [x] @Autowired setter 메소드 탐지 + 단위 테스트 통과
+- [x] 매개변수 타입 기반 Bean 해결 로직 + 단위 테스트 통과
 - [ ] 생성자/setter 매개변수에 CodeLens 표시 + UI 테스트 통과
 - [ ] CodeLens 클릭으로 Bean 구현체 이동 + 네비게이션 테스트 통과
 - [ ] 전체 워크플로우 통합 테스트 통과
