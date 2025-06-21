@@ -15,13 +15,23 @@ export enum SpringAnnotationType {
 }
 
 /**
- * 주입 타입 (향후 Phase 2, 3에서 확장)
+ * 주입 타입 (Phase 1-3에서 점진적 확장)
  */
 export enum InjectionType {
-    FIELD = 'field',           // @Autowired 필드 주입
+    FIELD = 'field',           // @Autowired 필드 주입 (Phase 1)
     CONSTRUCTOR = 'constructor', // 생성자 주입 (Phase 2)
     SETTER = 'setter',         // Setter 주입 (Phase 2)
     LOMBOK = 'lombok'          // Lombok 기반 주입 (Phase 3)
+}
+
+/**
+ * 위치 정보를 가지는 기본 인터페이스 (Phase 2 리팩토링)
+ */
+export interface BasePositionInfo {
+    /** 선언된 위치 */
+    position: vscode.Position;
+    /** 범위 (optional for backward compatibility) */
+    range?: vscode.Range;
 }
 
 /**
@@ -43,14 +53,12 @@ export interface AnnotationInfo {
 /**
  * Java 필드 정보
  */
-export interface FieldInfo {
+export interface FieldInfo extends BasePositionInfo {
     /** 필드 이름 */
     name: string;
     /** 필드 타입 (예: UserRepository, List<User>) */
     type: string;
-    /** 필드가 선언된 위치 */
-    position: vscode.Position;
-    /** 필드 범위 */
+    /** 필드 범위 (Phase 1 호환성을 위해 명시적 선언) */
     range: vscode.Range;
     /** 필드에 붙은 어노테이션들 */
     annotations: AnnotationInfo[];
@@ -63,9 +71,62 @@ export interface FieldInfo {
 }
 
 /**
- * Java 클래스 정보
+ * 매개변수 정보 (Phase 2)
+ * 생성자 및 메소드의 매개변수를 나타냄
  */
-export interface ClassInfo {
+export interface ParameterInfo {
+    /** 매개변수 이름 */
+    name: string;
+    /** 매개변수 타입 (예: UserRepository, List<User>, Optional<Service>) */
+    type: string;
+    /** 매개변수가 선언된 위치 (optional for simpler implementation) */
+    position?: vscode.Position;
+    /** 매개변수 범위 (Phase 2에서 점진적 추가, optional) */
+    range?: vscode.Range;
+    /** 매개변수 순서 (0-based, optional) */
+    index?: number;
+}
+
+/**
+ * 생성자 정보 (Phase 2)
+ * Spring의 생성자 주입을 위한 생성자 정보
+ */
+export interface ConstructorInfo extends BasePositionInfo {
+    /** 생성자 매개변수들 */
+    parameters: ParameterInfo[];
+    /** 생성자 범위 (Phase 2에서 명시적 선언) */
+    range: vscode.Range;
+    /** @Autowired 어노테이션 여부 */
+    hasAutowiredAnnotation: boolean;
+    /** 접근 제어자 (public, private, protected) */
+    visibility?: string;
+}
+
+/**
+ * 메소드 정보 (Phase 2)
+ * Spring의 Setter 주입을 위한 메소드 정보
+ */
+export interface MethodInfo extends BasePositionInfo {
+    /** 메소드 이름 */
+    name: string;
+    /** 메소드 매개변수들 */
+    parameters: ParameterInfo[];
+    /** 메소드 범위 (Phase 2에서 명시적 선언) */
+    range: vscode.Range;
+    /** 메소드에 붙은 어노테이션들 */
+    annotations: AnnotationInfo[];
+    /** Setter 메소드 여부 (setXxx 패턴 + 매개변수 1개) */
+    isSetterMethod: boolean;
+    /** 접근 제어자 (public, private, protected) */
+    visibility?: string;
+    /** 반환 타입 */
+    returnType?: string;
+}
+
+/**
+ * Java 클래스 정보 (Phase 2에서 확장)
+ */
+export interface ClassInfo extends BasePositionInfo {
     /** 클래스 이름 */
     name: string;
     /** 패키지 이름 */
@@ -74,14 +135,16 @@ export interface ClassInfo {
     fullyQualifiedName: string;
     /** 클래스가 정의된 파일 URI */
     fileUri: vscode.Uri;
-    /** 클래스가 선언된 위치 */
-    position: vscode.Position;
-    /** 클래스 범위 */
+    /** 클래스 범위 (Phase 1 호환성을 위해 명시적 선언) */
     range: vscode.Range;
     /** 클래스에 붙은 어노테이션들 */
     annotations: AnnotationInfo[];
     /** 클래스 필드들 */
     fields: FieldInfo[];
+    /** 클래스 생성자들 (Phase 2에서 점진적 추가, optional) */
+    constructors?: ConstructorInfo[];
+    /** 클래스 메소드들 (Phase 2에서 점진적 추가, optional) */
+    methods?: MethodInfo[];
     /** 임포트 문들 */
     imports: string[];
 }
