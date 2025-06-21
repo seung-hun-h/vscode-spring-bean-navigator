@@ -1,8 +1,14 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { SpringBeanDetector } from '../../detectors/spring-bean-detector';
-import { BeanDefinition, SpringAnnotationType } from '../../models/spring-types';
-import { JavaSampleGenerator } from '../helpers/test-utils';
+import { 
+    BeanDefinition, 
+    SpringAnnotationType, 
+    InjectionInfo, 
+    InjectionType,
+    ClassInfo
+} from '../../models/spring-types';
+import { JavaSampleGenerator, TestUtils } from '../helpers/test-utils';
 
 suite('SpringBeanDetector', () => {
     let detector: SpringBeanDetector;
@@ -304,6 +310,287 @@ suite('SpringBeanDetector', () => {
             const bean = beans[0];
             const interfaces = (bean as any).interfaces as string[] | undefined;
             assert.ok(!interfaces || interfaces.length === 0, 'Should not have interfaces');
+        });
+    });
+
+    // ===== Phase 2: 생성자 주입 및 Setter 주입 탐지 =====
+
+    suite('detectAllInjectionTypes', () => {
+        test('should_detectMixedInjections_when_fieldConstructorSetterCombined', () => {
+            // Arrange
+            const autowiredAnnotation = TestUtils.createAnnotationInfo('Autowired', SpringAnnotationType.AUTOWIRED);
+            
+            // 필드 주입
+            const autowiredField = TestUtils.createFieldInfo('userRepository', 'UserRepository', [autowiredAnnotation]);
+            
+            // 생성자 주입
+            const constructorParam = TestUtils.createParameterInfo('emailService', 'EmailService');
+            const constructor = {
+                parameters: [constructorParam],
+                position: TestUtils.createPosition(8, 4),
+                range: TestUtils.createRange(8, 4, 10, 5),
+                hasAutowiredAnnotation: false // 단일 생성자는 @Autowired 생략
+            };
+
+            // Setter 주입
+            const setterParam = TestUtils.createParameterInfo('smsService', 'SmsService');
+            const setterMethod = {
+                name: 'setSmsService',
+                parameters: [setterParam],
+                position: TestUtils.createPosition(12, 4),
+                range: TestUtils.createRange(12, 4, 14, 5),
+                annotations: [autowiredAnnotation],
+                isSetterMethod: true
+            };
+
+            const classInfo = TestUtils.createClassInfo('UserService', 'com.example.service', [autowiredField], []);
+            classInfo.constructors = [constructor];
+            classInfo.methods = [setterMethod];
+
+            // Act
+            const result = detector.detectAllInjectionTypes(classInfo);
+
+            // Assert
+            assert.strictEqual(result.length, 3, 'Should detect all 3 injection types');
+            
+            // 필드 주입 확인
+            const fieldInjection = result.find((i: InjectionInfo) => i.injectionType === InjectionType.FIELD);
+            assert.ok(fieldInjection, 'Should find field injection');
+            assert.strictEqual(fieldInjection.targetType, 'UserRepository', 'Should detect UserRepository field injection');
+            
+            // 생성자 주입 확인
+            const constructorInjection = result.find((i: InjectionInfo) => i.injectionType === InjectionType.CONSTRUCTOR);
+            assert.ok(constructorInjection, 'Should find constructor injection');
+            assert.strictEqual(constructorInjection.targetType, 'EmailService', 'Should detect EmailService constructor injection');
+            
+            // Setter 주입 확인
+            const setterInjection = result.find((i: InjectionInfo) => i.injectionType === InjectionType.SETTER);
+            assert.ok(setterInjection, 'Should find setter injection');
+            assert.strictEqual(setterInjection.targetType, 'SmsService', 'Should detect SmsService setter injection');
+        });
+
+        test('should_detectConstructorInjectionsOnly_when_onlyConstructorInjectionsExist', () => {
+            // Arrange
+            const param1 = TestUtils.createParameterInfo('userRepository', 'UserRepository');
+            const param2 = TestUtils.createParameterInfo('emailService', 'EmailService');
+            
+            const constructor = {
+                parameters: [param1, param2],
+                position: TestUtils.createPosition(5, 4),
+                range: TestUtils.createRange(5, 4, 7, 5),
+                hasAutowiredAnnotation: false // 단일 생성자
+            };
+
+            const classInfo = TestUtils.createClassInfo('OrderService', 'com.example.service', [], []);
+            classInfo.constructors = [constructor];
+
+            // Act
+            const result = detector.detectAllInjectionTypes(classInfo);
+
+            // Assert
+            assert.strictEqual(result.length, 2, 'Should detect 2 constructor injections');
+            result.forEach((injection: InjectionInfo) => {
+                assert.strictEqual(injection.injectionType, InjectionType.CONSTRUCTOR, 'All should be constructor injections');
+            });
+        });
+
+        test('should_detectSetterInjectionsOnly_when_onlySetterInjectionsExist', () => {
+            // Arrange
+            const autowiredAnnotation = TestUtils.createAnnotationInfo('Autowired', SpringAnnotationType.AUTOWIRED);
+            
+            const setter1 = {
+                name: 'setUserRepository',
+                parameters: [TestUtils.createParameterInfo('userRepository', 'UserRepository')],
+                position: TestUtils.createPosition(5, 4),
+                range: TestUtils.createRange(5, 4, 7, 5),
+                annotations: [autowiredAnnotation],
+                isSetterMethod: true
+            };
+
+            const setter2 = {
+                name: 'setEmailService',
+                parameters: [TestUtils.createParameterInfo('emailService', 'EmailService')],
+                position: TestUtils.createPosition(9, 4),
+                range: TestUtils.createRange(9, 4, 11, 5),
+                annotations: [autowiredAnnotation],
+                isSetterMethod: true
+            };
+
+            const classInfo = TestUtils.createClassInfo('NotificationService', 'com.example.service', [], []);
+            classInfo.methods = [setter1, setter2];
+
+            // Act
+            const result = detector.detectAllInjectionTypes(classInfo);
+
+            // Assert
+            assert.strictEqual(result.length, 2, 'Should detect 2 setter injections');
+            result.forEach((injection: InjectionInfo) => {
+                assert.strictEqual(injection.injectionType, InjectionType.SETTER, 'All should be setter injections');
+            });
+        });
+
+        test('should_returnEmptyArray_when_noInjectionsExist', () => {
+            // Arrange
+            const regularField = TestUtils.createFieldInfo('regularField', 'String', []); // @Autowired 없음
+            const classInfo = TestUtils.createClassInfo('PlainService', 'com.example.service', [regularField], []);
+
+            // Act
+            const result = detector.detectAllInjectionTypes(classInfo);
+
+            // Assert
+            assert.strictEqual(result.length, 0, 'Should return empty array when no injections exist');
+        });
+
+        test('should_handleNullClassInfo_when_nullProvided', () => {
+            // Arrange
+            const nullClass = null as any;
+
+            // Act
+            const result = detector.detectAllInjectionTypes(nullClass);
+
+            // Assert
+            assert.strictEqual(result.length, 0, 'Should return empty array for null class');
+        });
+    });
+
+    suite('detectAllInjectionsInClasses', () => {
+        test('should_detectInjectionsFromMultipleClasses_when_multipleClassesProvided', () => {
+            // Arrange
+            const autowiredAnnotation = TestUtils.createAnnotationInfo('Autowired', SpringAnnotationType.AUTOWIRED);
+            
+            // 첫 번째 클래스: 필드 주입
+            const class1Field = TestUtils.createFieldInfo('userRepository', 'UserRepository', [autowiredAnnotation]);
+            const class1 = TestUtils.createClassInfo('UserService', 'com.example.service', [class1Field], []);
+            
+            // 두 번째 클래스: 생성자 주입
+            const class2Constructor = {
+                parameters: [TestUtils.createParameterInfo('emailService', 'EmailService')],
+                position: TestUtils.createPosition(5, 4),
+                range: TestUtils.createRange(5, 4, 7, 5),
+                hasAutowiredAnnotation: false
+            };
+            const class2 = TestUtils.createClassInfo('NotificationService', 'com.example.service', [], []);
+            class2.constructors = [class2Constructor];
+
+            // 세 번째 클래스: Setter 주입
+            const class3Setter = {
+                name: 'setSmsService',
+                parameters: [TestUtils.createParameterInfo('smsService', 'SmsService')],
+                position: TestUtils.createPosition(5, 4),
+                range: TestUtils.createRange(5, 4, 7, 5),
+                annotations: [autowiredAnnotation],
+                isSetterMethod: true
+            };
+            const class3 = TestUtils.createClassInfo('SmsService', 'com.example.service', [], []);
+            class3.methods = [class3Setter];
+
+            const classes = [class1, class2, class3];
+
+            // Act
+            const result = detector.detectAllInjectionsInClasses(classes);
+
+            // Assert
+            assert.strictEqual(result.length, 3, 'Should detect injections from all classes');
+            
+            const fieldInjection = result.find((i: InjectionInfo) => i.injectionType === InjectionType.FIELD);
+            assert.ok(fieldInjection, 'Should find field injection');
+            
+            const constructorInjection = result.find((i: InjectionInfo) => i.injectionType === InjectionType.CONSTRUCTOR);
+            assert.ok(constructorInjection, 'Should find constructor injection');
+            
+            const setterInjection = result.find((i: InjectionInfo) => i.injectionType === InjectionType.SETTER);
+            assert.ok(setterInjection, 'Should find setter injection');
+        });
+
+        test('should_returnEmptyArray_when_emptyClassListProvided', () => {
+            // Arrange
+            const classes: ClassInfo[] = [];
+
+            // Act
+            const result = detector.detectAllInjectionsInClasses(classes);
+
+            // Assert
+            assert.strictEqual(result.length, 0, 'Should return empty array for empty class list');
+        });
+
+        test('should_handleClassesWithoutInjections_when_noInjectionsExist', () => {
+            // Arrange
+            const class1 = TestUtils.createClassInfo('PlainService1', 'com.example', [], []);
+            const class2 = TestUtils.createClassInfo('PlainService2', 'com.example', [], []);
+            const classes = [class1, class2];
+
+            // Act
+            const result = detector.detectAllInjectionsInClasses(classes);
+
+            // Assert
+            assert.strictEqual(result.length, 0, 'Should return empty array when no injections exist');
+        });
+    });
+
+    suite('Integration Tests for Phase 2', () => {
+        test('should_processRealWorldMixedInjectionScenario_when_completeSpringServiceProvided', () => {
+            // Arrange - 실제 Spring 서비스와 유사한 복잡한 구조
+            const autowiredAnnotation = TestUtils.createAnnotationInfo('Autowired', SpringAnnotationType.AUTOWIRED);
+            
+            // 필드 주입: Repository
+            const repositoryField = TestUtils.createFieldInfo('userRepository', 'UserRepository', [autowiredAnnotation]);
+            
+            // 생성자 주입: 필수 의존성들
+            const emailServiceParam = TestUtils.createParameterInfo('emailService', 'EmailService');
+            const configParam = TestUtils.createParameterInfo('appConfig', 'ApplicationProperties');
+            const constructor = {
+                parameters: [emailServiceParam, configParam],
+                position: TestUtils.createPosition(12, 4),
+                range: TestUtils.createRange(12, 4, 15, 5),
+                hasAutowiredAnnotation: false // 단일 생성자
+            };
+
+            // Setter 주입: 선택적 의존성들
+            const smsServiceSetter = {
+                name: 'setSmsService',
+                parameters: [TestUtils.createParameterInfo('smsService', 'SmsService')],
+                position: TestUtils.createPosition(17, 4),
+                range: TestUtils.createRange(17, 4, 19, 5),
+                annotations: [autowiredAnnotation],
+                isSetterMethod: true
+            };
+
+            const auditServiceSetter = {
+                name: 'setAuditService',
+                parameters: [TestUtils.createParameterInfo('auditService', 'AuditService')],
+                position: TestUtils.createPosition(21, 4),
+                range: TestUtils.createRange(21, 4, 23, 5),
+                annotations: [autowiredAnnotation],
+                isSetterMethod: true
+            };
+
+            const userServiceClass = TestUtils.createClassInfo('UserService', 'com.example.service', [repositoryField], []);
+            userServiceClass.constructors = [constructor];
+            userServiceClass.methods = [smsServiceSetter, auditServiceSetter];
+
+            // Act
+            const result = detector.detectAllInjectionTypes(userServiceClass);
+
+            // Assert
+            assert.strictEqual(result.length, 5, 'Should detect all 5 injections');
+            
+            // 주입 타입별 검증
+            const fieldInjections = result.filter((i: InjectionInfo) => i.injectionType === InjectionType.FIELD);
+            assert.strictEqual(fieldInjections.length, 1, 'Should have 1 field injection');
+            
+            const constructorInjections = result.filter((i: InjectionInfo) => i.injectionType === InjectionType.CONSTRUCTOR);
+            assert.strictEqual(constructorInjections.length, 2, 'Should have 2 constructor injections');
+            
+            const setterInjections = result.filter((i: InjectionInfo) => i.injectionType === InjectionType.SETTER);
+            assert.strictEqual(setterInjections.length, 2, 'Should have 2 setter injections');
+
+            // 특정 타입 존재 확인
+            const typeNames = result.map((i: InjectionInfo) => i.targetType);
+            assert.ok(typeNames.includes('UserRepository'), 'Should include UserRepository');
+            assert.ok(typeNames.includes('EmailService'), 'Should include EmailService');
+            assert.ok(typeNames.includes('ApplicationProperties'), 'Should include ApplicationProperties');
+            assert.ok(typeNames.includes('SmsService'), 'Should include SmsService');
+            assert.ok(typeNames.includes('AuditService'), 'Should include AuditService');
         });
     });
 }); 

@@ -1,15 +1,27 @@
 import * as vscode from 'vscode';
-import { BeanDefinition, SpringAnnotationType, ClassInfo } from '../models/spring-types';
+import { 
+    BeanDefinition, 
+    SpringAnnotationType, 
+    ClassInfo, 
+    InjectionInfo,
+    InjectionType 
+} from '../models/spring-types';
 import { JavaFileParser } from '../parsers/java-file-parser';
+import { ConstructorInjectionDetector } from './constructor-injection-detector';
+import { SetterInjectionDetector } from './setter-injection-detector';
 
 /**
  * Spring Bean을 탐지하고 Bean 정의를 생성하는 클래스
  */
 export class SpringBeanDetector {
     private javaParser: JavaFileParser;
+    private constructorDetector: ConstructorInjectionDetector;
+    private setterDetector: SetterInjectionDetector;
     
     constructor() {
         this.javaParser = new JavaFileParser();
+        this.constructorDetector = new ConstructorInjectionDetector();
+        this.setterDetector = new SetterInjectionDetector();
     }
 
     /**
@@ -223,5 +235,102 @@ export class SpringBeanDetector {
         ]);
         
         return beanAnnotations.has(annotationType);
+    }
+
+    // ===== Phase 2: 생성자 주입 및 Setter 주입 탐지 =====
+
+    /**
+     * 클래스에서 모든 타입의 주입을 탐지합니다 (필드 + 생성자 + setter).
+     * 
+     * @param classInfo 분석할 클래스 정보
+     * @returns 발견된 모든 주입 정보들
+     */
+    public detectAllInjectionTypes(classInfo: ClassInfo): InjectionInfo[] {
+        const injections: InjectionInfo[] = [];
+
+        if (!classInfo) {
+            return injections;
+        }
+
+        try {
+            // 1. 필드 주입 탐지 (@Autowired 필드)
+            const fieldInjections = this.detectFieldInjections(classInfo);
+            injections.push(...fieldInjections);
+
+            // 2. 생성자 주입 탐지
+            const constructorInjections = this.constructorDetector.detectAllConstructorInjections([classInfo]);
+            injections.push(...constructorInjections);
+
+            // 3. Setter 주입 탐지
+            const setterInjections = this.setterDetector.detectAllSetterInjections([classInfo]);
+            injections.push(...setterInjections);
+
+        } catch (error) {
+            console.error('주입 탐지 중 오류 발생:', error);
+        }
+
+        return injections;
+    }
+
+    /**
+     * 여러 클래스에서 모든 주입을 탐지합니다.
+     * 
+     * @param classes 분석할 클래스들
+     * @returns 발견된 모든 주입 정보들
+     */
+    public detectAllInjectionsInClasses(classes: ClassInfo[]): InjectionInfo[] {
+        const allInjections: InjectionInfo[] = [];
+
+        if (!classes || !Array.isArray(classes)) {
+            return allInjections;
+        }
+
+        for (const classInfo of classes) {
+            const classInjections = this.detectAllInjectionTypes(classInfo);
+            allInjections.push(...classInjections);
+        }
+
+        return allInjections;
+    }
+
+    /**
+     * 클래스에서 @Autowired 필드 주입을 탐지합니다.
+     * 
+     * @param classInfo 분석할 클래스 정보
+     * @returns 발견된 필드 주입 정보들
+     */
+    private detectFieldInjections(classInfo: ClassInfo): InjectionInfo[] {
+        const injections: InjectionInfo[] = [];
+
+        if (!classInfo.fields || !Array.isArray(classInfo.fields)) {
+            return injections;
+        }
+
+        for (const field of classInfo.fields) {
+            if (!field || !field.annotations || !Array.isArray(field.annotations)) {
+                continue;
+            }
+
+            // @Autowired 어노테이션 확인
+            const hasAutowired = field.annotations.some(annotation => 
+                annotation && annotation.type === SpringAnnotationType.AUTOWIRED
+            );
+
+            if (hasAutowired) {
+                const injection: InjectionInfo = {
+                    targetType: field.type,
+                    injectionType: InjectionType.FIELD,
+                    position: field.position,
+                    range: field.range,
+                    targetName: field.name,
+                    resolvedBean: undefined,
+                    candidateBeans: undefined
+                };
+
+                injections.push(injection);
+            }
+        }
+
+        return injections;
     }
 } 
