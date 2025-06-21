@@ -8,15 +8,13 @@ import {
     InjectionInfo,
     InjectionType
 } from '../models/spring-types';
+import { JAVA_PARSER_CONFIG } from './config/java-parser-config';
+import { ErrorHandler, CSTParsingError, AnnotationParsingError } from './core/parser-errors';
 
 /**
  * Java 파일을 파싱하여 Spring 관련 정보를 추출하는 클래스
  */
 export class JavaFileParser {
-    private static readonly SPRING_ANNOTATIONS = new Set([
-        'Component', 'Service', 'Repository', 'Controller', 'RestController',
-        'Configuration', 'Bean', 'Autowired'
-    ]);
 
          /**
       * Java 파일을 파싱하여 클래스 정보를 추출합니다.
@@ -47,9 +45,9 @@ export class JavaFileParser {
              result.injections = injections;
              
          } catch (error) {
-             const errorMessage = error instanceof Error ? error.message : 'Unknown parsing error';
-             result.errors.push(`Java 파일 파싱 실패: ${errorMessage}`);
-             console.error('❌ Java 파일 파싱 실패:', error);
+             const parsingError = ErrorHandler.handleParsingError(error, 'Java 파일 파싱');
+             result.errors.push(ErrorHandler.createUserFriendlyMessage(parsingError));
+             ErrorHandler.logError(parsingError, { fileUri: fileUri.toString() });
          }
          
          return result;
@@ -436,8 +434,9 @@ export class JavaFileParser {
      * 어노테이션을 파싱합니다.
      */
     private parseAnnotation(annotation: any, lines: string[]): AnnotationInfo | undefined {
+        let annotationName: string | undefined;
+        
         try {
-            let annotationName: string | undefined;
             let parameters = new Map<string, string>();
             
             // 실제 구조: annotation.children = ['At', 'typeName'] 또는 ['At', 'typeName', 'LParen', 'elementValuePairList', 'RParen']
@@ -452,7 +451,7 @@ export class JavaFileParser {
             }
 
             // Spring 어노테이션인지 확인
-            if (!JavaFileParser.SPRING_ANNOTATIONS.has(annotationName)) {
+            if (!JAVA_PARSER_CONFIG.SPRING_ANNOTATIONS.has(annotationName)) {
                 return undefined;
             }
 
@@ -478,7 +477,12 @@ export class JavaFileParser {
             return annotationInfo;
             
         } catch (error) {
-            console.error('어노테이션 파싱 실패:', error);
+            const annotationError = new AnnotationParsingError(
+                '어노테이션 파싱 실패',
+                annotationName,
+                error instanceof Error ? error : undefined
+            );
+            ErrorHandler.logError(annotationError);
             return undefined;
         }
     }
@@ -578,8 +582,8 @@ export class JavaFileParser {
             console.warn('위치 계산 실패:', error);
         }
         
-        // fallback: 0,0 반환
-        return new vscode.Position(0, 0);
+        // fallback: 설정값 반환
+        return new vscode.Position(JAVA_PARSER_CONFIG.POSITION_FALLBACK.line, JAVA_PARSER_CONFIG.POSITION_FALLBACK.character);
     }
 
          /**
@@ -588,8 +592,8 @@ export class JavaFileParser {
      private calculateRange(node: any, lines: string[]): vscode.Range {
          // 실제 구현에서는 CST의 위치 정보를 사용해야 함
          // 여기서는 임시로 첫 번째 라인을 반환
-         const start = new vscode.Position(0, 0);
-         const end = new vscode.Position(0, lines[0]?.length || 0);
+         const start = new vscode.Position(JAVA_PARSER_CONFIG.POSITION_FALLBACK.line, JAVA_PARSER_CONFIG.POSITION_FALLBACK.character);
+         const end = new vscode.Position(JAVA_PARSER_CONFIG.POSITION_FALLBACK.line, lines[0]?.length || JAVA_PARSER_CONFIG.POSITION_FALLBACK.character);
          return new vscode.Range(start, end);
      }
 
@@ -658,8 +662,8 @@ export class JavaFileParser {
                  
                  // @Autowired 어노테이션 찾기
                  if (line.includes('@Autowired')) {
-                     // 다음 몇 줄에서 해당 필드 찾기
-                     for (let nextLineIndex = lineIndex + 1; nextLineIndex < Math.min(lineIndex + 5, lines.length); nextLineIndex++) {
+                                         // 다음 몇 줄에서 해당 필드 찾기
+                    for (let nextLineIndex = lineIndex + 1; nextLineIndex < Math.min(lineIndex + JAVA_PARSER_CONFIG.MAX_FIELD_SEARCH_LINES, lines.length); nextLineIndex++) {
                          const nextLine = lines[nextLineIndex];
                          
                          // 필드 선언 패턴: "타입 필드명" 또는 "private 타입 필드명"
@@ -854,19 +858,12 @@ export class JavaFileParser {
             this.collectAllIdentifiers(node, identifiers);
             
             // Implements 키워드와 Java 구문 기호들은 제외하고 실제 인터페이스 이름만 필터링
-            const javaKeywordsAndSymbols = new Set([
-                'Implements', 'implements', 'extends', 'Extends',
-                ',', '<', '>', '(', ')', '[', ']', '{', '}',
-                'public', 'private', 'protected', 'static', 'final',
-                'class', 'interface', 'enum', 'package', 'import'
-            ]);
-            
             const filteredIdentifiers = identifiers.filter(id => 
                 id && 
                 id.trim() !== '' && 
-                !javaKeywordsAndSymbols.has(id) &&
+                !JAVA_PARSER_CONFIG.JAVA_KEYWORDS_AND_SYMBOLS.has(id) &&
                 // 첫 글자가 대문자인 것만 (Java 인터페이스 명명 규칙)
-                /^[A-Z][a-zA-Z0-9_]*$/.test(id)
+                JAVA_PARSER_CONFIG.INTERFACE_NAME_REGEX.test(id)
             );
             
             // 중복 제거
