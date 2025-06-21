@@ -92,7 +92,7 @@ export class SpringBeanDetector {
         
         const fullyQualifiedName = classInfo.fullyQualifiedName;
         
-        return {
+        const beanDefinition: BeanDefinition = {
             name: beanName,
             type: className,
             implementationClass: fullyQualifiedName,
@@ -106,6 +106,14 @@ export class SpringBeanDetector {
             annotationType,
             fullyQualifiedName
         };
+
+        // 인터페이스 정보가 있으면 Bean 정의에 포함
+        const interfaces = (classInfo as any).interfaces as string[] | undefined;
+        if (interfaces && interfaces.length > 0) {
+            (beanDefinition as any).interfaces = interfaces;
+        }
+
+        return beanDefinition;
     }
 
     /**

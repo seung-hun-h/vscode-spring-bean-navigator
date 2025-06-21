@@ -221,4 +221,89 @@ suite('SpringBeanDetector', () => {
             assert.strictEqual(detector.isSpringBeanAnnotation(SpringAnnotationType.AUTOWIRED), false);
         });
     });
+
+    suite('Interface Implementation Integration', () => {
+        test('should_includeInterfaceInfo_when_detectingBeansFromImplementationClass', async () => {
+            // Arrange
+            const content = `
+                package com.example.service;
+                import org.springframework.stereotype.Service;
+                
+                @Service
+                public class MessageServiceImpl implements MessageService {
+                    public void sendMessage(String message) {
+                        // 구현
+                    }
+                }
+            `.trim();
+            const mockUri = vscode.Uri.parse('file:///src/MessageServiceImpl.java');
+
+            // Act
+            const beans = await detector.detectBeansInContent(content, mockUri);
+
+            // Assert
+            assert.strictEqual(beans.length, 1, 'Should detect one bean');
+            
+            const bean = beans[0];
+            assert.strictEqual(bean.name, 'messageServiceImpl', 'Should generate correct bean name');
+            assert.strictEqual(bean.type, 'MessageServiceImpl', 'Should have correct type');
+            
+            // 핵심: 인터페이스 정보가 포함되어 있는지 확인
+            const interfaces = (bean as any).interfaces as string[] | undefined;
+            assert.ok(interfaces, 'Bean should include interface information');
+            assert.ok(interfaces.includes('MessageService'), 'Should include MessageService interface');
+        });
+
+        test('should_includeMultipleInterfaces_when_implementingMultipleInterfaces', async () => {
+            // Arrange
+            const content = `
+                package com.example.service;
+                import org.springframework.stereotype.Service;
+                
+                @Service
+                public class MultiServiceImpl implements MessageService, NotificationService {
+                    public void sendMessage(String message) { }
+                    public void sendNotification(String notification) { }
+                }
+            `.trim();
+            const mockUri = vscode.Uri.parse('file:///src/MultiServiceImpl.java');
+
+            // Act
+            const beans = await detector.detectBeansInContent(content, mockUri);
+
+            // Assert
+            assert.strictEqual(beans.length, 1, 'Should detect one bean');
+            
+            const bean = beans[0];
+            const interfaces = (bean as any).interfaces as string[] | undefined;
+            assert.ok(interfaces, 'Bean should include interface information');
+            assert.strictEqual(interfaces.length, 2, 'Should include two interfaces');
+            assert.ok(interfaces.includes('MessageService'), 'Should include MessageService');
+            assert.ok(interfaces.includes('NotificationService'), 'Should include NotificationService');
+        });
+
+        test('should_notIncludeInterfaces_when_classDoesNotImplementInterfaces', async () => {
+            // Arrange
+            const content = `
+                package com.example.service;
+                import org.springframework.stereotype.Service;
+                
+                @Service
+                public class StandaloneService {
+                    public void doSomething() { }
+                }
+            `.trim();
+            const mockUri = vscode.Uri.parse('file:///src/StandaloneService.java');
+
+            // Act
+            const beans = await detector.detectBeansInContent(content, mockUri);
+
+            // Assert
+            assert.strictEqual(beans.length, 1, 'Should detect one bean');
+            
+            const bean = beans[0];
+            const interfaces = (bean as any).interfaces as string[] | undefined;
+            assert.ok(!interfaces || interfaces.length === 0, 'Should not have interfaces');
+        });
+    });
 }); 

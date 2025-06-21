@@ -75,19 +75,6 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
                 
                 const codeLens = await this.createCodeLensForInjection(injection, document);
                 if (codeLens) {
-                    console.log('✅ CodeLens 생성됨:', {
-                        range: {
-                            start: {
-                                line: codeLens.range.start.line,
-                                character: codeLens.range.start.character
-                            },
-                            end: {
-                                line: codeLens.range.end.line,
-                                character: codeLens.range.end.character
-                            }
-                        },
-                        command: codeLens.command?.title
-                    });
                     codeLenses.push(codeLens);
                 } else {
                     console.log('❌ CodeLens 생성 실패');
@@ -133,7 +120,8 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
     ): Promise<vscode.CodeLens | undefined> {
         // Bean 해결 시도
         const resolutionResult = this.beanResolver.resolveBeanForInjection(injection.targetType);
-        
+
+
         let title: string;
         let command: string;
         let args: any[] = [];

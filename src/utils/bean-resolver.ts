@@ -105,6 +105,9 @@ export class BeanResolver {
      */
     public resolveBeanForInjection(targetType: string): BeanResolutionResult {
         const candidates = this.findBeansByType(targetType);
+
+        console.log(this.beansByType.get('AskUgcService'));
+        console.log(this.beansByType.get('AskUgcServiceImpl'));
         
         if (candidates.length === 0) {
             return {

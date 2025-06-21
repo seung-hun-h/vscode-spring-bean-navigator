@@ -26,10 +26,6 @@ export class JavaFileParser {
       * @returns 파싱 결과
       */
      public async parseJavaFile(fileUri: vscode.Uri, content: string): Promise<JavaFileParseResult> {
-         console.log('🔧 Java 파일 파싱 시작:', fileUri.fsPath);
-         console.log('📝 파일 내용 길이:', content.length);
-         console.log('📝 파일 내용 미리보기:', content.substring(0, 200) + '...');
-         
          const result: JavaFileParseResult = {
              classes: [],
              beanDefinitions: [],
@@ -40,21 +36,14 @@ export class JavaFileParser {
          try {
              // Dynamic import for java-parser
              const { parse } = await import('java-parser');
-             console.log('📦 java-parser 로드 완료');
              
              const cst = parse(content);
-             console.log('🔍 CST 파싱 완료');
-             
              const classes = this.extractClasses(cst, fileUri, content);
-             console.log('📋 클래스 정보 추출 완료:', classes.length, '개');
              
              result.classes = classes;
              
              // @Autowired 필드 탐지
-             console.log('🎯 @Autowired 필드 탐지 시작');
              const injections = this.extractAutowiredFields(classes);
-             console.log('💉 주입 정보 탐지 완료:', injections.length, '개');
-             
              result.injections = injections;
              
          } catch (error) {
@@ -62,12 +51,6 @@ export class JavaFileParser {
              result.errors.push(`Java 파일 파싱 실패: ${errorMessage}`);
              console.error('❌ Java 파일 파싱 실패:', error);
          }
-
-         console.log('🏁 Java 파일 파싱 완료:', {
-             classes: result.classes.length,
-             injections: result.injections.length,
-             errors: result.errors.length
-         });
          
          return result;
      }
@@ -224,6 +207,9 @@ export class JavaFileParser {
             // 필드 정보 추출
             const fields = this.extractFields(classDecl, lines);
 
+            // 인터페이스 정보 추출
+            const interfaces = this.extractImplementedInterfaces(classDecl);
+
             const fullyQualifiedName = packageName ? `${packageName}.${className}` : className;
 
             const classInfo: ClassInfo = {
@@ -237,6 +223,11 @@ export class JavaFileParser {
                 fields,
                 imports
             };
+
+            // 인터페이스 정보를 확장 속성으로 추가
+            if (interfaces.length > 0) {
+                (classInfo as any).interfaces = interfaces;
+            }
 
             return classInfo;
             
@@ -609,28 +600,16 @@ export class JavaFileParser {
       * @returns @Autowired 필드들의 주입 정보
       */
      private extractAutowiredFields(classes: ClassInfo[]): InjectionInfo[] {
-         console.log('🎯 extractAutowiredFields 시작, 클래스 수:', classes.length);
          const injections: InjectionInfo[] = [];
 
          for (const classInfo of classes) {
-             console.log('🔍 클래스 분석:', classInfo.name, '- 필드 수:', classInfo.fields.length);
-             
              for (const field of classInfo.fields) {
-                 console.log('📋 필드 분석:', field.name, '- 타입:', field.type, '- 어노테이션 수:', field.annotations.length);
-                 
-                 // 필드의 어노테이션들 로그
-                 field.annotations.forEach(ann => {
-                     console.log('  📝 어노테이션:', ann.name, '- 타입:', ann.type);
-                 });
-                 
                  // @Autowired 어노테이션이 있는 필드인지 확인
                  const autowiredAnnotation = field.annotations.find(
                      annotation => annotation.type === SpringAnnotationType.AUTOWIRED
                  );
 
                  if (autowiredAnnotation) {
-                     console.log('✅ @Autowired 필드 발견:', field.name, '- 타입:', field.type);
-                     
                      // 실제 위치 찾기 (fallback)
                      const actualPosition = this.findFieldPositionInContent(classInfo, field.name, field.type);
                      
@@ -652,13 +631,10 @@ export class JavaFileParser {
                      };
 
                      injections.push(injection);
-                 } else {
-                     console.log('❌ @Autowired 어노테이션 없음:', field.name);
                  }
              }
          }
 
-         console.log('🏁 extractAutowiredFields 완료, 주입 정보 수:', injections.length);
          return injections;
      }
 
@@ -691,7 +667,6 @@ export class JavaFileParser {
                          if (fieldPattern.test(nextLine)) {
                              const columnIndex = nextLine.indexOf(fieldName);
                              if (columnIndex >= 0) {
-                                 console.log('📍 실제 필드 위치 찾음:', {line: nextLineIndex, character: columnIndex});
                                  return new vscode.Position(nextLineIndex, columnIndex);
                              }
                          }
@@ -786,4 +761,196 @@ export class JavaFileParser {
          
          return injections;
      }
+
+    /**
+     * 클래스가 구현하는 인터페이스들을 추출합니다.
+     * 
+     * @param classDecl 클래스 선언 CST 노드
+     * @returns 구현하는 인터페이스 이름들
+     */
+    private extractImplementedInterfaces(classDecl: any): string[] {
+        const interfaces: string[] = [];
+        
+        try {
+            const normalClassDecl = classDecl.children?.normalClassDeclaration?.[0];
+            
+            if (normalClassDecl?.children) {
+                // superinterfaces 직접 확인
+                const superinterfaces = normalClassDecl.children.superinterfaces;
+                
+                if (superinterfaces && superinterfaces.length > 0) {
+                    // interfaceTypeList 확인
+                    const interfaceTypeList = superinterfaces[0].children?.interfaceTypeList;
+                    if (interfaceTypeList && interfaceTypeList.length > 0) {
+                        // interfaceType들 확인
+                        const interfaceTypes = interfaceTypeList[0].children?.interfaceType;
+                        if (interfaceTypes && Array.isArray(interfaceTypes)) {
+                            for (const interfaceType of interfaceTypes) {
+                                const interfaceName = this.extractInterfaceName(interfaceType);
+                                if (interfaceName) {
+                                    interfaces.push(interfaceName);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // 대안: 재귀적으로 Implements 키워드와 Identifier 찾기
+                    const foundInterfaces = this.findInterfacesRecursively(normalClassDecl);
+                    interfaces.push(...foundInterfaces);
+                }
+            }
+            
+        } catch (error) {
+            console.error('인터페이스 추출 실패:', error);
+        }
+        
+        return interfaces;
+    }
+
+    /**
+     * 재귀적으로 CST를 탐색해서 implements 절의 인터페이스들을 찾습니다.
+     */
+    private findInterfacesRecursively(node: any): string[] {
+        const interfaces: string[] = [];
+        
+        if (!node) {
+            return interfaces;
+        }
+        
+        try {
+            // Implements 키워드를 찾았다면 그 다음에 오는 Identifier들을 수집
+            if (node.children?.Implements) {
+                const identifiers = this.collectIdentifiersAfterImplements(node);
+                interfaces.push(...identifiers);
+            }
+            
+            // 자식 노드들을 재귀적으로 탐색
+            if (node.children) {
+                for (const key of Object.keys(node.children)) {
+                    if (Array.isArray(node.children[key])) {
+                        for (const child of node.children[key]) {
+                            const childInterfaces = this.findInterfacesRecursively(child);
+                            interfaces.push(...childInterfaces);
+                        }
+                    }
+                }
+            }
+            
+        } catch (error) {
+            console.error('재귀 탐색 실패:', error);
+        }
+        
+        return interfaces;
+    }
+
+    /**
+     * Implements 키워드 이후의 Identifier들을 수집합니다.
+     */
+    private collectIdentifiersAfterImplements(node: any): string[] {
+        const identifiers: string[] = [];
+        
+        try {
+            // 현재 노드와 자식 노드에서 Identifier 찾기
+            this.collectAllIdentifiers(node, identifiers);
+            
+            // Implements 키워드와 Java 구문 기호들은 제외하고 실제 인터페이스 이름만 필터링
+            const javaKeywordsAndSymbols = new Set([
+                'Implements', 'implements', 'extends', 'Extends',
+                ',', '<', '>', '(', ')', '[', ']', '{', '}',
+                'public', 'private', 'protected', 'static', 'final',
+                'class', 'interface', 'enum', 'package', 'import'
+            ]);
+            
+            const filteredIdentifiers = identifiers.filter(id => 
+                id && 
+                id.trim() !== '' && 
+                !javaKeywordsAndSymbols.has(id) &&
+                // 첫 글자가 대문자인 것만 (Java 인터페이스 명명 규칙)
+                /^[A-Z][a-zA-Z0-9_]*$/.test(id)
+            );
+            
+            // 중복 제거
+            const uniqueInterfaces = [...new Set(filteredIdentifiers)];
+            
+            return uniqueInterfaces;
+            
+        } catch (error) {
+            console.error('Identifier 수집 실패:', error);
+        }
+        
+        return identifiers;
+    }
+
+    /**
+     * 노드에서 모든 Identifier를 재귀적으로 수집합니다.
+     */
+    private collectAllIdentifiers(node: any, identifiers: string[]): void {
+        if (!node) {
+            return;
+        }
+        
+        try {
+            // Identifier 노드인 경우
+            if (node.image && typeof node.image === 'string') {
+                identifiers.push(node.image);
+            }
+            
+            // 자식 노드 탐색
+            if (node.children) {
+                for (const key of Object.keys(node.children)) {
+                    if (Array.isArray(node.children[key])) {
+                        for (const child of node.children[key]) {
+                            this.collectAllIdentifiers(child, identifiers);
+                        }
+                    }
+                }
+            }
+            
+        } catch (error) {
+            console.error('Identifier 수집 중 오류:', error);
+        }
+    }
+
+    /**
+     * 개별 인터페이스 타입에서 인터페이스 이름을 추출합니다.
+     * 
+     * @param interfaceType 인터페이스 타입 CST 노드
+     * @returns 인터페이스 이름
+     */
+    private extractInterfaceName(interfaceType: any): string | undefined {
+        try {
+            // interfaceType 구조: classType
+            const classType = interfaceType.children?.classType?.[0];
+            
+            if (classType) {
+                // classType에서 Identifier 추출
+                const identifiers = classType.children?.Identifier;
+                
+                if (identifiers && Array.isArray(identifiers)) {
+                    // 패키지명이 포함된 경우 마지막 부분만 가져오기
+                    const interfaceName = identifiers[identifiers.length - 1].image;
+                    return interfaceName;
+                }
+                
+                // 단일 Identifier인 경우
+                if (classType.children?.Identifier?.image) {
+                    return classType.children.Identifier.image;
+                }
+            }
+            
+            // 다른 구조일 경우 대안 시도
+            if (interfaceType.children?.Identifier) {
+                const identifiers = interfaceType.children.Identifier;
+                if (Array.isArray(identifiers)) {
+                    return identifiers[identifiers.length - 1].image;
+                }
+                return identifiers.image;
+            }
+            
+        } catch (error) {
+            console.error('인터페이스 이름 추출 실패:', error);
+        }
+        
+        return undefined;
+    }
 } 

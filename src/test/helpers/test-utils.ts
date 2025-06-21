@@ -480,6 +480,133 @@ export class JavaSampleGenerator {
         }
         `.trim();
     }
+
+    /**
+     * 인터페이스를 구현하는 클래스
+     */
+    public static interfaceImplementationClass(): string {
+        return `
+        package com.example.service;
+
+        import org.springframework.stereotype.Service;
+
+        @Service
+        public class MessageServiceImpl implements MessageService {
+            
+            public void sendMessage(String message) {
+                // 구현
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * 여러 인터페이스를 구현하는 클래스
+     */
+    public static multipleInterfaceImplementationClass(): string {
+        return `
+        package com.example.service;
+
+        import org.springframework.stereotype.Service;
+
+        @Service
+        public class MultiServiceImpl implements MessageService, NotificationService {
+            
+            public void sendMessage(String message) {
+                // 구현
+            }
+            
+            public void sendNotification(String notification) {
+                // 구현
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * 상속만 하고 인터페이스 구현은 하지 않는 클래스
+     */
+    public static extendsOnlyClass(): string {
+        return `
+        package com.example.service;
+
+        import org.springframework.stereotype.Service;
+
+        @Service
+        public class ExtendedService extends BaseService {
+            
+            public void extendedMethod() {
+                // 구현
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * 인터페이스를 구현하면서 @Autowired 필드도 가지는 클래스
+     */
+    public static autowiredImplementationClass(): string {
+        return `
+        package com.example.service;
+
+        import org.springframework.stereotype.Service;
+        import org.springframework.beans.factory.annotation.Autowired;
+
+        @Service
+        public class MessageServiceImpl implements MessageService {
+            
+            @Autowired
+            private NotificationService notificationService;
+            
+            public void sendMessage(String message) {
+                notificationService.sendNotification(message);
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * 제네릭 인터페이스를 구현하는 클래스
+     */
+    public static genericInterfaceImplementationClass(): string {
+        return `
+        package com.example.repository;
+
+        import org.springframework.stereotype.Repository;
+
+        @Repository
+        public class UserRepositoryImpl implements Repository<User, Long> {
+            
+            public User findById(Long id) {
+                // 구현
+                return null;
+            }
+            
+            public void save(User entity) {
+                // 구현
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * 인터페이스를 구현하지 않는 일반 클래스
+     */
+    public static noInterfaceClass(): string {
+        return `
+        package com.example.service;
+
+        import org.springframework.stereotype.Service;
+
+        @Service
+        public class StandaloneService {
+            
+            public void doSomething() {
+                // 구현
+            }
+        }
+        `.trim();
+    }
 }
 
 /**

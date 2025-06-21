@@ -458,4 +458,115 @@ suite('JavaFileParser', () => {
             assert.ok(endTime - startTime < 10000, 'Should handle multiple parsing calls efficiently');
         });
     });
+
+    suite('Interface Implementation Parsing', () => {
+        test('should_extractImplementedInterfaces_when_classImplementsInterface', async () => {
+            // Arrange
+            const content = JavaSampleGenerator.interfaceImplementationClass();
+
+            // Act
+            const result = await parser.parseJavaFile(mockUri, content);
+
+            // Assert
+            assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
+            assert.strictEqual(result.classes.length, 1, 'Should parse one class');
+            
+            const classInfo = result.classes[0];
+            assert.strictEqual(classInfo.name, 'MessageServiceImpl');
+            
+            // 인터페이스 정보가 추출되었는지 확인
+            const interfaces = (classInfo as any).interfaces as string[] | undefined;
+            assert.ok(interfaces, 'Should extract implemented interfaces');
+            assert.ok(interfaces.includes('MessageService'), 'Should include MessageService interface');
+        });
+
+        test('should_extractMultipleInterfaces_when_classImplementsMultiple', async () => {
+            // Arrange
+            const content = JavaSampleGenerator.multipleInterfaceImplementationClass();
+
+            // Act
+            const result = await parser.parseJavaFile(mockUri, content);
+
+            // Assert
+            assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
+            const classInfo = result.classes[0];
+            
+            const interfaces = (classInfo as any).interfaces as string[] | undefined;
+            assert.ok(interfaces, 'Should extract implemented interfaces');
+            assert.strictEqual(interfaces.length, 2, 'Should extract two interfaces');
+            assert.ok(interfaces.includes('MessageService'), 'Should include MessageService');
+            assert.ok(interfaces.includes('NotificationService'), 'Should include NotificationService');
+        });
+
+        test('should_notExtractInterfaces_when_classExtendsButNoImplements', async () => {
+            // Arrange
+            const content = JavaSampleGenerator.extendsOnlyClass();
+
+            // Act
+            const result = await parser.parseJavaFile(mockUri, content);
+
+            // Assert
+            assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
+            const classInfo = result.classes[0];
+            
+            const interfaces = (classInfo as any).interfaces as string[] | undefined;
+            assert.ok(!interfaces || interfaces.length === 0, 'Should not have interfaces when only extending');
+        });
+
+        test('should_extractInterfacesAndAutowired_when_implementationClassHasInjection', async () => {
+            // Arrange: MessageServiceImpl implements MessageService and has @Autowired field
+            const content = JavaSampleGenerator.autowiredImplementationClass();
+
+            // Act
+            const result = await parser.parseJavaFile(mockUri, content);
+
+            // Assert
+            assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
+            assert.strictEqual(result.classes.length, 1, 'Should parse one class');
+            assert.strictEqual(result.injections.length, 1, 'Should find one @Autowired injection');
+            
+            const classInfo = result.classes[0];
+            assert.strictEqual(classInfo.name, 'MessageServiceImpl');
+            
+            // 인터페이스 정보 확인
+            const interfaces = (classInfo as any).interfaces as string[] | undefined;
+            assert.ok(interfaces && interfaces.includes('MessageService'), 'Should implement MessageService');
+            
+            // 주입 정보 확인  
+            const injection = result.injections[0];
+            assert.strictEqual(injection.targetType, 'NotificationService', 'Should inject NotificationService');
+        });
+
+        test('should_handleGenericInterfaces_when_interfaceHasTypeParameters', async () => {
+            // Arrange
+            const content = JavaSampleGenerator.genericInterfaceImplementationClass();
+
+            // Act
+            const result = await parser.parseJavaFile(mockUri, content);
+
+            // Assert
+            assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
+            const classInfo = result.classes[0];
+            
+            const interfaces = (classInfo as any).interfaces as string[] | undefined;
+            assert.ok(interfaces, 'Should extract implemented interfaces');
+            // 제네릭 인터페이스도 기본 이름으로 추출되어야 함
+            assert.ok(interfaces.some(i => i.includes('Repository')), 'Should extract Repository interface');
+        });
+
+        test('should_returnEmptyInterfaces_when_classImplementsNothing', async () => {
+            // Arrange
+            const content = JavaSampleGenerator.noInterfaceClass();
+
+            // Act
+            const result = await parser.parseJavaFile(mockUri, content);
+
+            // Assert
+            assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
+            const classInfo = result.classes[0];
+            
+            const interfaces = (classInfo as any).interfaces as string[] | undefined;
+            assert.ok(!interfaces || interfaces.length === 0, 'Should have no interfaces');
+        });
+    });
 }); 
