@@ -427,9 +427,9 @@ suite('🚀 Extension Integration Test Suite - Phase 1', () => {
 			assert.deepStrictEqual(candidateNames, ['UserRepositoryJpaImpl', 'UserRepositoryMongoImpl']);
 			
 			console.log('✅ 다중 구현체 후보 처리 시뮬레이션 완료');
-		});
 	});
-	
+});
+
 	suiteTeardown(() => {
 		console.log('=== Phase 1 통합 테스트 완료 ===');
 		console.log('🎉 Phase 1 통합 테스트 성공!');

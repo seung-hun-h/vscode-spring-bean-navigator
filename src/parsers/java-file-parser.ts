@@ -14,6 +14,8 @@ import { AnnotationParser } from './extractors/annotation-parser';
 import { FieldExtractor } from './extractors/field-extractor';
 import { ClassExtractor } from './extractors/class-extractor';
 import { AutowiredDetector } from './extractors/autowired-detector';
+import { ConstructorExtractor } from './extractors/constructor-extractor';
+import { SetterExtractor } from './extractors/setter-extractor';
 
 /**
  * Java 파일을 파싱하여 Spring 관련 정보를 추출하는 클래스
@@ -25,6 +27,8 @@ export class JavaFileParser {
     private readonly fieldExtractor: FieldExtractor;
     private readonly classExtractor: ClassExtractor;
     private readonly autowiredDetector: AutowiredDetector;
+    private readonly constructorExtractor: ConstructorExtractor;
+    private readonly setterExtractor: SetterExtractor;
 
     constructor() {
         this.cstNavigator = new CSTNavigator();
@@ -33,6 +37,8 @@ export class JavaFileParser {
         this.fieldExtractor = new FieldExtractor(this.positionCalculator, this.annotationParser);
         this.classExtractor = new ClassExtractor(this.cstNavigator, this.positionCalculator, this.annotationParser, this.fieldExtractor);
         this.autowiredDetector = new AutowiredDetector(this.positionCalculator);
+        this.constructorExtractor = new ConstructorExtractor();
+        this.setterExtractor = new SetterExtractor();
     }
 
     /**
@@ -56,6 +62,21 @@ export class JavaFileParser {
 
             const cst = parse(content);
             const classes = this.classExtractor.extractClasses(cst, fileUri, content);
+
+            // Phase 2: 생성자 주입 및 Setter 주입 정보 추가
+            for (const classInfo of classes) {
+                // 생성자 정보 추출
+                const constructors = this.constructorExtractor.extractConstructors(content, fileUri);
+                if (constructors.length > 0) {
+                    classInfo.constructors = constructors;
+                }
+
+                // Setter 메서드 정보 추출
+                const setterMethods = this.setterExtractor.extractSetterMethods(content, fileUri);
+                if (setterMethods.length > 0) {
+                    classInfo.methods = setterMethods;
+                }
+            }
 
             result.classes = classes;
 

@@ -607,6 +607,195 @@ export class JavaSampleGenerator {
         }
         `.trim();
     }
+
+    // ===== Phase 2: 생성자 주입 및 Setter 주입 테스트용 샘플 =====
+
+    /**
+     * 단일 생성자 주입 (Spring 5.0+ @Autowired 생략)
+     */
+    public static singleConstructorInjection(): string {
+        return `
+        package com.example.service;
+
+        import org.springframework.stereotype.Service;
+
+        @Service
+        public class OrderService {
+            private final UserRepository userRepository;
+            private final ProductRepository productRepository;
+            
+            public OrderService(UserRepository userRepository, ProductRepository productRepository) {
+                this.userRepository = userRepository;
+                this.productRepository = productRepository;
+            }
+            
+            public void processOrder() {
+                // 구현
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * 다중 생성자 중 @Autowired가 붙은 생성자
+     */
+    public static multipleConstructorWithAutowired(): string {
+        return `
+        package com.example.service;
+
+        import org.springframework.stereotype.Service;
+        import org.springframework.beans.factory.annotation.Autowired;
+
+        @Service
+        public class PaymentService {
+            private UserRepository userRepository;
+            private PaymentGateway paymentGateway;
+            
+            public PaymentService() {
+                // 기본 생성자
+            }
+            
+            @Autowired
+            public PaymentService(UserRepository userRepository, PaymentGateway paymentGateway) {
+                this.userRepository = userRepository;
+                this.paymentGateway = paymentGateway;
+            }
+            
+            public void processPayment() {
+                // 구현
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * Setter 주입 (@Autowired setter 메서드)
+     */
+    public static setterInjection(): string {
+        return `
+        package com.example.service;
+
+        import org.springframework.stereotype.Service;
+        import org.springframework.beans.factory.annotation.Autowired;
+
+        @Service
+        public class NotificationService {
+            private EmailService emailService;
+            private SmsService smsService;
+            
+            @Autowired
+            public void setEmailService(EmailService emailService) {
+                this.emailService = emailService;
+            }
+            
+            @Autowired
+            public void setSmsService(SmsService smsService) {
+                this.smsService = smsService;
+            }
+            
+            public void sendNotification() {
+                // 구현
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * 혼합 주입 (필드 + 생성자 + Setter)
+     */
+    public static mixedInjection(): string {
+        return `
+        package com.example.service;
+
+        import org.springframework.stereotype.Service;
+        import org.springframework.beans.factory.annotation.Autowired;
+
+        @Service
+        public class UserService {
+            @Autowired
+            private UserRepository userRepository; // 필드 주입
+            
+            private final EmailService emailService; // 생성자 주입
+            private SmsService smsService; // Setter 주입
+            
+            public UserService(EmailService emailService) {
+                this.emailService = emailService;
+            }
+            
+            @Autowired
+            public void setSmsService(SmsService smsService) {
+                this.smsService = smsService;
+            }
+            
+            public void processUser() {
+                // 구현
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * 복잡한 생성자 주입 (여러 어노테이션, 제네릭 타입)
+     */
+    public static complexConstructorInjection(): string {
+        return `
+        package com.example.service;
+
+        import org.springframework.stereotype.Service;
+        import org.springframework.beans.factory.annotation.Autowired;
+        import org.springframework.beans.factory.annotation.Qualifier;
+        import org.springframework.beans.factory.annotation.Value;
+
+        @Service
+        public class ComplexService {
+            private final Repository<User> userRepository;
+            private final List<MessageService> messageServices;
+            private final String configValue;
+            
+            @Autowired
+            public ComplexService(
+                @Qualifier("userRepo") Repository<User> userRepository,
+                List<MessageService> messageServices,
+                @Value("\${app.config}") String configValue
+            ) {
+                this.userRepository = userRepository;
+                this.messageServices = messageServices;
+                this.configValue = configValue;
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * 복잡한 Setter 주입 (여러 어노테이션, 제네릭 타입)
+     */
+    public static complexSetterInjection(): string {
+        return `
+        package com.example.service;
+
+        import org.springframework.stereotype.Service;
+        import org.springframework.beans.factory.annotation.Autowired;
+        import org.springframework.beans.factory.annotation.Qualifier;
+        import org.springframework.beans.factory.annotation.Value;
+
+        @Service
+        public class ComplexSetterService {
+            private Repository<User> userRepository;
+            private String configValue;
+            
+            @Autowired
+            @Qualifier("primary")
+            public void setUserRepository(Repository<User> userRepository) {
+                this.userRepository = userRepository;
+            }
+            
+            @Autowired
+            public void setConfigValue(@Value("\${app.name}") String configValue) {
+                this.configValue = configValue;
+            }
+        }
+        `.trim();
+    }
 }
 
 /**
