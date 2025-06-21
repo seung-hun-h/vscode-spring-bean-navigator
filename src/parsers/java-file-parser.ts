@@ -9,10 +9,11 @@ import {
     InjectionType
 } from '../models/spring-types';
 import { JAVA_PARSER_CONFIG } from './config/java-parser-config';
-import { ErrorHandler, CSTParsingError, AnnotationParsingError } from './core/parser-errors';
+import { ErrorHandler } from './core/parser-errors';
 import { CSTNavigator } from './core/cst-navigator';
 import { PositionCalculator } from './core/position-calculator';
 import { AnnotationParser } from './extractors/annotation-parser';
+import { FieldExtractor } from './extractors/field-extractor';
 
 /**
  * Java 파일을 파싱하여 Spring 관련 정보를 추출하는 클래스
@@ -21,11 +22,13 @@ export class JavaFileParser {
     private readonly cstNavigator: CSTNavigator;
     private readonly positionCalculator: PositionCalculator;
     private readonly annotationParser: AnnotationParser;
+    private readonly fieldExtractor: FieldExtractor;
 
     constructor() {
         this.cstNavigator = new CSTNavigator();
         this.positionCalculator = new PositionCalculator();
         this.annotationParser = new AnnotationParser(this.positionCalculator);
+        this.fieldExtractor = new FieldExtractor(this.positionCalculator, this.annotationParser);
     }
 
          /**
@@ -133,7 +136,7 @@ export class JavaFileParser {
             const annotations = this.extractClassAnnotations(classDecl, lines);
 
             // 필드 정보 추출
-            const fields = this.extractFields(classDecl, lines);
+            const fields = this.fieldExtractor.extractFields(classDecl, lines);
 
             // 인터페이스 정보 추출
             const interfaces = this.extractImplementedInterfaces(classDecl);
@@ -193,172 +196,17 @@ export class JavaFileParser {
         return annotations;
     }
 
-    /**
-     * 클래스의 필드들을 추출합니다.
-     */
-    private extractFields(classDecl: any, lines: string[]): FieldInfo[] {
-        const fields: FieldInfo[] = [];
-        
-        try {
-            const classBody = classDecl.children?.normalClassDeclaration?.[0]?.children?.classBody?.[0];
-            const classMemberDeclarations = classBody?.children?.classBodyDeclaration;
-            
-            if (classMemberDeclarations) {
-                for (const memberDecl of classMemberDeclarations) {
-                    if (memberDecl.children?.classMemberDeclaration?.[0]?.children?.fieldDeclaration) {
-                        const fieldDecl = memberDecl.children.classMemberDeclaration[0].children.fieldDeclaration[0];
-                        const fieldInfo = this.parseFieldDeclaration(fieldDecl, lines);
-                        
-                        if (fieldInfo) {
-                            fields.push(fieldInfo);
-                        }
-                    }
-                }
-            }
-            
-        } catch (error) {
-            console.error('필드 추출 실패:', error);
-        }
-        
-        return fields;
-    }
 
-    /**
-     * 필드 선언을 파싱하여 FieldInfo 객체를 생성합니다.
-     */
-    private parseFieldDeclaration(fieldDecl: any, lines: string[]): FieldInfo | undefined {
-        try {
-            // 필드 타입 추출
-            const fieldType = this.extractFieldType(fieldDecl);
-            
-            // 필드 이름 추출
-            const fieldName = this.extractFieldName(fieldDecl);
-            
-            if (!fieldType || !fieldName) {
-                return undefined;
-            }
 
-            // 위치 정보 계산
-            const position = this.positionCalculator.calculatePosition(fieldDecl, lines);
-            const range = this.positionCalculator.calculateRange(fieldDecl, lines);
 
-            // 필드 어노테이션 추출
-            const annotations = this.extractFieldAnnotations(fieldDecl, lines);
 
-            // 접근 제한자 및 키워드 추출
-            const modifiers = this.extractFieldModifiers(fieldDecl);
 
-            const fieldInfo: FieldInfo = {
-                name: fieldName,
-                type: fieldType,
-                position,
-                range,
-                annotations,
-                visibility: modifiers.visibility,
-                isFinal: modifiers.isFinal,
-                isStatic: modifiers.isStatic
-            };
 
-            return fieldInfo;
-            
-        } catch (error) {
-            console.error('필드 파싱 실패:', error);
-            return undefined;
-        }
-    }
 
-    /**
-     * 필드 타입을 추출합니다.
-     */
-    private extractFieldType(fieldDecl: any): string | undefined {
-        try {
-            const unannType = fieldDecl.children?.unannType?.[0];
-            // 실제 구조: unannType → unannReferenceType → unannClassOrInterfaceType → unannClassType → Identifier
-            if (unannType?.children?.unannReferenceType?.[0]?.children?.unannClassOrInterfaceType?.[0]?.children?.unannClassType?.[0]?.children?.Identifier?.[0]?.image) {
-                const typeName = unannType.children.unannReferenceType[0].children.unannClassOrInterfaceType[0].children.unannClassType[0].children.Identifier[0].image;
-                return typeName;
-            }
-            
-        } catch (error) {
-            console.error('필드 타입 추출 실패:', error);
-        }
-        
-        return undefined;
-    }
 
-    /**
-     * 필드 이름을 추출합니다.
-     */
-    private extractFieldName(fieldDecl: any): string | undefined {
-        try {
-            const variableDeclarators = fieldDecl.children?.variableDeclaratorList?.[0]?.children?.variableDeclarator;
-            if (variableDeclarators && variableDeclarators.length > 0) {
-                return variableDeclarators[0].children?.variableDeclaratorId?.[0]?.children?.Identifier?.[0]?.image;
-            }
-        } catch (error) {
-            console.error('필드 이름 추출 실패:', error);
-        }
-        return undefined;
-    }
 
-    /**
-     * 필드의 어노테이션들을 추출합니다.
-     */
-    private extractFieldAnnotations(fieldDecl: any, lines: string[]): AnnotationInfo[] {
-        const annotations: AnnotationInfo[] = [];
-        
-        try {
-            const fieldModifiers = fieldDecl.children?.fieldModifier;
-            
-            if (fieldModifiers) {
-                for (const modifier of fieldModifiers) {
-                    if (modifier.children?.annotation) {
-                        const annotation = this.annotationParser.parseAnnotation(modifier.children.annotation[0], lines);
-                        if (annotation) {
-                            annotations.push(annotation);
-                        }
-                    }
-                }
-            }
-            
-        } catch (error) {
-            console.error('필드 어노테이션 추출 실패:', error);
-        }
-        
-        return annotations;
-    }
 
-    /**
-     * 필드의 접근 제한자 및 키워드를 추출합니다.
-     */
-    private extractFieldModifiers(fieldDecl: any): { visibility?: string; isFinal: boolean; isStatic: boolean } {
-        const result = { visibility: undefined as string | undefined, isFinal: false, isStatic: false };
-        
-        try {
-            const fieldModifiers = fieldDecl.children?.fieldModifier;
-            
-            if (fieldModifiers) {
-                for (const modifier of fieldModifiers) {
-                    if (modifier.children?.Public) {
-                        result.visibility = 'public';
-                    } else if (modifier.children?.Private) {
-                        result.visibility = 'private';
-                    } else if (modifier.children?.Protected) {
-                        result.visibility = 'protected';
-                    } else if (modifier.children?.Final) {
-                        result.isFinal = true;
-                    } else if (modifier.children?.Static) {
-                        result.isStatic = true;
-                    }
-                }
-            }
-            
-        } catch (error) {
-            console.error('필드 제한자 추출 실패:', error);
-        }
-        
-        return result;
-    }
+
 
 
 
