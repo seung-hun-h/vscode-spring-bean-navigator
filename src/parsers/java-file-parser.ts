@@ -11,15 +11,18 @@ import {
 import { JAVA_PARSER_CONFIG } from './config/java-parser-config';
 import { ErrorHandler, CSTParsingError, AnnotationParsingError } from './core/parser-errors';
 import { CSTNavigator } from './core/cst-navigator';
+import { PositionCalculator } from './core/position-calculator';
 
 /**
  * Java 파일을 파싱하여 Spring 관련 정보를 추출하는 클래스
  */
 export class JavaFileParser {
     private readonly cstNavigator: CSTNavigator;
+    private readonly positionCalculator: PositionCalculator;
 
     constructor() {
         this.cstNavigator = new CSTNavigator();
+        this.positionCalculator = new PositionCalculator();
     }
 
          /**
@@ -120,8 +123,8 @@ export class JavaFileParser {
             }
 
             // 클래스 위치 정보 계산
-            const position = this.calculatePosition(classDecl, lines);
-            const range = this.calculateRange(classDecl, lines);
+            const position = this.positionCalculator.calculatePosition(classDecl, lines);
+            const range = this.positionCalculator.calculateRange(classDecl, lines);
 
             // 클래스 어노테이션 추출
             const annotations = this.extractClassAnnotations(classDecl, lines);
@@ -233,8 +236,8 @@ export class JavaFileParser {
             }
 
             // 위치 정보 계산
-            const position = this.calculatePosition(fieldDecl, lines);
-            const range = this.calculateRange(fieldDecl, lines);
+            const position = this.positionCalculator.calculatePosition(fieldDecl, lines);
+            const range = this.positionCalculator.calculateRange(fieldDecl, lines);
 
             // 필드 어노테이션 추출
             const annotations = this.extractFieldAnnotations(fieldDecl, lines);
@@ -388,7 +391,7 @@ export class JavaFileParser {
             }
 
             // 위치 정보 계산 (실제로는 더 정확한 계산이 필요)
-            const position = this.calculatePosition(annotation, lines);
+            const position = this.positionCalculator.calculatePosition(annotation, lines);
 
             const annotationInfo: AnnotationInfo = {
                 name: annotationName,
@@ -482,44 +485,7 @@ export class JavaFileParser {
         }
     }
 
-    /**
-     * AST 노드의 위치 정보를 계산합니다.
-     */
-    private calculatePosition(node: any, lines: string[]): vscode.Position {
-        // CST에서 실제 위치 정보 추출 시도
-        try {
-            if (node?.location?.startLine !== undefined && node?.location?.startColumn !== undefined) {
-                // 1-based를 0-based로 변환
-                return new vscode.Position(node.location.startLine - 1, node.location.startColumn - 1);
-            }
-            
-            // image가 있는 경우 파일 내용에서 해당 텍스트 찾기
-            if (node?.image && typeof node.image === 'string') {
-                for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-                    const columnIndex = lines[lineIndex].indexOf(node.image);
-                    if (columnIndex >= 0) {
-                        return new vscode.Position(lineIndex, columnIndex);
-                    }
-                }
-            }
-        } catch (error) {
-            console.warn('위치 계산 실패:', error);
-        }
-        
-        // fallback: 설정값 반환
-        return new vscode.Position(JAVA_PARSER_CONFIG.POSITION_FALLBACK.line, JAVA_PARSER_CONFIG.POSITION_FALLBACK.character);
-    }
 
-         /**
-      * AST 노드의 범위 정보를 계산합니다.
-      */
-     private calculateRange(node: any, lines: string[]): vscode.Range {
-         // 실제 구현에서는 CST의 위치 정보를 사용해야 함
-         // 여기서는 임시로 첫 번째 라인을 반환
-         const start = new vscode.Position(JAVA_PARSER_CONFIG.POSITION_FALLBACK.line, JAVA_PARSER_CONFIG.POSITION_FALLBACK.character);
-         const end = new vscode.Position(JAVA_PARSER_CONFIG.POSITION_FALLBACK.line, lines[0]?.length || JAVA_PARSER_CONFIG.POSITION_FALLBACK.character);
-         return new vscode.Range(start, end);
-     }
 
      /**
       * 클래스들에서 @Autowired 어노테이션이 붙은 필드들을 추출하여 주입 정보를 생성합니다.
@@ -580,27 +546,8 @@ export class JavaFileParser {
              const content = document.getText();
              const lines = content.split('\n');
              
-             // @Autowired와 필드 선언 패턴 찾기
-             for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-                 const line = lines[lineIndex];
-                 
-                 // @Autowired 어노테이션 찾기
-                 if (line.includes('@Autowired')) {
-                                         // 다음 몇 줄에서 해당 필드 찾기
-                    for (let nextLineIndex = lineIndex + 1; nextLineIndex < Math.min(lineIndex + JAVA_PARSER_CONFIG.MAX_FIELD_SEARCH_LINES, lines.length); nextLineIndex++) {
-                         const nextLine = lines[nextLineIndex];
-                         
-                         // 필드 선언 패턴: "타입 필드명" 또는 "private 타입 필드명"
-                         const fieldPattern = new RegExp(`\\b${fieldType}\\s+${fieldName}\\b`);
-                         if (fieldPattern.test(nextLine)) {
-                             const columnIndex = nextLine.indexOf(fieldName);
-                             if (columnIndex >= 0) {
-                                 return new vscode.Position(nextLineIndex, columnIndex);
-                             }
-                         }
-                     }
-                 }
-             }
+             // Position Calculator를 사용하여 필드 위치 찾기
+             return this.positionCalculator.findFieldPosition(fieldName, fieldType, lines);
              
          } catch (error) {
              console.warn('필드 위치 찾기 실패:', error);
