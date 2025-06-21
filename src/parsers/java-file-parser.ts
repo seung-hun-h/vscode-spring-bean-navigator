@@ -1,19 +1,18 @@
 import * as vscode from 'vscode';
-import { 
-    ClassInfo, 
-    FieldInfo, 
-    AnnotationInfo, 
-    SpringAnnotationType, 
+import {
+    ClassInfo,
+    FieldInfo,
+    SpringAnnotationType,
     JavaFileParseResult,
     InjectionInfo,
     InjectionType
 } from '../models/spring-types';
-import { JAVA_PARSER_CONFIG } from './config/java-parser-config';
 import { ErrorHandler } from './core/parser-errors';
 import { CSTNavigator } from './core/cst-navigator';
 import { PositionCalculator } from './core/position-calculator';
 import { AnnotationParser } from './extractors/annotation-parser';
 import { FieldExtractor } from './extractors/field-extractor';
+import { ClassExtractor } from './extractors/class-extractor';
 
 /**
  * Java 파일을 파싱하여 Spring 관련 정보를 추출하는 클래스
@@ -23,531 +22,200 @@ export class JavaFileParser {
     private readonly positionCalculator: PositionCalculator;
     private readonly annotationParser: AnnotationParser;
     private readonly fieldExtractor: FieldExtractor;
+    private readonly classExtractor: ClassExtractor;
 
     constructor() {
         this.cstNavigator = new CSTNavigator();
         this.positionCalculator = new PositionCalculator();
         this.annotationParser = new AnnotationParser(this.positionCalculator);
         this.fieldExtractor = new FieldExtractor(this.positionCalculator, this.annotationParser);
+        this.classExtractor = new ClassExtractor(this.cstNavigator, this.positionCalculator, this.annotationParser, this.fieldExtractor);
     }
 
-         /**
-      * Java 파일을 파싱하여 클래스 정보를 추출합니다.
-      * 
-      * @param fileUri - 파싱할 Java 파일 URI
-      * @param content - 파일 내용
-      * @returns 파싱 결과
-      */
-     public async parseJavaFile(fileUri: vscode.Uri, content: string): Promise<JavaFileParseResult> {
-         const result: JavaFileParseResult = {
-             classes: [],
-             beanDefinitions: [],
-             injections: [],
-             errors: []
-         };
+    /**
+ * Java 파일을 파싱하여 클래스 정보를 추출합니다.
+ * 
+ * @param fileUri - 파싱할 Java 파일 URI
+ * @param content - 파일 내용
+ * @returns 파싱 결과
+ */
+    public async parseJavaFile(fileUri: vscode.Uri, content: string): Promise<JavaFileParseResult> {
+        const result: JavaFileParseResult = {
+            classes: [],
+            beanDefinitions: [],
+            injections: [],
+            errors: []
+        };
 
-         try {
-             // Dynamic import for java-parser
-             const { parse } = await import('java-parser');
-             
-             const cst = parse(content);
-             const classes = this.extractClasses(cst, fileUri, content);
-             
-             result.classes = classes;
-             
-             // @Autowired 필드 탐지
-             const injections = this.extractAutowiredFields(classes);
-             result.injections = injections;
-             
-         } catch (error) {
-             const parsingError = ErrorHandler.handleParsingError(error, 'Java 파일 파싱');
-             result.errors.push(ErrorHandler.createUserFriendlyMessage(parsingError));
-             ErrorHandler.logError(parsingError, { fileUri: fileUri.toString() });
-         }
-         
-         return result;
-     }
+        try {
+            // Dynamic import for java-parser
+            const { parse } = await import('java-parser');
+
+            const cst = parse(content);
+            const classes = this.classExtractor.extractClasses(cst, fileUri, content);
+
+            result.classes = classes;
+
+            // @Autowired 필드 탐지
+            const injections = this.extractAutowiredFields(classes);
+            result.injections = injections;
+
+        } catch (error) {
+            const parsingError = ErrorHandler.handleParsingError(error, 'Java 파일 파싱');
+            result.errors.push(ErrorHandler.createUserFriendlyMessage(parsingError));
+            ErrorHandler.logError(parsingError, { fileUri: fileUri.toString() });
+        }
+
+        return result;
+    }
 
     /**
-     * CST에서 클래스 정보를 추출합니다.
+     * 클래스들에서 @Autowired 어노테이션이 붙은 필드들을 추출하여 주입 정보를 생성합니다.
+     * 
+     * @param classes - 파싱된 클래스 정보들
+     * @returns @Autowired 필드들의 주입 정보
      */
-    private extractClasses(cst: any, fileUri: vscode.Uri, content: string): ClassInfo[] {
-        const classes: ClassInfo[] = [];
-        const lines = content.split('\n');
-        
-        try {
-            // 패키지 정보 추출
-            const packageName = this.cstNavigator.extractPackageName(cst);
-            
-            // 임포트 정보 추출
-            const imports = this.cstNavigator.extractImports(cst);
-            
-            // 클래스 정의 추출
-            const classDeclarations = this.cstNavigator.findClassDeclarations(cst);
-            
-            for (const classDecl of classDeclarations) {
-                const classInfo = this.parseClassDeclaration(
-                    classDecl, 
-                    fileUri, 
-                    content, 
-                    lines, 
-                    packageName, 
-                    imports
+    private extractAutowiredFields(classes: ClassInfo[]): InjectionInfo[] {
+        const injections: InjectionInfo[] = [];
+
+        for (const classInfo of classes) {
+            for (const field of classInfo.fields) {
+                // @Autowired 어노테이션이 있는 필드인지 확인
+                const autowiredAnnotation = field.annotations.find(
+                    annotation => annotation.type === SpringAnnotationType.AUTOWIRED
                 );
-                
-                if (classInfo) {
-                    classes.push(classInfo);
+
+                if (autowiredAnnotation) {
+                    // 실제 위치 찾기 (fallback)
+                    const actualPosition = this.findFieldPositionInContent(classInfo, field.name, field.type);
+
+                    const injection: InjectionInfo = {
+                        targetType: field.type,
+                        injectionType: InjectionType.FIELD,
+                        position: actualPosition || field.position,
+                        range: new vscode.Range(
+                            actualPosition || field.position,
+                            new vscode.Position(
+                                (actualPosition || field.position).line,
+                                (actualPosition || field.position).character + field.name.length
+                            )
+                        ),
+                        targetName: field.name,
+                        // resolvedBean과 candidateBeans는 나중에 BeanResolver에서 설정
+                        resolvedBean: undefined,
+                        candidateBeans: undefined
+                    };
+
+                    injections.push(injection);
                 }
             }
-            
-        } catch (error) {
-            console.error('클래스 추출 중 오류:', error);
         }
-        
-        return classes;
+
+        return injections;
     }
 
-
-
     /**
-     * 클래스 선언을 파싱하여 ClassInfo 객체를 생성합니다.
+     * 파일 내용에서 실제 필드 위치를 찾습니다.
      */
-    private parseClassDeclaration(
-        classDecl: any, 
-        fileUri: vscode.Uri, 
-        content: string, 
-        lines: string[], 
-        packageName: string | undefined, 
-        imports: string[]
-    ): ClassInfo | undefined {
+    private findFieldPositionInContent(classInfo: ClassInfo, fieldName: string, fieldType: string): vscode.Position | undefined {
         try {
-            // 클래스 이름 추출
-            const className = classDecl.children?.normalClassDeclaration?.[0]?.children?.typeIdentifier?.[0]?.children?.Identifier?.[0]?.image;
-            
-            if (!className) {
+            // 파일 내용 가져오기
+            const document = vscode.workspace.textDocuments.find(doc => doc.uri.toString() === classInfo.fileUri.toString());
+            if (!document) {
                 return undefined;
             }
 
-            // 클래스 위치 정보 계산
-            const position = this.positionCalculator.calculatePosition(classDecl, lines);
-            const range = this.positionCalculator.calculateRange(classDecl, lines);
+            const content = document.getText();
+            const lines = content.split('\n');
 
-            // 클래스 어노테이션 추출
-            const annotations = this.extractClassAnnotations(classDecl, lines);
+            // Position Calculator를 사용하여 필드 위치 찾기
+            return this.positionCalculator.findFieldPosition(fieldName, fieldType, lines);
 
-            // 필드 정보 추출
-            const fields = this.fieldExtractor.extractFields(classDecl, lines);
-
-            // 인터페이스 정보 추출
-            const interfaces = this.extractImplementedInterfaces(classDecl);
-
-            const fullyQualifiedName = packageName ? `${packageName}.${className}` : className;
-
-            const classInfo: ClassInfo = {
-                name: className,
-                packageName,
-                fullyQualifiedName,
-                fileUri,
-                position,
-                range,
-                annotations,
-                fields,
-                imports
-            };
-
-            // 인터페이스 정보를 확장 속성으로 추가
-            if (interfaces.length > 0) {
-                (classInfo as any).interfaces = interfaces;
-            }
-
-            return classInfo;
-            
         } catch (error) {
-            console.error('클래스 파싱 실패:', error);
-            return undefined;
+            console.warn('필드 위치 찾기 실패:', error);
         }
-    }
 
-    /**
-     * 클래스의 어노테이션들을 추출합니다.
-     */
-    private extractClassAnnotations(classDecl: any, lines: string[]): AnnotationInfo[] {
-        const annotations: AnnotationInfo[] = [];
-        
-        try {
-            // 실제 구조: classDeclaration.children = ['classModifier', 'normalClassDeclaration']
-            const classModifiers = classDecl.children?.classModifier;
-            
-            if (classModifiers) {
-                for (const modifier of classModifiers) {
-                    if (modifier.children?.annotation) {
-                        const annotation = this.annotationParser.parseAnnotation(modifier.children.annotation[0], lines);
-                        if (annotation) {
-                            annotations.push(annotation);
-                        }
-                    }
-                }
-            }
-            
-        } catch (error) {
-            console.error('클래스 어노테이션 추출 실패:', error);
-        }
-        
-        return annotations;
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-     /**
-      * 클래스들에서 @Autowired 어노테이션이 붙은 필드들을 추출하여 주입 정보를 생성합니다.
-      * 
-      * @param classes - 파싱된 클래스 정보들
-      * @returns @Autowired 필드들의 주입 정보
-      */
-     private extractAutowiredFields(classes: ClassInfo[]): InjectionInfo[] {
-         const injections: InjectionInfo[] = [];
-
-         for (const classInfo of classes) {
-             for (const field of classInfo.fields) {
-                 // @Autowired 어노테이션이 있는 필드인지 확인
-                 const autowiredAnnotation = field.annotations.find(
-                     annotation => annotation.type === SpringAnnotationType.AUTOWIRED
-                 );
-
-                 if (autowiredAnnotation) {
-                     // 실제 위치 찾기 (fallback)
-                     const actualPosition = this.findFieldPositionInContent(classInfo, field.name, field.type);
-                     
-                     const injection: InjectionInfo = {
-                         targetType: field.type,
-                         injectionType: InjectionType.FIELD,
-                         position: actualPosition || field.position,
-                         range: new vscode.Range(
-                             actualPosition || field.position, 
-                             new vscode.Position(
-                                 (actualPosition || field.position).line, 
-                                 (actualPosition || field.position).character + field.name.length
-                             )
-                         ),
-                         targetName: field.name,
-                         // resolvedBean과 candidateBeans는 나중에 BeanResolver에서 설정
-                         resolvedBean: undefined,
-                         candidateBeans: undefined
-                     };
-
-                     injections.push(injection);
-                 }
-             }
-         }
-
-         return injections;
-     }
-
-     /**
-      * 파일 내용에서 실제 필드 위치를 찾습니다.
-      */
-     private findFieldPositionInContent(classInfo: ClassInfo, fieldName: string, fieldType: string): vscode.Position | undefined {
-         try {
-             // 파일 내용 가져오기
-             const document = vscode.workspace.textDocuments.find(doc => doc.uri.toString() === classInfo.fileUri.toString());
-             if (!document) {
-                 return undefined;
-             }
-             
-             const content = document.getText();
-             const lines = content.split('\n');
-             
-             // Position Calculator를 사용하여 필드 위치 찾기
-             return this.positionCalculator.findFieldPosition(fieldName, fieldType, lines);
-             
-         } catch (error) {
-             console.warn('필드 위치 찾기 실패:', error);
-         }
-         
-         return undefined;
-     }
-
-     /**
-      * @Autowired 어노테이션이 붙은 필드가 있는지 확인합니다.
-      * 
-      * @param classInfo - 확인할 클래스 정보
-      * @returns @Autowired 필드가 있으면 true
-      */
-     public hasAutowiredFields(classInfo: ClassInfo): boolean {
-         return classInfo.fields.some(field => 
-             field.annotations.some(annotation => 
-                 annotation.type === SpringAnnotationType.AUTOWIRED
-             )
-         );
-     }
-
-     /**
-      * 특정 타입에 대한 @Autowired 필드들을 찾습니다.
-      * 
-      * @param classInfo - 검색할 클래스 정보
-      * @param targetType - 찾을 타입
-      * @returns 해당 타입의 @Autowired 필드들
-      */
-     public findAutowiredFieldsByType(classInfo: ClassInfo, targetType: string): FieldInfo[] {
-         return classInfo.fields.filter(field => {
-             const hasAutowired = field.annotations.some(annotation => 
-                 annotation.type === SpringAnnotationType.AUTOWIRED
-             );
-             const isTargetType = field.type === targetType;
-             
-             return hasAutowired && isTargetType;
-         });
-     }
-
-     /**
-      * Java 파일 내용에서 직접 @Autowired 패턴을 찾는 간단한 방법
-      * (CST 파싱이 실패할 경우의 fallback)
-      * 
-      * @param content - Java 파일 내용
-      * @param fileUri - 파일 URI
-      * @returns 발견된 @Autowired 위치들
-      */
-     public findAutowiredPatterns(content: string, fileUri: vscode.Uri): InjectionInfo[] {
-         const injections: InjectionInfo[] = [];
-         const lines = content.split('\n');
-         
-         for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-             const line = lines[lineIndex];
-             
-             // @Autowired 어노테이션 찾기
-             if (line.trim().includes('@Autowired')) {
-                 // 다음 라인에서 필드 선언 찾기
-                 const nextLineIndex = lineIndex + 1;
-                 if (nextLineIndex < lines.length) {
-                     const nextLine = lines[nextLineIndex];
-                     const fieldMatch = nextLine.match(/^\s*(private|protected|public)?\s+(\w+)\s+(\w+)\s*;/);
-                     
-                     if (fieldMatch) {
-                         const [, visibility, type, name] = fieldMatch;
-                         
-                         const position = new vscode.Position(nextLineIndex, nextLine.indexOf(name));
-                         const range = new vscode.Range(
-                             position,
-                             new vscode.Position(nextLineIndex, nextLine.indexOf(name) + name.length)
-                         );
-                         
-                         const injection: InjectionInfo = {
-                             targetType: type,
-                             injectionType: InjectionType.FIELD,
-                             position,
-                             range,
-                             targetName: name
-                         };
-                         
-                         injections.push(injection);
-                     }
-                 }
-             }
-         }
-         
-         return injections;
-     }
-
-    /**
-     * 클래스가 구현하는 인터페이스들을 추출합니다.
-     * 
-     * @param classDecl 클래스 선언 CST 노드
-     * @returns 구현하는 인터페이스 이름들
-     */
-    private extractImplementedInterfaces(classDecl: any): string[] {
-        const interfaces: string[] = [];
-        
-        try {
-            const normalClassDecl = classDecl.children?.normalClassDeclaration?.[0];
-            
-            if (normalClassDecl?.children) {
-                // superinterfaces 직접 확인
-                const superinterfaces = normalClassDecl.children.superinterfaces;
-                
-                if (superinterfaces && superinterfaces.length > 0) {
-                    // interfaceTypeList 확인
-                    const interfaceTypeList = superinterfaces[0].children?.interfaceTypeList;
-                    if (interfaceTypeList && interfaceTypeList.length > 0) {
-                        // interfaceType들 확인
-                        const interfaceTypes = interfaceTypeList[0].children?.interfaceType;
-                        if (interfaceTypes && Array.isArray(interfaceTypes)) {
-                            for (const interfaceType of interfaceTypes) {
-                                const interfaceName = this.extractInterfaceName(interfaceType);
-                                if (interfaceName) {
-                                    interfaces.push(interfaceName);
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    // 대안: 재귀적으로 Implements 키워드와 Identifier 찾기
-                    const foundInterfaces = this.findInterfacesRecursively(normalClassDecl);
-                    interfaces.push(...foundInterfaces);
-                }
-            }
-            
-        } catch (error) {
-            console.error('인터페이스 추출 실패:', error);
-        }
-        
-        return interfaces;
-    }
-
-    /**
-     * 재귀적으로 CST를 탐색해서 implements 절의 인터페이스들을 찾습니다.
-     */
-    private findInterfacesRecursively(node: any): string[] {
-        const interfaces: string[] = [];
-        
-        if (!node) {
-            return interfaces;
-        }
-        
-        try {
-            // Implements 키워드를 찾았다면 그 다음에 오는 Identifier들을 수집
-            if (node.children?.Implements) {
-                const identifiers = this.collectIdentifiersAfterImplements(node);
-                interfaces.push(...identifiers);
-            }
-            
-            // 자식 노드들을 재귀적으로 탐색
-            if (node.children) {
-                for (const key of Object.keys(node.children)) {
-                    if (Array.isArray(node.children[key])) {
-                        for (const child of node.children[key]) {
-                            const childInterfaces = this.findInterfacesRecursively(child);
-                            interfaces.push(...childInterfaces);
-                        }
-                    }
-                }
-            }
-            
-        } catch (error) {
-            console.error('재귀 탐색 실패:', error);
-        }
-        
-        return interfaces;
-    }
-
-    /**
-     * Implements 키워드 이후의 Identifier들을 수집합니다.
-     */
-    private collectIdentifiersAfterImplements(node: any): string[] {
-        const identifiers: string[] = [];
-        
-        try {
-            // 현재 노드와 자식 노드에서 Identifier 찾기
-            this.collectAllIdentifiers(node, identifiers);
-            
-            // Implements 키워드와 Java 구문 기호들은 제외하고 실제 인터페이스 이름만 필터링
-            const filteredIdentifiers = identifiers.filter(id => 
-                id && 
-                id.trim() !== '' && 
-                !JAVA_PARSER_CONFIG.JAVA_KEYWORDS_AND_SYMBOLS.has(id) &&
-                // 첫 글자가 대문자인 것만 (Java 인터페이스 명명 규칙)
-                JAVA_PARSER_CONFIG.INTERFACE_NAME_REGEX.test(id)
-            );
-            
-            // 중복 제거
-            const uniqueInterfaces = [...new Set(filteredIdentifiers)];
-            
-            return uniqueInterfaces;
-            
-        } catch (error) {
-            console.error('Identifier 수집 실패:', error);
-        }
-        
-        return identifiers;
-    }
-
-    /**
-     * 노드에서 모든 Identifier를 재귀적으로 수집합니다.
-     */
-    private collectAllIdentifiers(node: any, identifiers: string[]): void {
-        if (!node) {
-            return;
-        }
-        
-        try {
-            // Identifier 노드인 경우
-            if (node.image && typeof node.image === 'string') {
-                identifiers.push(node.image);
-            }
-            
-            // 자식 노드 탐색
-            if (node.children) {
-                for (const key of Object.keys(node.children)) {
-                    if (Array.isArray(node.children[key])) {
-                        for (const child of node.children[key]) {
-                            this.collectAllIdentifiers(child, identifiers);
-                        }
-                    }
-                }
-            }
-            
-        } catch (error) {
-            console.error('Identifier 수집 중 오류:', error);
-        }
-    }
-
-    /**
-     * 개별 인터페이스 타입에서 인터페이스 이름을 추출합니다.
-     * 
-     * @param interfaceType 인터페이스 타입 CST 노드
-     * @returns 인터페이스 이름
-     */
-    private extractInterfaceName(interfaceType: any): string | undefined {
-        try {
-            // interfaceType 구조: classType
-            const classType = interfaceType.children?.classType?.[0];
-            
-            if (classType) {
-                // classType에서 Identifier 추출
-                const identifiers = classType.children?.Identifier;
-                
-                if (identifiers && Array.isArray(identifiers)) {
-                    // 패키지명이 포함된 경우 마지막 부분만 가져오기
-                    const interfaceName = identifiers[identifiers.length - 1].image;
-                    return interfaceName;
-                }
-                
-                // 단일 Identifier인 경우
-                if (classType.children?.Identifier?.image) {
-                    return classType.children.Identifier.image;
-                }
-            }
-            
-            // 다른 구조일 경우 대안 시도
-            if (interfaceType.children?.Identifier) {
-                const identifiers = interfaceType.children.Identifier;
-                if (Array.isArray(identifiers)) {
-                    return identifiers[identifiers.length - 1].image;
-                }
-                return identifiers.image;
-            }
-            
-        } catch (error) {
-            console.error('인터페이스 이름 추출 실패:', error);
-        }
-        
         return undefined;
+    }
+
+    /**
+     * @Autowired 어노테이션이 붙은 필드가 있는지 확인합니다.
+     * 
+     * @param classInfo - 확인할 클래스 정보
+     * @returns @Autowired 필드가 있으면 true
+     */
+    public hasAutowiredFields(classInfo: ClassInfo): boolean {
+        return classInfo.fields.some(field =>
+            field.annotations.some(annotation =>
+                annotation.type === SpringAnnotationType.AUTOWIRED
+            )
+        );
+    }
+
+    /**
+     * 특정 타입에 대한 @Autowired 필드들을 찾습니다.
+     * 
+     * @param classInfo - 검색할 클래스 정보
+     * @param targetType - 찾을 타입
+     * @returns 해당 타입의 @Autowired 필드들
+     */
+    public findAutowiredFieldsByType(classInfo: ClassInfo, targetType: string): FieldInfo[] {
+        return classInfo.fields.filter(field => {
+            const hasAutowired = field.annotations.some(annotation =>
+                annotation.type === SpringAnnotationType.AUTOWIRED
+            );
+            const isTargetType = field.type === targetType;
+
+            return hasAutowired && isTargetType;
+        });
+    }
+
+    /**
+     * Java 파일 내용에서 직접 @Autowired 패턴을 찾는 간단한 방법
+     * (CST 파싱이 실패할 경우의 fallback)
+     * 
+     * @param content - Java 파일 내용
+     * @param fileUri - 파일 URI
+     * @returns 발견된 @Autowired 위치들
+     */
+    public findAutowiredPatterns(content: string, fileUri: vscode.Uri): InjectionInfo[] {
+        const injections: InjectionInfo[] = [];
+        const lines = content.split('\n');
+
+        for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+            const line = lines[lineIndex];
+
+            // @Autowired 어노테이션 찾기
+            if (line.trim().includes('@Autowired')) {
+                // 다음 라인에서 필드 선언 찾기
+                const nextLineIndex = lineIndex + 1;
+                if (nextLineIndex < lines.length) {
+                    const nextLine = lines[nextLineIndex];
+                    const fieldMatch = nextLine.match(/^\s*(private|protected|public)?\s+(\w+)\s+(\w+)\s*;/);
+
+                    if (fieldMatch) {
+                        const [, visibility, type, name] = fieldMatch;
+
+                        const position = new vscode.Position(nextLineIndex, nextLine.indexOf(name));
+                        const range = new vscode.Range(
+                            position,
+                            new vscode.Position(nextLineIndex, nextLine.indexOf(name) + name.length)
+                        );
+
+                        const injection: InjectionInfo = {
+                            targetType: type,
+                            injectionType: InjectionType.FIELD,
+                            position,
+                            range,
+                            targetName: name
+                        };
+
+                        injections.push(injection);
+                    }
+                }
+            }
+        }
+
+        return injections;
     }
 } 
