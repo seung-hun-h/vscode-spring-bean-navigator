@@ -10,11 +10,17 @@ import {
 } from '../models/spring-types';
 import { JAVA_PARSER_CONFIG } from './config/java-parser-config';
 import { ErrorHandler, CSTParsingError, AnnotationParsingError } from './core/parser-errors';
+import { CSTNavigator } from './core/cst-navigator';
 
 /**
  * Java 파일을 파싱하여 Spring 관련 정보를 추출하는 클래스
  */
 export class JavaFileParser {
+    private readonly cstNavigator: CSTNavigator;
+
+    constructor() {
+        this.cstNavigator = new CSTNavigator();
+    }
 
          /**
       * Java 파일을 파싱하여 클래스 정보를 추출합니다.
@@ -62,13 +68,13 @@ export class JavaFileParser {
         
         try {
             // 패키지 정보 추출
-            const packageName = this.extractPackageName(cst);
+            const packageName = this.cstNavigator.extractPackageName(cst);
             
             // 임포트 정보 추출
-            const imports = this.extractImports(cst);
+            const imports = this.cstNavigator.extractImports(cst);
             
             // 클래스 정의 추출
-            const classDeclarations = this.findClassDeclarations(cst);
+            const classDeclarations = this.cstNavigator.findClassDeclarations(cst);
             
             for (const classDecl of classDeclarations) {
                 const classInfo = this.parseClassDeclaration(
@@ -92,89 +98,7 @@ export class JavaFileParser {
         return classes;
     }
 
-    /**
-     * 패키지 이름을 추출합니다.
-     */
-    private extractPackageName(cst: any): string | undefined {
-        try {
-            const ordinaryCompUnit = cst.children?.ordinaryCompilationUnit?.[0];
-            if (ordinaryCompUnit?.children?.packageDeclaration) {
-                const packageDecl = ordinaryCompUnit.children.packageDeclaration[0];
-                if (packageDecl.children?.Identifier) {
-                    // 실제 구조: packageDeclaration.children = ['Package', 'Identifier', 'Dot', 'Semicolon']
-                    const identifiers = packageDecl.children.Identifier;
-                    return identifiers.map((id: any) => id.image).join('.');
-                }
-            }
-        } catch (error) {
-            console.error('패키지 이름 추출 실패:', error);
-        }
-        return undefined;
-    }
 
-    /**
-     * 임포트 문들을 추출합니다.
-     */
-    private extractImports(cst: any): string[] {
-        const imports: string[] = [];
-        
-        try {
-            const ordinaryCompUnit = cst.children?.ordinaryCompilationUnit?.[0];
-            const importDeclarations = ordinaryCompUnit?.children?.importDeclaration;
-            
-            if (importDeclarations) {
-                for (const importDecl of importDeclarations) {
-                    const importName = this.extractImportName(importDecl);
-                    if (importName) {
-                        imports.push(importName);
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('임포트 추출 실패:', error);
-        }
-        
-        return imports;
-    }
-
-    /**
-     * 개별 임포트 이름을 추출합니다.
-     */
-    private extractImportName(importDecl: any): string | undefined {
-        try {
-            if (importDecl.children?.packageOrTypeName?.[0]?.children?.Identifier) {
-                const identifiers = importDecl.children.packageOrTypeName[0].children.Identifier;
-                return identifiers.map((id: any) => id.image).join('.');
-            }
-        } catch (error) {
-            console.error('임포트 이름 추출 실패:', error);
-        }
-        return undefined;
-    }
-
-    /**
-     * 클래스 선언들을 찾습니다.
-     */
-    private findClassDeclarations(cst: any): any[] {
-        const classDeclarations: any[] = [];
-        
-        try {
-            const ordinaryCompUnit = cst.children?.ordinaryCompilationUnit?.[0];
-            const typeDeclarations = ordinaryCompUnit?.children?.typeDeclaration;
-            
-            if (typeDeclarations) {
-                for (const typeDecl of typeDeclarations) {
-                    if (typeDecl.children?.classDeclaration) {
-                        classDeclarations.push(typeDecl.children.classDeclaration[0]);
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('클래스 선언 찾기 실패:', error);
-        }
-        
-        return classDeclarations;
-    }
 
     /**
      * 클래스 선언을 파싱하여 ClassInfo 객체를 생성합니다.
