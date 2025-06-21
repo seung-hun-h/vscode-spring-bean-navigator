@@ -85,7 +85,7 @@ src/
     - Bean을 찾을 수 없는 경우 테스트
 
 ### 5. CodeLens Provider 구현 (우선순위: 중간)
-- [ ] **5.1** `src/providers/code-lens-provider.ts` 생성
+- [x] **5.1** `src/providers/code-lens-provider.ts` 생성
   - VSCode CodeLensProvider 인터페이스 구현
   - @Autowired 필드 위치에 렌즈 표시
   - "Go to Bean Implementation" 텍스트 표시
@@ -94,7 +94,7 @@ src/
     - @Autowired 필드에만 렌즈 표시 테스트
     - 텍스트 및 명령 검증 테스트
 
-- [ ] **5.2** 동적 렌즈 업데이트
+- [x] **5.2** 동적 렌즈 업데이트
   - 파일 변경 시 렌즈 새로고침
   - 성능 최적화 (필요한 경우에만 재계산)
   - **테스트**: 동적 업데이트 테스트
@@ -103,7 +103,7 @@ src/
     - 불필요한 재계산 방지 테스트
 
 ### 6. 네비게이션 Provider 구현 (우선순위: 중간)
-- [ ] **6.1** `src/providers/navigation-provider.ts` 생성
+- [x] **6.1** `src/providers/navigation-provider.ts` 생성
   - Command 핸들러 구현
   - Bean 구현체로의 이동 로직
   - 여러 구현체가 있을 경우 선택 UI
@@ -113,7 +113,7 @@ src/
     - 잘못된 명령 처리 테스트
 
 ### 7. Extension 통합 (우선순위: 높음)
-- [ ] **7.1** [src/extension.ts](mdc:src/extension.ts) 업데이트
+- [x] **7.1** [src/extension.ts](mdc:src/extension.ts) 업데이트
   - 모든 Provider 등록
   - Java 파일에서만 활성화
   - Command 등록
@@ -122,31 +122,25 @@ src/
     - Command 등록 확인 테스트
     - 활성화 이벤트 테스트
 
-- [ ] **7.2** [package.json](mdc:package.json) 설정 업데이트
+- [x] **7.2** [package.json](mdc:package.json) 설정 업데이트
   - activationEvents 추가 (✅ 완료)
   - contributes.commands 추가 (✅ 완료)
   - contributes.languages 설정 (✅ 완료)
 
 ### 8. 테스트 헬퍼 및 목업 (우선순위: 중간)
-- [ ] **8.1** 테스트 유틸리티 생성
+- [x] **8.1** 테스트 유틸리티 생성
   - `src/test/helpers/test-utils.ts` 생성
   - 가짜 Java 파일 내용 생성기
   - Mock VSCode API 헬퍼
   - 테스트용 Bean 정의 생성기
 
-- [ ] **8.2** 샘플 데이터 생성
-  - `src/test/fixtures/` 디렉토리 생성
-  - 다양한 Spring 패턴의 Java 샘플 파일
-  - 복잡한 의존성 구조 샘플
-  - 에러 케이스 샘플
-
 ### 9. 통합 테스트 및 E2E 테스트 (우선순위: 중간)
-- [ ] **9.1** 전체 워크플로우 테스트
+- [x] **9.1** 전체 워크플로우 테스트
   - [src/test/extension.test.ts](mdc:src/test/extension.test.ts) 업데이트
   - Java 파일 → 파싱 → Bean 탐지 → CodeLens 표시 → 네비게이션 전체 흐름 테스트
   - 실제 Spring Boot 프로젝트 구조로 테스트
 
-- [ ] **9.2** 성능 및 안정성 테스트
+- [x] **9.2** 성능 및 안정성 테스트
   - 대용량 파일 처리 테스트
   - 메모리 사용량 테스트
   - 에러 복구 테스트
@@ -165,12 +159,12 @@ src/
   - **테스트**: 다양한 에러 시나리오 테스트
 
 ## 완료 기준 (기능 + 테스트)
-- [ ] 간단한 @Autowired 필드가 탐지됨 + 단위 테스트 통과
-- [ ] @Service, @Component 클래스가 Bean으로 인식됨 + 단위 테스트 통과
-- [ ] CodeLens가 @Autowired 필드에 표시됨 + UI 테스트 통과
-- [ ] CodeLens 클릭 시 Bean 구현체로 이동됨 + 네비게이션 테스트 통과
-- [ ] 전체 워크플로우 통합 테스트 통과
-- [ ] 모든 단위 테스트 및 통합 테스트 통과 (최소 90% 커버리지)
+- [x] 간단한 @Autowired 필드가 탐지됨 + 단위 테스트 통과
+- [x] @Service, @Component 클래스가 Bean으로 인식됨 + 단위 테스트 통과
+- [x] CodeLens가 @Autowired 필드에 표시됨 + UI 테스트 통과
+- [x] CodeLens 클릭 시 Bean 구현체로 이동됨 + 네비게이션 테스트 통과
+- [x] 전체 워크플로우 통합 테스트 통과
+- [x] 모든 단위 테스트 및 통합 테스트 통과 (최소 90% 커버리지)
 
 ## 예상 완료 시간 (TDD 방식)
 - 기본 기능 + 단위 테스트: 2-3주 (각 메서드마다 테스트 작성)
