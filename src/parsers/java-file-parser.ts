@@ -12,6 +12,7 @@ import { JAVA_PARSER_CONFIG } from './config/java-parser-config';
 import { ErrorHandler, CSTParsingError, AnnotationParsingError } from './core/parser-errors';
 import { CSTNavigator } from './core/cst-navigator';
 import { PositionCalculator } from './core/position-calculator';
+import { AnnotationParser } from './extractors/annotation-parser';
 
 /**
  * Java 파일을 파싱하여 Spring 관련 정보를 추출하는 클래스
@@ -19,10 +20,12 @@ import { PositionCalculator } from './core/position-calculator';
 export class JavaFileParser {
     private readonly cstNavigator: CSTNavigator;
     private readonly positionCalculator: PositionCalculator;
+    private readonly annotationParser: AnnotationParser;
 
     constructor() {
         this.cstNavigator = new CSTNavigator();
         this.positionCalculator = new PositionCalculator();
+        this.annotationParser = new AnnotationParser(this.positionCalculator);
     }
 
          /**
@@ -175,7 +178,7 @@ export class JavaFileParser {
             if (classModifiers) {
                 for (const modifier of classModifiers) {
                     if (modifier.children?.annotation) {
-                        const annotation = this.parseAnnotation(modifier.children.annotation[0], lines);
+                        const annotation = this.annotationParser.parseAnnotation(modifier.children.annotation[0], lines);
                         if (annotation) {
                             annotations.push(annotation);
                         }
@@ -310,7 +313,7 @@ export class JavaFileParser {
             if (fieldModifiers) {
                 for (const modifier of fieldModifiers) {
                     if (modifier.children?.annotation) {
-                        const annotation = this.parseAnnotation(modifier.children.annotation[0], lines);
+                        const annotation = this.annotationParser.parseAnnotation(modifier.children.annotation[0], lines);
                         if (annotation) {
                             annotations.push(annotation);
                         }
@@ -357,133 +360,11 @@ export class JavaFileParser {
         return result;
     }
 
-    /**
-     * 어노테이션을 파싱합니다.
-     */
-    private parseAnnotation(annotation: any, lines: string[]): AnnotationInfo | undefined {
-        let annotationName: string | undefined;
-        
-        try {
-            let parameters = new Map<string, string>();
-            
-            // 실제 구조: annotation.children = ['At', 'typeName'] 또는 ['At', 'typeName', 'LParen', 'elementValuePairList', 'RParen']
-            if (annotation.children?.typeName?.[0]?.children?.Identifier?.[0]?.image) {
-                annotationName = annotation.children.typeName[0].children.Identifier[0].image;
-            } else {
-                return undefined;
-            }
-            
-            if (!annotationName) {
-                return undefined;
-            }
 
-            // Spring 어노테이션인지 확인
-            if (!JAVA_PARSER_CONFIG.SPRING_ANNOTATIONS.has(annotationName)) {
-                return undefined;
-            }
 
-            // 어노테이션 매개변수 파싱 시도
-            parameters = this.extractAnnotationParameters(annotation);
 
-            const springAnnotationType = this.mapToSpringAnnotationType(annotationName);
-            if (!springAnnotationType) {
-                return undefined;
-            }
 
-            // 위치 정보 계산 (실제로는 더 정확한 계산이 필요)
-            const position = this.positionCalculator.calculatePosition(annotation, lines);
 
-            const annotationInfo: AnnotationInfo = {
-                name: annotationName,
-                type: springAnnotationType,
-                line: position.line,
-                column: position.character,
-                parameters
-            };
-
-            return annotationInfo;
-            
-        } catch (error) {
-            const annotationError = new AnnotationParsingError(
-                '어노테이션 파싱 실패',
-                annotationName,
-                error instanceof Error ? error : undefined
-            );
-            ErrorHandler.logError(annotationError);
-            return undefined;
-        }
-    }
-
-    /**
-     * 어노테이션 매개변수를 추출합니다.
-     */
-    private extractAnnotationParameters(annotation: any): Map<string, string> {
-        const parameters = new Map<string, string>();
-        
-        try {
-            // @Service("value") 형태의 단일 값
-            if (annotation.children?.LParen && annotation.children?.StringLiteral) {
-                const value = annotation.children.StringLiteral[0].image;
-                // 따옴표 제거
-                const cleanValue = value.replace(/["']/g, '');
-                parameters.set('value', cleanValue);
-                return parameters;
-            }
-            
-            // elementValuePairList 구조 확인 (향후 확장용)
-            if (annotation.children?.elementValuePairList) {
-                // TODO: 더 복잡한 매개변수 구조 파싱
-            }
-            
-            // 모든 자식 노드를 탐색해서 문자열 리터럴 찾기
-            const findStringLiterals = (node: any): string[] => {
-                const literals: string[] = [];
-                
-                if (node?.image && typeof node.image === 'string' && (node.image.startsWith('"') || node.image.startsWith("'"))) {
-                    literals.push(node.image.replace(/["']/g, ''));
-                }
-                
-                if (node?.children) {
-                    for (const key of Object.keys(node.children)) {
-                        if (Array.isArray(node.children[key])) {
-                            for (const child of node.children[key]) {
-                                literals.push(...findStringLiterals(child));
-                            }
-                        }
-                    }
-                }
-                
-                return literals;
-            };
-            
-            const literals = findStringLiterals(annotation);
-            if (literals.length > 0) {
-                parameters.set('value', literals[0]);
-            }
-            
-        } catch (error) {
-            console.error('어노테이션 매개변수 추출 실패:', error);
-        }
-        
-        return parameters;
-    }
-
-    /**
-     * 문자열을 SpringAnnotationType으로 매핑합니다.
-     */
-    private mapToSpringAnnotationType(annotationName: string): SpringAnnotationType | undefined {
-        switch (annotationName) {
-            case 'Component': return SpringAnnotationType.COMPONENT;
-            case 'Service': return SpringAnnotationType.SERVICE;
-            case 'Repository': return SpringAnnotationType.REPOSITORY;
-            case 'Controller': return SpringAnnotationType.CONTROLLER;
-            case 'RestController': return SpringAnnotationType.REST_CONTROLLER;
-            case 'Configuration': return SpringAnnotationType.CONFIGURATION;
-            case 'Bean': return SpringAnnotationType.BEAN;
-            case 'Autowired': return SpringAnnotationType.AUTOWIRED;
-            default: return undefined;
-        }
-    }
 
 
 
