@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import * as vscode from 'vscode';
 import { BeanResolver } from '../../utils/bean-resolver';
 import { BeanDefinition } from '../../models/spring-types';
 import { TestUtils } from '../helpers/test-utils';
@@ -334,7 +335,7 @@ suite('BeanResolver', () => {
             assert.strictEqual(result.resolved, undefined, 'Should not auto-resolve when multiple implementations exist');
             assert.strictEqual(result.candidates.length, 2, 'Should return both candidates');
             
-            const candidateTypes = result.candidates.map(c => c.type);
+            const candidateTypes = result.candidates.map((c: BeanDefinition) => c.type);
             assert.ok(candidateTypes.includes('MessageServiceImpl1'));
             assert.ok(candidateTypes.includes('MessageServiceImpl2'));
         });
@@ -391,6 +392,267 @@ suite('BeanResolver', () => {
     });
 });
 
+// Phase 2: 매개변수 타입 기반 Bean 검색 테스트
+suite('Phase 2: Parameter-based Bean Resolution', () => {
+    let resolver: BeanResolver;
+    
+    setup(() => {
+        resolver = new BeanResolver();
+        // 테스트용 Bean들 추가
+        const userRepository = TestUtils.createBeanDefinition('userRepository', 'UserRepository', 'com.example.repository.UserRepository');
+        const emailService = TestUtils.createBeanDefinition('emailService', 'EmailService', 'com.example.service.EmailService');
+        const paymentGateway = TestUtils.createBeanDefinition('paymentGateway', 'PaymentGateway', 'com.example.gateway.PaymentGateway');
+        
+        resolver.addBeanDefinition(userRepository);
+        resolver.addBeanDefinition(emailService);
+        resolver.addBeanDefinition(paymentGateway);
+    });
+
+    suite('resolveBeanForParameter', () => {
+        test('should_resolveBean_when_parameterTypeMatchesBeanType', () => {
+            // Arrange
+            const parameter = createParameterInfo('userRepository', 'UserRepository', 0);
+            
+            // Act
+            const result = resolver.resolveBeanForParameter(parameter);
+            
+            // Assert
+            assert.ok(result.resolved, 'Should resolve bean for matching parameter type');
+            assert.strictEqual(result.resolved.type, 'UserRepository');
+            assert.strictEqual(result.resolved.name, 'userRepository');
+            assert.strictEqual(result.candidates.length, 1);
+        });
+
+        test('should_resolveInterfaceImplementation_when_parameterIsInterface', () => {
+            // Arrange: 인터페이스를 구현하는 Bean 등록
+            const messageServiceImpl = createImplementationBean(
+                'messageService', 
+                'MessageServiceImpl', 
+                'com.example.service.MessageServiceImpl',
+                ['MessageService']
+            );
+            resolver.addBeanDefinition(messageServiceImpl);
+            
+            const parameter = createParameterInfo('messageService', 'MessageService', 0);
+            
+            // Act
+            const result = resolver.resolveBeanForParameter(parameter);
+            
+            // Assert
+            assert.ok(result.resolved, 'Should resolve implementation for interface parameter');
+            assert.strictEqual(result.resolved.type, 'MessageServiceImpl');
+            assert.strictEqual(result.candidates.length, 1);
+        });
+
+        test('should_returnCandidates_when_multipleImplementationsExist', () => {
+            // Arrange: 같은 인터페이스의 여러 구현체
+            const impl1 = createImplementationBean(
+                'notificationService1', 
+                'EmailNotificationService', 
+                'com.example.service.EmailNotificationService',
+                ['NotificationService']
+            );
+            const impl2 = createImplementationBean(
+                'notificationService2', 
+                'SmsNotificationService', 
+                'com.example.service.SmsNotificationService',
+                ['NotificationService']
+            );
+            
+            resolver.addBeanDefinition(impl1);
+            resolver.addBeanDefinition(impl2);
+            
+            const parameter = createParameterInfo('notificationService', 'NotificationService', 0);
+            
+            // Act
+            const result = resolver.resolveBeanForParameter(parameter);
+            
+            // Assert
+            assert.strictEqual(result.resolved, undefined, 'Should not auto-resolve when multiple candidates');
+            assert.strictEqual(result.candidates.length, 2, 'Should return both candidates');
+            const candidateTypes = result.candidates.map(c => c.type);
+            assert.ok(candidateTypes.includes('EmailNotificationService'));
+            assert.ok(candidateTypes.includes('SmsNotificationService'));
+        });
+
+        test('should_returnEmpty_when_noBeanFoundForParameter', () => {
+            // Arrange
+            const parameter = createParameterInfo('unknownService', 'UnknownService', 0);
+            
+            // Act
+            const result = resolver.resolveBeanForParameter(parameter);
+            
+            // Assert
+            assert.strictEqual(result.resolved, undefined);
+            assert.strictEqual(result.candidates.length, 0);
+        });
+
+        test('should_handleGenericTypes_when_parameterHasGenericType', () => {
+            // Arrange: 제네릭 타입을 포함한 Bean
+            const listService = TestUtils.createBeanDefinition('listService', 'List<String>', 'java.util.List');
+            resolver.addBeanDefinition(listService);
+            
+            const parameter = createParameterInfo('items', 'List<String>', 0);
+            
+            // Act
+            const result = resolver.resolveBeanForParameter(parameter);
+            
+            // Assert
+            assert.ok(result.resolved, 'Should handle generic types');
+            assert.strictEqual(result.resolved.type, 'List<String>');
+        });
+    });
+
+    suite('resolveBeanForConstructor', () => {
+        test('should_resolveAllParameters_when_constructorHasMultipleParameters', () => {
+            // Arrange
+            const constructor = createConstructorInfo([
+                createParameterInfo('userRepository', 'UserRepository', 0),
+                createParameterInfo('emailService', 'EmailService', 1)
+            ]);
+            
+            // Act
+            const results = resolver.resolveBeanForConstructor(constructor);
+            
+            // Assert
+            assert.strictEqual(results.length, 2, 'Should resolve all parameters');
+            
+            assert.ok(results[0].resolved, 'First parameter should be resolved');
+            assert.strictEqual(results[0].resolved.type, 'UserRepository');
+            
+            assert.ok(results[1].resolved, 'Second parameter should be resolved');
+            assert.strictEqual(results[1].resolved.type, 'EmailService');
+        });
+
+        test('should_handleMixedResolution_when_someParametersCannotBeResolved', () => {
+            // Arrange: 일부 매개변수만 해결 가능
+            const constructor = createConstructorInfo([
+                createParameterInfo('userRepository', 'UserRepository', 0),
+                createParameterInfo('unknownService', 'UnknownService', 1)
+            ]);
+            
+            // Act
+            const results = resolver.resolveBeanForConstructor(constructor);
+            
+            // Assert
+            assert.strictEqual(results.length, 2, 'Should return results for all parameters');
+            
+            assert.ok(results[0].resolved, 'First parameter should be resolved');
+            assert.strictEqual(results[0].resolved.type, 'UserRepository');
+            
+            assert.strictEqual(results[1].resolved, undefined, 'Second parameter should not be resolved');
+            assert.strictEqual(results[1].candidates.length, 0);
+        });
+
+        test('should_returnEmpty_when_constructorHasNoParameters', () => {
+            // Arrange
+            const constructor = createConstructorInfo([]);
+            
+            // Act
+            const results = resolver.resolveBeanForConstructor(constructor);
+            
+            // Assert
+            assert.strictEqual(results.length, 0, 'Should return empty array for no parameters');
+        });
+
+        test('should_maintainParameterOrder_when_resolvingConstructorParameters', () => {
+            // Arrange: 매개변수 순서가 중요한 생성자
+            const constructor = createConstructorInfo([
+                createParameterInfo('emailService', 'EmailService', 0),
+                createParameterInfo('userRepository', 'UserRepository', 1),
+                createParameterInfo('paymentGateway', 'PaymentGateway', 2)
+            ]);
+            
+            // Act
+            const results = resolver.resolveBeanForConstructor(constructor);
+            
+            // Assert
+            assert.strictEqual(results.length, 3, 'Should maintain parameter count');
+            assert.strictEqual(results[0].resolved?.type, 'EmailService', 'First result should match first parameter');
+            assert.strictEqual(results[1].resolved?.type, 'UserRepository', 'Second result should match second parameter');
+            assert.strictEqual(results[2].resolved?.type, 'PaymentGateway', 'Third result should match third parameter');
+        });
+    });
+
+    suite('resolveBeanForMethod', () => {
+        test('should_resolveSetterParameter_when_setterHasSingleParameter', () => {
+            // Arrange: Setter 메서드 (매개변수 1개)
+            const setterMethod = createMethodInfo('setEmailService', [
+                createParameterInfo('emailService', 'EmailService', 0)
+            ], true);
+            
+            // Act
+            const results = resolver.resolveBeanForMethod(setterMethod);
+            
+            // Assert
+            assert.strictEqual(results.length, 1, 'Should resolve setter parameter');
+            assert.ok(results[0].resolved, 'Setter parameter should be resolved');
+            assert.strictEqual(results[0].resolved.type, 'EmailService');
+        });
+
+        test('should_resolveMultipleParameters_when_methodHasMultipleParameters', () => {
+            // Arrange: 다중 매개변수 메서드
+            const method = createMethodInfo('initServices', [
+                createParameterInfo('userRepository', 'UserRepository', 0),
+                createParameterInfo('emailService', 'EmailService', 1)
+            ], false);
+            
+            // Act
+            const results = resolver.resolveBeanForMethod(method);
+            
+            // Assert
+            assert.strictEqual(results.length, 2, 'Should resolve all method parameters');
+            assert.ok(results[0].resolved);
+            assert.ok(results[1].resolved);
+        });
+
+        test('should_returnEmpty_when_methodHasNoParameters', () => {
+            // Arrange: 매개변수가 없는 메서드
+            const method = createMethodInfo('initialize', [], false);
+            
+            // Act
+            const results = resolver.resolveBeanForMethod(method);
+            
+            // Assert
+            assert.strictEqual(results.length, 0, 'Should return empty for parameterless method');
+        });
+    });
+
+    suite('Performance and Edge Cases', () => {
+        test('should_handleLargeParameterList_when_constructorHasManyParameters', () => {
+            // Arrange: 많은 매개변수를 가진 생성자
+            const parameters = [];
+            for (let i = 0; i < 10; i++) {
+                parameters.push(createParameterInfo(`service${i}`, 'EmailService', i));
+            }
+            const constructor = createConstructorInfo(parameters);
+            
+            // Act
+            const results = resolver.resolveBeanForConstructor(constructor);
+            
+            // Assert
+            assert.strictEqual(results.length, 10, 'Should handle many parameters');
+            results.forEach((result, index) => {
+                assert.ok(result.resolved, `Parameter ${index} should be resolved`);
+                assert.strictEqual(result.resolved.type, 'EmailService');
+            });
+        });
+
+        test('should_cacheResults_when_sameParameterResolvedMultipleTimes', () => {
+            // Arrange
+            const parameter = createParameterInfo('userRepository', 'UserRepository', 0);
+            
+            // Act: 같은 매개변수를 여러 번 해결
+            const result1 = resolver.resolveBeanForParameter(parameter);
+            const result2 = resolver.resolveBeanForParameter(parameter);
+            
+            // Assert: 결과가 일관되어야 함
+            assert.deepStrictEqual(result1, result2, 'Results should be consistent');
+            assert.strictEqual(result1.resolved?.name, result2.resolved?.name);
+        });
+    });
+});
+
 // Helper functions for creating test beans
 function createSampleBeans(): BeanDefinition[] {
     return [
@@ -432,4 +694,38 @@ function createImplementationBean(name: string, type: string, fullyQualifiedName
     const bean = TestUtils.createBeanDefinition(name, type, fullyQualifiedName);
     (bean as any).interfaces = interfaces;
     return bean;
+}
+
+// Helper functions for Phase 2 parameter testing
+function createParameterInfo(name: string, type: string, index: number): import('../../models/spring-types').ParameterInfo {
+    return {
+        name,
+        type,
+        index,
+        position: new vscode.Position(10 + index, 20),
+        range: new vscode.Range(10 + index, 20, 10 + index, 20 + name.length)
+    };
+}
+
+function createConstructorInfo(parameters: import('../../models/spring-types').ParameterInfo[]): import('../../models/spring-types').ConstructorInfo {
+    return {
+        parameters,
+        position: new vscode.Position(5, 4),
+        range: new vscode.Range(5, 4, 8, 5),
+        hasAutowiredAnnotation: false,
+        visibility: 'public'
+    };
+}
+
+function createMethodInfo(name: string, parameters: import('../../models/spring-types').ParameterInfo[], isSetterMethod: boolean): import('../../models/spring-types').MethodInfo {
+    return {
+        name,
+        parameters,
+        position: new vscode.Position(15, 4),
+        range: new vscode.Range(15, 4, 18, 5),
+        annotations: [],
+        isSetterMethod,
+        visibility: 'public',
+        returnType: 'void'
+    };
 } 

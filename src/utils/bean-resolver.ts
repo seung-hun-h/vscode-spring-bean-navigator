@@ -1,4 +1,4 @@
-import { BeanDefinition, BeanResolutionResult } from '../models/spring-types';
+import { BeanDefinition, BeanResolutionResult, ParameterInfo, ConstructorInfo, MethodInfo } from '../models/spring-types';
 
 /**
  * Spring Bean 해결을 담당하는 클래스
@@ -187,5 +187,60 @@ export class BeanResolver {
         filteredExisting.push(bean);
         
         this.beansByInterface.set(interfaceName, filteredExisting);
+    }
+
+    /**
+     * 매개변수 정보를 기반으로 Bean을 해결합니다. (Phase 2)
+     * 
+     * Spring의 Bean 해결 규칙을 따름:
+     * 1. 매개변수 타입으로 Bean 검색
+     * 2. 정확한 타입 매치 우선
+     * 3. 인터페이스 구현체 매치 지원
+     * 4. 단일 후보면 자동 해결, 다중 후보면 사용자 선택 필요
+     * 
+     * @param parameter - 해결할 매개변수 정보
+     * @returns Bean 해결 결과
+     */
+    public resolveBeanForParameter(parameter: ParameterInfo): BeanResolutionResult {
+        if (!parameter || !parameter.type || parameter.type.trim() === '') {
+            return {
+                resolved: undefined,
+                candidates: []
+            };
+        }
+
+        return this.resolveBeanForInjection(parameter.type);
+    }
+
+    /**
+     * 생성자의 모든 매개변수에 대해 Bean을 해결합니다. (Phase 2)
+     * 
+     * @param constructor - 해결할 생성자 정보
+     * @returns 각 매개변수에 대한 Bean 해결 결과 배열
+     */
+    public resolveBeanForConstructor(constructor: ConstructorInfo): BeanResolutionResult[] {
+        if (!constructor || !constructor.parameters) {
+            return [];
+        }
+
+        return constructor.parameters.map(parameter => 
+            this.resolveBeanForParameter(parameter)
+        );
+    }
+
+    /**
+     * 메서드의 모든 매개변수에 대해 Bean을 해결합니다. (Phase 2)
+     * 
+     * @param method - 해결할 메서드 정보
+     * @returns 각 매개변수에 대한 Bean 해결 결과 배열
+     */
+    public resolveBeanForMethod(method: MethodInfo): BeanResolutionResult[] {
+        if (!method || !method.parameters) {
+            return [];
+        }
+
+        return method.parameters.map(parameter => 
+            this.resolveBeanForParameter(parameter)
+        );
     }
 } 
