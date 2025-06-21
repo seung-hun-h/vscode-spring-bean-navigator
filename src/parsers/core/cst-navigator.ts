@@ -1,10 +1,9 @@
-import { ICSTNavigator } from '../interfaces/parser-interfaces';
 import { ErrorHandler, CSTParsingError } from './parser-errors';
 
 /**
  * CST(Concrete Syntax Tree) 탐색을 담당하는 클래스
  */
-export class CSTNavigator implements ICSTNavigator {
+export class CSTNavigator {
     
     /**
      * CST에서 패키지 이름을 추출합니다.

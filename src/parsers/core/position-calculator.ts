@@ -1,12 +1,11 @@
 import * as vscode from 'vscode';
-import { IPositionCalculator } from '../interfaces/parser-interfaces';
 import { JAVA_PARSER_CONFIG } from '../config/java-parser-config';
 import { ErrorHandler, PositionCalculationError } from './parser-errors';
 
 /**
  * AST 노드의 위치 및 범위 계산을 담당하는 클래스
  */
-export class PositionCalculator implements IPositionCalculator {
+export class PositionCalculator {
     
     /**
      * AST 노드의 위치 정보를 계산합니다.

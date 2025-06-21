@@ -1,4 +1,3 @@
-import { IAnnotationParser } from '../interfaces/parser-interfaces';
 import { AnnotationInfo, SpringAnnotationType } from '../../models/spring-types';
 import { JAVA_PARSER_CONFIG } from '../config/java-parser-config';
 import { ErrorHandler, AnnotationParsingError } from '../core/parser-errors';
@@ -7,7 +6,7 @@ import { PositionCalculator } from '../core/position-calculator';
 /**
  * Java 어노테이션 파싱을 담당하는 클래스
  */
-export class AnnotationParser implements IAnnotationParser {
+export class AnnotationParser {
     private readonly positionCalculator: PositionCalculator;
 
     constructor(positionCalculator?: PositionCalculator) {

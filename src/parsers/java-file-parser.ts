@@ -1,11 +1,6 @@
 import * as vscode from 'vscode';
 import {
-    ClassInfo,
-    FieldInfo,
-    SpringAnnotationType,
     JavaFileParseResult,
-    InjectionInfo,
-    InjectionType
 } from '../models/spring-types';
 import { ErrorHandler } from './core/parser-errors';
 import { CSTNavigator } from './core/cst-navigator';
