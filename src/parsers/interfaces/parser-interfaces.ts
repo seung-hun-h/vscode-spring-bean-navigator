@@ -155,45 +155,6 @@ export interface IAnnotationParser {
     extractAnnotationParameters(annotation: any): Map<string, string>;
 }
 
-/**
- * Autowired 탐지 인터페이스
- */
-export interface IAutowiredDetector {
-    /**
-     * 클래스들에서 @Autowired 어노테이션이 붙은 필드들을 추출하여 주입 정보를 생성합니다.
-     * 
-     * @param classes - 파싱된 클래스 정보들
-     * @returns @Autowired 필드들의 주입 정보
-     */
-    extractAutowiredFields(classes: ClassInfo[]): InjectionInfo[];
-
-    /**
-     * @Autowired 어노테이션이 붙은 필드가 있는지 확인합니다.
-     * 
-     * @param classInfo - 확인할 클래스 정보
-     * @returns @Autowired 필드가 있으면 true
-     */
-    hasAutowiredFields(classInfo: ClassInfo): boolean;
-
-    /**
-     * 특정 타입에 대한 @Autowired 필드들을 찾습니다.
-     * 
-     * @param classInfo - 검색할 클래스 정보
-     * @param targetType - 찾을 타입
-     * @returns 해당 타입의 @Autowired 필드들
-     */
-    findAutowiredFieldsByType(classInfo: ClassInfo, targetType: string): FieldInfo[];
-
-    /**
-     * Java 파일 내용에서 직접 @Autowired 패턴을 찾는 간단한 방법
-     * (CST 파싱이 실패할 경우의 fallback)
-     * 
-     * @param content - Java 파일 내용
-     * @param fileUri - 파일 URI
-     * @returns 발견된 @Autowired 위치들
-     */
-    findAutowiredPatterns(content: string, fileUri: vscode.Uri): InjectionInfo[];
-}
 
 /**
  * Java 파일 파서 메인 인터페이스
@@ -208,43 +169,3 @@ export interface IJavaFileParser {
      */
     parseJavaFile(fileUri: vscode.Uri, content: string): Promise<JavaFileParseResult>;
 }
-
-/**
- * 파서 컴포넌트들을 조합하는 팩토리 인터페이스
- */
-export interface IParserFactory {
-    /**
-     * CST Navigator 인스턴스를 생성합니다.
-     */
-    createCSTNavigator(): ICSTNavigator;
-
-    /**
-     * Position Calculator 인스턴스를 생성합니다.
-     */
-    createPositionCalculator(): IPositionCalculator;
-
-    /**
-     * Class Extractor 인스턴스를 생성합니다.
-     */
-    createClassExtractor(): IClassExtractor;
-
-    /**
-     * Field Extractor 인스턴스를 생성합니다.
-     */
-    createFieldExtractor(): IFieldExtractor;
-
-    /**
-     * Annotation Parser 인스턴스를 생성합니다.
-     */
-    createAnnotationParser(): IAnnotationParser;
-
-    /**
-     * Autowired Detector 인스턴스를 생성합니다.
-     */
-    createAutowiredDetector(): IAutowiredDetector;
-
-    /**
-     * 완전히 구성된 Java File Parser 인스턴스를 생성합니다.
-     */
-    createJavaFileParser(): IJavaFileParser;
-} 

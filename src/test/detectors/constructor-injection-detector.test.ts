@@ -4,15 +4,12 @@ import { ConstructorInjectionDetector } from '../../detectors/constructor-inject
 import { 
     ConstructorInfo,
     ParameterInfo,
-    AnnotationInfo,
-    SpringAnnotationType,
     InjectionInfo,
     InjectionType,
     ClassInfo
 } from '../../models/spring-types';
 import { 
     TestUtils, 
-    JavaSampleGenerator, 
 } from '../helpers/test-utils';
 
 suite('🔧 ConstructorInjectionDetector Test Suite', () => {
@@ -303,7 +300,7 @@ suite('🔧 ConstructorInjectionDetector Test Suite', () => {
             const classes = [singleConstructorClass, multipleConstructorClass];
 
             // Act
-            const result = detector.detectAllConstructorInjections(classes);
+            const result = detector.detectAllInjections(classes);
 
             // Assert
             assert.strictEqual(result.length, 2, 'Should detect injections from both single and @Autowired constructors');
@@ -338,7 +335,7 @@ suite('🔧 ConstructorInjectionDetector Test Suite', () => {
             const classes = [classWithoutConstructors, classWithMultipleNonAutowired];
 
             // Act
-            const result = detector.detectAllConstructorInjections(classes);
+            const result = detector.detectAllInjections(classes);
 
             // Assert
             assert.strictEqual(result.length, 0, 'Should return empty array when no constructor injections found');
@@ -349,7 +346,7 @@ suite('🔧 ConstructorInjectionDetector Test Suite', () => {
             const classes: ClassInfo[] = [];
 
             // Act
-            const result = detector.detectAllConstructorInjections(classes);
+            const result = detector.detectAllInjections(classes);
 
             // Assert
             assert.strictEqual(result.length, 0, 'Should return empty array for empty class list');

@@ -3,8 +3,6 @@ import * as vscode from 'vscode';
 import { SetterInjectionDetector } from '../../detectors/setter-injection-detector';
 import { 
     MethodInfo,
-    ParameterInfo,
-    AnnotationInfo,
     SpringAnnotationType,
     InjectionInfo,
     InjectionType,
@@ -245,8 +243,8 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
         });
     });
 
-    suite('detectAllSetterInjections', () => {
-        test('should_detectAllSetterInjections_when_multipleClassesProvided', () => {
+    suite('detectAllInjections', () => {
+        test('should_detectAllInjections_when_multipleClassesProvided', () => {
             // Arrange
             const autowiredAnnotation = TestUtils.createAnnotationInfo('Autowired', SpringAnnotationType.AUTOWIRED);
             
@@ -279,7 +277,7 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
             const classes = [class1, class2];
 
             // Act
-            const result = detector.detectAllSetterInjections(classes);
+            const result = detector.detectAllInjections(classes);
 
             // Assert
             assert.strictEqual(result.length, 2, 'Should detect injections from all classes');
@@ -309,7 +307,7 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
             const classes = [classWithoutSetters, classWithNonAutowiredSetters];
 
             // Act
-            const result = detector.detectAllSetterInjections(classes);
+            const result = detector.detectAllInjections(classes);
 
             // Assert
             assert.strictEqual(result.length, 0, 'Should return empty array when no setter injections found');
@@ -320,7 +318,7 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
             const classes: ClassInfo[] = [];
 
             // Act
-            const result = detector.detectAllSetterInjections(classes);
+            const result = detector.detectAllInjections(classes);
 
             // Assert
             assert.strictEqual(result.length, 0, 'Should return empty array for empty class list');

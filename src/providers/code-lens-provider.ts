@@ -200,8 +200,9 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
                     const document = await vscode.workspace.openTextDocument(fileUri);
                     const content = document.getText();
                     
-                    // Spring Bean 탐지
-                    const beans = await this.beanDetector.detectBeansInContent(content, fileUri);
+                    // Java 파일 파싱 후 Spring Bean 탐지
+                    const parseResult = await this.javaParser.parseJavaFile(fileUri, content);
+                    const beans = this.beanDetector.detectBeansInParseResult(parseResult, fileUri);
                     
                     // BeanResolver에 추가
                     for (const bean of beans) {
@@ -232,7 +233,10 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
 
         try {
             const content = document.getText();
-            const beans = await this.beanDetector.detectBeansInContent(content, document.uri);
+            
+            // Java 파일 파싱 후 Spring Bean 탐지
+            const parseResult = await this.javaParser.parseJavaFile(document.uri, content);
+            const beans = this.beanDetector.detectBeansInParseResult(parseResult, document.uri);
             
             // 해당 파일의 기존 Bean들을 제거하고 새로 추가
             // (현재 구현에서는 단순히 덮어쓰기)

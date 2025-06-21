@@ -4,40 +4,38 @@ import {
     SpringAnnotationType, 
     ClassInfo, 
     InjectionInfo,
-    InjectionType 
+    JavaFileParseResult,
 } from '../models/spring-types';
-import { JavaFileParser } from '../parsers/java-file-parser';
 import { ConstructorInjectionDetector } from './constructor-injection-detector';
 import { SetterInjectionDetector } from './setter-injection-detector';
+import { AutowiredDetector } from './autowired-injeection-detector';
+import { PositionCalculator } from '../parsers/core/position-calculator';
 
 /**
  * Spring Bean을 탐지하고 Bean 정의를 생성하는 클래스
  */
 export class SpringBeanDetector {
-    private javaParser: JavaFileParser;
     private constructorDetector: ConstructorInjectionDetector;
     private setterDetector: SetterInjectionDetector;
+    private autowiredDetector: AutowiredDetector;
     
     constructor() {
-        this.javaParser = new JavaFileParser();
         this.constructorDetector = new ConstructorInjectionDetector();
         this.setterDetector = new SetterInjectionDetector();
+        this.autowiredDetector = new AutowiredDetector(new PositionCalculator());
     }
 
     /**
-     * Java 파일 내용에서 Spring Bean들을 탐지합니다.
+     * Java 파일 파싱 결과에서 Spring Bean들을 탐지합니다.
      * 
-     * @param content Java 파일 내용
+     * @param parseResult Java 파일 파싱 결과
      * @param fileUri 파일 URI
      * @returns 발견된 Bean 정의들
      */
-    public async detectBeansInContent(content: string, fileUri: vscode.Uri): Promise<BeanDefinition[]> {
+    public detectBeansInParseResult(parseResult: JavaFileParseResult, fileUri: vscode.Uri): BeanDefinition[] {
         const beans: BeanDefinition[] = [];
         
         try {
-            // Java 파일 파싱
-            const parseResult = await this.javaParser.parseJavaFile(fileUri, content);
-            
             // 각 클래스에서 Bean 정의 추출
             for (const classInfo of parseResult.classes) {
                 const classBeans = this.extractBeansFromClass(classInfo, fileUri);
@@ -254,15 +252,15 @@ export class SpringBeanDetector {
 
         try {
             // 1. 필드 주입 탐지 (@Autowired 필드)
-            const fieldInjections = this.detectFieldInjections(classInfo);
+            const fieldInjections = this.autowiredDetector.detectAllInjections([classInfo]);
             injections.push(...fieldInjections);
 
             // 2. 생성자 주입 탐지
-            const constructorInjections = this.constructorDetector.detectAllConstructorInjections([classInfo]);
+            const constructorInjections = this.constructorDetector.detectAllInjections([classInfo]);
             injections.push(...constructorInjections);
 
             // 3. Setter 주입 탐지
-            const setterInjections = this.setterDetector.detectAllSetterInjections([classInfo]);
+            const setterInjections = this.setterDetector.detectAllInjections([classInfo]);
             injections.push(...setterInjections);
 
         } catch (error) {
@@ -291,46 +289,5 @@ export class SpringBeanDetector {
         }
 
         return allInjections;
-    }
-
-    /**
-     * 클래스에서 @Autowired 필드 주입을 탐지합니다.
-     * 
-     * @param classInfo 분석할 클래스 정보
-     * @returns 발견된 필드 주입 정보들
-     */
-    private detectFieldInjections(classInfo: ClassInfo): InjectionInfo[] {
-        const injections: InjectionInfo[] = [];
-
-        if (!classInfo.fields || !Array.isArray(classInfo.fields)) {
-            return injections;
-        }
-
-        for (const field of classInfo.fields) {
-            if (!field || !field.annotations || !Array.isArray(field.annotations)) {
-                continue;
-            }
-
-            // @Autowired 어노테이션 확인
-            const hasAutowired = field.annotations.some(annotation => 
-                annotation && annotation.type === SpringAnnotationType.AUTOWIRED
-            );
-
-            if (hasAutowired) {
-                const injection: InjectionInfo = {
-                    targetType: field.type,
-                    injectionType: InjectionType.FIELD,
-                    position: field.position,
-                    range: field.range,
-                    targetName: field.name,
-                    resolvedBean: undefined,
-                    candidateBeans: undefined
-                };
-
-                injections.push(injection);
-            }
-        }
-
-        return injections;
     }
 } 

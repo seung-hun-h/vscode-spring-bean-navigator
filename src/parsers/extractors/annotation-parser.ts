@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import { IAnnotationParser } from '../interfaces/parser-interfaces';
 import { AnnotationInfo, SpringAnnotationType } from '../../models/spring-types';
 import { JAVA_PARSER_CONFIG } from '../config/java-parser-config';

@@ -5,12 +5,13 @@ import {
     InjectionType,
     SpringAnnotationType
 } from '../models/spring-types';
+import { IInjectionDetector } from './injection-detector';
 
 /**
  * Setter 주입 패턴을 탐지하는 클래스입니다.
  * Spring의 @Autowired setter 메서드를 지원합니다.
  */
-export class SetterInjectionDetector {
+export class SetterInjectionDetector implements IInjectionDetector {
 
     /**
      * 클래스에서 Setter 주입을 탐지합니다.
@@ -61,7 +62,7 @@ export class SetterInjectionDetector {
      * @param classes - 분석할 클래스 정보 배열
      * @returns 탐지된 모든 setter 주입 정보 배열
      */
-    public detectAllSetterInjections(classes: ClassInfo[]): InjectionInfo[] {
+    public detectAllInjections(classes: ClassInfo[]): InjectionInfo[] {
         const allInjections: InjectionInfo[] = [];
 
         try {

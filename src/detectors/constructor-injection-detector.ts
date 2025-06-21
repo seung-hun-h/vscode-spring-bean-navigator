@@ -4,12 +4,13 @@ import {
     InjectionInfo, 
     InjectionType 
 } from '../models/spring-types';
+import { IInjectionDetector } from './injection-detector';
 
 /**
  * 생성자 주입 패턴을 탐지하는 클래스입니다.
  * Spring Framework 5.0+의 단일 생성자 자동 주입과 @Autowired 생성자를 지원합니다.
  */
-export class ConstructorInjectionDetector {
+export class ConstructorInjectionDetector implements IInjectionDetector {
 
     /**
      * 단일 생성자 주입을 탐지합니다.
@@ -101,7 +102,7 @@ export class ConstructorInjectionDetector {
      * @param classes - 분석할 클래스 정보 배열
      * @returns 탐지된 모든 생성자 주입 정보 배열
      */
-    public detectAllConstructorInjections(classes: ClassInfo[]): InjectionInfo[] {
+    public detectAllInjections(classes: ClassInfo[]): InjectionInfo[] {
         const allInjections: InjectionInfo[] = [];
 
         try {

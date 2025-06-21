@@ -1,21 +1,32 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { SpringBeanDetector } from '../../detectors/spring-bean-detector';
+import { JavaFileParser } from '../../parsers/java-file-parser';
 import { 
     BeanDefinition, 
     SpringAnnotationType, 
     InjectionInfo, 
     InjectionType,
-    ClassInfo
+    ClassInfo,
 } from '../../models/spring-types';
 import { JavaSampleGenerator, TestUtils } from '../helpers/test-utils';
 
 suite('SpringBeanDetector', () => {
     let detector: SpringBeanDetector;
+    let javaParser: JavaFileParser;
     
     setup(() => {
         detector = new SpringBeanDetector();
+        javaParser = new JavaFileParser();
     });
+
+    /**
+     * Helper function to parse Java content and detect beans
+     */
+    async function detectBeansFromContent(content: string, fileUri: vscode.Uri): Promise<BeanDefinition[]> {
+        const parseResult = await javaParser.parseJavaFile(fileUri, content);
+        return detector.detectBeansInParseResult(parseResult, fileUri);
+    }
 
     suite('detectBeansInWorkspace', () => {
         test('should_detectServiceBean_when_serviceClassProvided', async () => {
@@ -24,7 +35,7 @@ suite('SpringBeanDetector', () => {
             const mockUri = vscode.Uri.parse('file:///src/UserService.java');
             
             // Act
-            const beans = await detector.detectBeansInContent(serviceContent, mockUri);
+            const beans = await detectBeansFromContent(serviceContent, mockUri);
             
             // Assert
             assert.strictEqual(beans.length, 1);
@@ -40,7 +51,7 @@ suite('SpringBeanDetector', () => {
             const mockUri = vscode.Uri.parse('file:///src/EmailValidator.java');
             
             // Act
-            const beans = await detector.detectBeansInContent(componentContent, mockUri);
+            const beans = await detectBeansFromContent(componentContent, mockUri);
             
             // Assert
             assert.strictEqual(beans.length, 1);
@@ -55,7 +66,7 @@ suite('SpringBeanDetector', () => {
             const mockUri = vscode.Uri.parse('file:///src/UserRepository.java');
             
             // Act
-            const beans = await detector.detectBeansInContent(repositoryContent, mockUri);
+            const beans = await detectBeansFromContent(repositoryContent, mockUri);
             
             // Assert
             assert.strictEqual(beans.length, 1);
@@ -70,7 +81,7 @@ suite('SpringBeanDetector', () => {
             const mockUri = vscode.Uri.parse('file:///src/UserController.java');
             
             // Act
-            const beans = await detector.detectBeansInContent(controllerContent, mockUri);
+            const beans = await detectBeansFromContent(controllerContent, mockUri);
             
             // Assert
             assert.strictEqual(beans.length, 1);
@@ -85,7 +96,7 @@ suite('SpringBeanDetector', () => {
             const mockUri = vscode.Uri.parse('file:///src/ApiController.java');
             
             // Act
-            const beans = await detector.detectBeansInContent(restControllerContent, mockUri);
+            const beans = await detectBeansFromContent(restControllerContent, mockUri);
             
             // Assert
             assert.strictEqual(beans.length, 1);
@@ -100,7 +111,7 @@ suite('SpringBeanDetector', () => {
             const mockUri = vscode.Uri.parse('file:///src/AppConfig.java');
             
             // Act
-            const beans = await detector.detectBeansInContent(configContent, mockUri);
+            const beans = await detectBeansFromContent(configContent, mockUri);
             
             // Assert
             assert.strictEqual(beans.length, 1);
@@ -115,7 +126,7 @@ suite('SpringBeanDetector', () => {
             const mockUri = vscode.Uri.parse('file:///src/DatabaseConfig.java');
             
             // Act
-            const beans = await detector.detectBeansInContent(configWithBeansContent, mockUri);
+            const beans = await detectBeansFromContent(configWithBeansContent, mockUri);
             
             // Assert
             assert.strictEqual(beans.length, 3); // Configuration 클래스 + 2개 Bean 메소드
@@ -143,7 +154,7 @@ suite('SpringBeanDetector', () => {
             const mockUri = vscode.Uri.parse('file:///src/Mixed.java');
             
             // Act
-            const beans = await detector.detectBeansInContent(multipleBeansContent, mockUri);
+            const beans = await detectBeansFromContent(multipleBeansContent, mockUri);
             
             // Assert
             assert.strictEqual(beans.length, 2);
@@ -163,7 +174,7 @@ suite('SpringBeanDetector', () => {
             const mockUri = vscode.Uri.parse('file:///src/PlainJavaClass.java');
             
             // Act
-            const beans = await detector.detectBeansInContent(plainJavaContent, mockUri);
+            const beans = await detectBeansFromContent(plainJavaContent, mockUri);
             
             // Assert
             assert.strictEqual(beans.length, 0);
@@ -175,7 +186,7 @@ suite('SpringBeanDetector', () => {
             const mockUri = vscode.Uri.parse('file:///src/Invalid.java');
             
             // Act & Assert - should not throw
-            const beans = await detector.detectBeansInContent(invalidContent, mockUri);
+            const beans = await detectBeansFromContent(invalidContent, mockUri);
             assert.strictEqual(beans.length, 0);
         });
 
@@ -185,7 +196,7 @@ suite('SpringBeanDetector', () => {
             const mockUri = vscode.Uri.parse('file:///src/UserService.java');
             
             // Act
-            const beans = await detector.detectBeansInContent(customBeanNameContent, mockUri);
+            const beans = await detectBeansFromContent(customBeanNameContent, mockUri);
             
             // Assert
             assert.strictEqual(beans.length, 1);
@@ -245,7 +256,7 @@ suite('SpringBeanDetector', () => {
             const mockUri = vscode.Uri.parse('file:///src/MessageServiceImpl.java');
 
             // Act
-            const beans = await detector.detectBeansInContent(content, mockUri);
+            const beans = await detectBeansFromContent(content, mockUri);
 
             // Assert
             assert.strictEqual(beans.length, 1, 'Should detect one bean');
@@ -275,7 +286,7 @@ suite('SpringBeanDetector', () => {
             const mockUri = vscode.Uri.parse('file:///src/MultiServiceImpl.java');
 
             // Act
-            const beans = await detector.detectBeansInContent(content, mockUri);
+            const beans = await detectBeansFromContent(content, mockUri);
 
             // Assert
             assert.strictEqual(beans.length, 1, 'Should detect one bean');
@@ -296,13 +307,13 @@ suite('SpringBeanDetector', () => {
                 
                 @Service
                 public class StandaloneService {
-                    public void doSomething() { }
+                    public void doSomething() { }   
                 }
             `.trim();
             const mockUri = vscode.Uri.parse('file:///src/StandaloneService.java');
 
             // Act
-            const beans = await detector.detectBeansInContent(content, mockUri);
+            const beans = await detectBeansFromContent(content, mockUri);
 
             // Assert
             assert.strictEqual(beans.length, 1, 'Should detect one bean');

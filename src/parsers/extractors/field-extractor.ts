@@ -1,6 +1,4 @@
-import * as vscode from 'vscode';
 import { FieldInfo, AnnotationInfo } from '../../models/spring-types';
-import { JAVA_PARSER_CONFIG } from '../config/java-parser-config';
 import { ErrorHandler, FieldExtractionError } from '../core/parser-errors';
 import { PositionCalculator } from '../core/position-calculator';
 import { AnnotationParser } from './annotation-parser';
