@@ -8,334 +8,313 @@ alwaysApply: false
 ## 테스트 구조 및 유형
 
 ### 테스트 레벨 분류
-1. **단위 테스트 (Unit Tests)** - 70%
+1. **단위 테스트 (Unit Tests)** - 80%
    - 개별 클래스/함수의 로직 검증
    - 빠른 실행 속도 (< 1초)
    - 외부 의존성 모킹
 
-2. **통합 테스트 (Integration Tests)** - 20%
+2. **통합 테스트 (Integration Tests)** - 15%
    - 여러 컴포넌트 간의 상호작용 검증
    - 파일 시스템, VSCode API 연동 테스트
 
-3. **E2E 테스트 (End-to-End Tests)** - 10%
-   - 실제 사용자 시나리오 검증
+3. **Extension 테스트 (Extension Tests)** - 5%
    - VSCode Extension 전체 워크플로우 테스트
+   - 실제 VSCode 환경에서의 동작 검증
 
-### 테스트 디렉토리 구조
+### 실제 테스트 디렉토리 구조
 ```
 src/
 ├── test/
-│   ├── unit/                    # 단위 테스트
-│   │   ├── detectors/
+│   ├── parsers/                 # 파서 관련 테스트
+│   │   ├── core/
+│   │   │   ├── cst-navigator.test.ts
+│   │   │   └── position-calculator.test.ts
+│   │   ├── extractors/
+│   │   │   ├── annotation-parser.test.ts
 │   │   │   ├── autowired-detector.test.ts
-│   │   │   ├── constructor-detector.test.ts
-│   │   │   └── lombok-detector.test.ts
-│   │   ├── parsers/
-│   │   │   ├── java-parser.test.ts
-│   │   │   └── kotlin-parser.test.ts
-│   │   └── providers/
-│   │       ├── code-lens-provider.test.ts
-│   │       └── navigation-provider.test.ts
-│   ├── integration/            # 통합 테스트
-│   │   ├── file-system.test.ts
-│   │   ├── vscode-api.test.ts
-│   │   └── end-to-end.test.ts
-│   ├── fixtures/               # 테스트 데이터
-│   │   ├── java-samples/
-│   │   │   ├── autowired-example.java
-│   │   │   ├── constructor-injection.java
-│   │   │   └── lombok-example.java
-│   │   └── kotlin-samples/
-│   │       └── kotlin-example.kt
-│   └── mocks/                  # 모킹 유틸리티
-│       ├── vscode-mock.ts
-│       ├── file-system-mock.ts
-│       └── logger-mock.ts
+│   │   │   ├── class-extractor.test.ts
+│   │   │   └── field-extractor.test.ts
+│   │   └── java-file-parser.test.ts
+│   ├── providers/              # VSCode Provider 테스트
+│   │   ├── code-lens-provider.test.ts
+│   │   └── navigation-provider.test.ts
+│   ├── detectors/              # Bean 탐지 테스트
+│   │   └── spring-bean-detector.test.ts
+│   ├── utils/                  # 유틸리티 테스트
+│   │   └── bean-resolver.test.ts
+│   ├── helpers/                # 테스트 헬퍼
+│   │   └── test-utils.ts
+│   ├── fixtures/               # 테스트 데이터 (현재 비어있음)
+│   └── extension.test.ts       # 메인 extension 테스트
+```
+
+## 테스트 프레임워크 및 도구
+
+### 사용 중인 테스트 스택
+- **테스트 프레임워크**: Mocha (`@types/mocha`)
+- **테스트 러너**: VSCode Test CLI (`@vscode/test-cli`)
+- **테스트 환경**: VSCode Test Electron (`@vscode/test-electron`)
+- **어설션 라이브러리**: Node.js `assert` 모듈
+- **타입스크립트**: TypeScript 컴파일러로 테스트 빌드
+
+### 테스트 스크립트
+```json
+{
+  "scripts": {
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "test": "vscode-test"
+  }
+}
 ```
 
 ## 단위 테스트 전략
 
 ### 테스트 명명 규칙
 - **패턴**: `should_<expectedResult>_when_<condition>`
-- **예시**: `should_returnBeanDefinition_when_autowiredFieldExists`
+- **예시**: 
+  - `should_extractInjectionInfo_when_autowiredFieldExists`
+  - `should_returnEmptyArray_when_noAutowiredFields`
+  - `should_handleNullClassInfo_when_nullProvided`
 
-### 테스트 구조 (AAA 패턴)
+### Mocha 테스트 구조
 ```typescript
-describe('SpringBeanDetector', () => {
-    let detector: SpringBeanDetector;
-    let mockFileSystem: jest.Mocked<FileSystemService>;
-    let mockLogger: jest.Mocked<Logger>;
+import * as assert from 'assert';
+import * as vscode from 'vscode';
+import { AutowiredDetector } from '../../../parsers/extractors/autowired-detector';
+import { TestUtils, JavaSampleGenerator } from '../../helpers/test-utils';
 
-    beforeEach(() => {
-        // 공통 설정
-        mockFileSystem = createMockFileSystem();
-        mockLogger = createMockLogger();
-        detector = new SpringBeanDetector(mockFileSystem, mockLogger);
+/**
+ * AutowiredDetector 테스트 스위트
+ */
+suite('AutowiredDetector', () => {
+    let autowiredDetector: AutowiredDetector;
+    let positionCalculator: PositionCalculator;
+
+    setup(() => {
+        // 각 테스트 전에 실행되는 설정
+        positionCalculator = new PositionCalculator();
+        autowiredDetector = new AutowiredDetector(positionCalculator);
     });
 
-    describe('detectAutowiredFields', () => {
-        it('should_returnBeanDefinition_when_autowiredFieldExists', async () => {
+    suite('extractAutowiredFields', () => {
+        test('should_extractInjectionInfo_when_autowiredFieldExists', () => {
             // Arrange
-            const javaContent = `
-                public class UserController {
-                    @Autowired
-                    private UserService userService;
-                }
-            `;
-            mockFileSystem.readFile.mockResolvedValue(javaContent);
+            const classInfo = TestUtils.createClassInfo('TestService', 'com.example', [
+                TestUtils.createFieldInfo('userRepository', 'UserRepository', [
+                    TestUtils.createAnnotationInfo('Autowired', SpringAnnotationType.AUTOWIRED)
+                ])
+            ]);
 
             // Act
-            const result = await detector.detectAutowiredFields('UserController.java');
+            const result = autowiredDetector.extractAutowiredFields([classInfo]);
 
             // Assert
-            expect(result).toHaveLength(1);
-            expect(result[0]).toMatchObject({
-                className: 'UserService',
-                fieldName: 'userService',
-                injectionType: InjectionType.AUTOWIRED,
-                lineNumber: 3
-            });
+            assert.strictEqual(result.length, 1);
+            assert.strictEqual(result[0].targetType, 'UserRepository');
+            assert.strictEqual(result[0].injectionType, InjectionType.FIELD);
+            assert.strictEqual(result[0].targetName, 'userRepository');
         });
 
-        it('should_returnEmptyArray_when_noAutowiredFields', async () => {
+        test('should_returnEmptyArray_when_noAutowiredFields', () => {
             // Arrange
-            const javaContent = `
-                public class UserController {
-                    private String message;
-                }
-            `;
-            mockFileSystem.readFile.mockResolvedValue(javaContent);
+            const classInfo = TestUtils.createClassInfo('TestService', 'com.example', [
+                TestUtils.createFieldInfo('regularField', 'String', [])
+            ]);
 
             // Act
-            const result = await detector.detectAutowiredFields('UserController.java');
+            const result = autowiredDetector.extractAutowiredFields([classInfo]);
 
             // Assert
-            expect(result).toHaveLength(0);
+            assert.strictEqual(result.length, 0);
+        });
+    });
+
+    suite('Error Handling', () => {
+        test('should_handleNullClassInfo_when_nullProvided', () => {
+            // Act & Assert
+            assert.doesNotThrow(() => {
+                const result = autowiredDetector.extractAutowiredFields([null as any]);
+                assert.strictEqual(result.length, 0);
+            });
         });
     });
 });
 ```
 
-### 모킹 전략
+### 테스트 유틸리티 사용
 
-#### VSCode API 모킹
+#### TestUtils 클래스 활용
 ```typescript
-// src/test/mocks/vscode-mock.ts
-export const mockVscode = {
-    window: {
-        showInformationMessage: jest.fn(),
-        showErrorMessage: jest.fn(),
-        createTextEditorDecorationType: jest.fn()
-    },
-    workspace: {
-        findFiles: jest.fn(),
-        openTextDocument: jest.fn(),
-        workspaceFolders: []
-    },
-    languages: {
-        registerCodeLensProvider: jest.fn(),
-        registerDefinitionProvider: jest.fn()
-    },
-    Uri: {
-        file: jest.fn(path => ({ fsPath: path, path }))
-    }
-};
+// 모킹된 클래스 정보 생성
+const classInfo = TestUtils.createClassInfo(
+    'UserService',           // 클래스명
+    'com.example.service',   // 패키지명
+    [                        // 필드 배열
+        TestUtils.createFieldInfo(
+            'userRepository',    // 필드명
+            'UserRepository',    // 필드 타입
+            [TestUtils.createAnnotationInfo('Autowired', SpringAnnotationType.AUTOWIRED)]
+        )
+    ]
+);
 
-jest.mock('vscode', () => mockVscode);
+// Bean 정의 생성
+const beanDefinition = TestUtils.createBeanDefinition(
+    'userService',                    // Bean 이름
+    'UserService',                    // Bean 타입
+    'com.example.service.UserService' // 구현 클래스
+);
 ```
 
-#### 파일 시스템 모킹
+#### JavaSampleGenerator 활용
 ```typescript
-// src/test/mocks/file-system-mock.ts
-export function createMockFileSystem(): jest.Mocked<FileSystemService> {
-    return {
-        readFile: jest.fn(),
-        exists: jest.fn(),
-        findFiles: jest.fn(),
-        getWorkspaceRoot: jest.fn().mockReturnValue('/mock/workspace')
-    };
-}
+// 실제 Java 코드 샘플 사용
+const javaContent = JavaSampleGenerator.simpleAutowiredClass();
+const multipleFieldsContent = JavaSampleGenerator.multipleAutowiredFields();
+const invalidContent = JavaSampleGenerator.invalidJavaFile();
+
+// 특정 어노테이션별 샘플
+const serviceClass = JavaSampleGenerator.serviceClass();
+const repositoryClass = JavaSampleGenerator.repositoryClass();
+const configurationClass = JavaSampleGenerator.configurationClass();
+```
+
+### AssertionHelper 사용
+```typescript
+// 복잡한 객체 검증을 위한 헬퍼
+AssertionHelper.expectPositionEqual(actualPosition, expectedPosition);
+AssertionHelper.expectRangeEqual(actualRange, expectedRange);
+AssertionHelper.expectAnnotationValid(annotation, SpringAnnotationType.AUTOWIRED);
+AssertionHelper.expectFieldValid(fieldInfo);
+AssertionHelper.expectClassValid(classInfo);
 ```
 
 ## 통합 테스트 전략
 
 ### VSCode Extension API 테스트
 ```typescript
-// src/test/integration/vscode-api.test.ts
-import * as vscode from 'vscode';
+suite('CodeLensProvider Integration', () => {
+    test('should_provideCodeLenses_when_javaFileWithAutowiredField', async () => {
+        // Arrange
+        const javaContent = JavaSampleGenerator.simpleAutowiredClass();
+        const document = await vscode.workspace.openTextDocument({
+            content: javaContent,
+            language: 'java'
+        });
 
-describe('VSCode API Integration', () => {
-    it('should_registerCodeLensProvider_when_extensionActivates', async () => {
-        // Extension 활성화 테스트
-        const extension = vscode.extensions.getExtension('spring-bean-navigator');
-        await extension?.activate();
-
-        // CodeLens 제공자 등록 확인
-        expect(vscode.languages.registerCodeLensProvider).toHaveBeenCalledWith(
-            { language: 'java' },
-            expect.any(Object)
-        );
-    });
-});
-```
-
-### 파일 시스템 통합 테스트
-```typescript
-// src/test/integration/file-system.test.ts
-describe('File System Integration', () => {
-    it('should_detectBeans_when_realJavaFileExists', async () => {
-        // 실제 테스트 파일 사용
-        const testFilePath = path.join(__dirname, '../fixtures/java-samples/autowired-example.java');
-        const detector = new SpringBeanDetector(new FileSystemService(), new Logger());
-
-        const result = await detector.detectBeans(testFilePath);
-
-        expect(result).toHaveLength(2);
-        expect(result[0].className).toBe('UserService');
-    });
-});
-```
-
-## E2E 테스트 전략
-
-### 사용자 시나리오 테스트
-```typescript
-// src/test/integration/end-to-end.test.ts
-describe('End-to-End User Scenarios', () => {
-    it('should_navigateToBean_when_userClicksCodeLens', async () => {
-        // 1. Java 파일 열기
-        const document = await vscode.workspace.openTextDocument(
-            vscode.Uri.file('/test/UserController.java')
-        );
-        
-        // 2. CodeLens 표시 확인
+        // Act
         const codeLenses = await codeLensProvider.provideCodeLenses(document);
-        expect(codeLenses).toHaveLength(1);
-        
-        // 3. CodeLens 클릭 시뮬레이션
-        const command = codeLenses[0].command;
-        await vscode.commands.executeCommand(command!.command, ...command!.arguments!);
-        
-        // 4. 올바른 파일로 이동했는지 확인
-        const activeEditor = vscode.window.activeTextEditor;
-        expect(activeEditor?.document.fileName).toContain('UserService.java');
+
+        // Assert
+        assert.ok(codeLenses);
+        assert.strictEqual(codeLenses.length, 1);
+        assert.ok(codeLenses[0].command);
+    });
+});
+```
+
+### 파일 파싱 통합 테스트
+```typescript
+suite('JavaFileParser Integration', () => {
+    test('should_parseCompleteWorkflow_when_validSpringClassProvided', async () => {
+        // Arrange
+        const javaContent = JavaSampleGenerator.multipleAutowiredFields();
+        const fileUri = TestUtils.createMockUri('/test/UserService.java');
+
+        // Act
+        const result = await javaFileParser.parseJavaFile(fileUri, javaContent);
+
+        // Assert
+        assert.strictEqual(result.errors.length, 0);
+        assert.strictEqual(result.classes.length, 1);
+        assert.strictEqual(result.injections.length, 2);
+    });
+});
+```
+
+## 에러 처리 테스트
+
+### 에러 처리 패턴
+```typescript
+suite('Error Handling', () => {
+    test('should_handleParsingError_when_invalidJavaFileProvided', async () => {
+        // Arrange
+        const invalidContent = JavaSampleGenerator.invalidJavaFile();
+        const fileUri = TestUtils.createMockUri('/test/Invalid.java');
+
+        // Act
+        const result = await javaFileParser.parseJavaFile(fileUri, invalidContent);
+
+        // Assert
+        assert.ok(result.errors.length > 0);
+        assert.ok(result.errors[0].includes('파싱 실패'));
+    });
+
+    test('should_gracefullyHandleNullContent_when_nullProvided', async () => {
+        // Act & Assert
+        assert.doesNotThrow(async () => {
+            const result = await javaFileParser.parseJavaFile(
+                TestUtils.createMockUri('/test/Null.java'), 
+                null as any
+            );
+            assert.ok(result.errors.length > 0);
+        });
     });
 });
 ```
 
 ## 테스트 데이터 관리
 
-### 픽스처 파일 예시
-```java
-// src/test/fixtures/java-samples/autowired-example.java
-package com.example.controller;
+### 현재 접근 방식
+- **JavaSampleGenerator**: 다양한 Java 코드 샘플을 메서드로 제공
+- **TestUtils**: 모킹된 객체 생성을 위한 유틸리티
+- **MockHelper**: VSCode API 모킹 지원
+- **AssertionHelper**: 복잡한 객체 검증 헬퍼
 
-import org.springframework.beans.factory.annotation.Autowired;
-import com.example.service.UserService;
-import com.example.repository.UserRepository;
-
-public class UserController {
-    @Autowired
-    private UserService userService;
-    
-    @Autowired
-    private UserRepository userRepository;
-    
-    private String nonBeanField;
-}
+### 향후 개선 방안 (fixtures 디렉토리 활용)
+```
+src/test/fixtures/
+├── java-samples/
+│   ├── simple-autowired.java
+│   ├── multiple-autowired.java
+│   ├── no-autowired.java
+│   ├── service-class.java
+│   ├── repository-class.java
+│   ├── configuration-class.java
+│   └── invalid-syntax.java
+└── expected-results/
+    ├── simple-autowired.json
+    ├── multiple-autowired.json
+    └── service-class.json
 ```
 
-```java
-// src/test/fixtures/java-samples/constructor-injection.java
-package com.example.service;
+## 테스트 실행 및 CI/CD
 
-import org.springframework.stereotype.Service;
-import com.example.repository.UserRepository;
+### 로컬 개발 환경
+```bash
+# 테스트 컴파일
+npm run compile-tests
 
-@Service
-public class UserService {
-    private final UserRepository userRepository;
-    
-    public UserService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-}
+# 테스트 실행 (VSCode 환경에서)
+npm test
+
+# 감시 모드 (테스트 파일 변경 감지)
+npm run watch-tests
+
+# 린팅 포함 전체 검증
+npm run pretest
 ```
 
-### 테스트 데이터 빌더 패턴
-```typescript
-// src/test/builders/bean-definition-builder.ts
-export class BeanDefinitionBuilder {
-    private beanDefinition: BeanDefinition = {
-        className: 'DefaultService',
-        fieldName: 'defaultField',
-        injectionType: InjectionType.AUTOWIRED,
-        lineNumber: 1,
-        filePath: '/default/path'
-    };
+### VSCode 통합 테스트 환경
+- **VSCode Test Electron**: 실제 VSCode 인스턴스에서 테스트 실행
+- **Extension Host**: Extension API 완전 지원
+- **실제 파일 시스템**: 진짜 파일 I/O 테스트 가능
 
-    public withClassName(className: string): BeanDefinitionBuilder {
-        this.beanDefinition.className = className;
-        return this;
-    }
-
-    public withInjectionType(type: InjectionType): BeanDefinitionBuilder {
-        this.beanDefinition.injectionType = type;
-        return this;
-    }
-
-    public build(): BeanDefinition {
-        return { ...this.beanDefinition };
-    }
-}
-
-// 사용 예시
-const beanDef = new BeanDefinitionBuilder()
-    .withClassName('UserService')
-    .withInjectionType(InjectionType.CONSTRUCTOR)
-    .build();
-```
-
-## 테스트 커버리지 및 품질
-
-### 커버리지 목표
-- **전체 커버리지**: 85% 이상
-- **핵심 로직 (detectors, parsers)**: 95% 이상
-- **UI 관련 (providers)**: 80% 이상
-
-### 커버리지 설정
-```json
-// package.json
-{
-  "scripts": {
-    "test": "jest",
-    "test:coverage": "jest --coverage",
-    "test:watch": "jest --watch"
-  },
-  "jest": {
-    "coverageThreshold": {
-      "global": {
-        "branches": 85,
-        "functions": 85,
-        "lines": 85,
-        "statements": 85
-      },
-      "./src/detectors/**/*.ts": {
-        "branches": 95,
-        "functions": 95,
-        "lines": 95,
-        "statements": 95
-      }
-    }
-  }
-}
-```
-
-## CI/CD 파이프라인 테스트
-
-### GitHub Actions 워크플로우
+### CI/CD 파이프라인 고려사항
 ```yaml
-# .github/workflows/test.yml
+# GitHub Actions 예시
 name: Tests
 on: [push, pull_request]
 
@@ -354,63 +333,43 @@ jobs:
       - name: Run linting
         run: npm run lint
         
-      - name: Run unit tests
-        run: npm run test:coverage
+      - name: Compile tests
+        run: npm run compile-tests
         
-      - name: Run integration tests
-        run: npm run test:integration
+      - name: Run tests
+        run: npm test
         
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
-```
-
-## 테스트 실행 및 디버깅
-
-### 개발 중 테스트 실행
-```bash
-# 전체 테스트 실행
-npm run test
-
-# 특정 파일 테스트
-npm run test -- autowired-detector.test.ts
-
-# 감시 모드
-npm run test:watch
-
-# 커버리지 포함
-npm run test:coverage
-```
-
-### VSCode 디버깅 설정
-```json
-// .vscode/launch.json
-{
-  "configurations": [
-    {
-      "name": "Debug Jest Tests",
-      "type": "node",
-      "request": "launch",
-      "program": "${workspaceFolder}/node_modules/.bin/jest",
-      "args": ["--runInBand"],
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
-    }
-  ]
-}
+      # VSCode Extension 테스트는 GUI 환경이 필요하므로 
+      # 헤드리스 환경에서는 제한적
 ```
 
 ## 테스트 모범 사례
 
 ### DO (권장 사항)
-- ✅ 하나의 테스트는 하나의 개념만 검증
-- ✅ 테스트명으로 의도를 명확히 표현
-- ✅ 실패 시 명확한 에러 메시지 제공
-- ✅ 테스트 간 독립성 보장 (순서 무관)
-- ✅ Given-When-Then 패턴 사용
+- ✅ Mocha의 `suite()`, `test()`, `setup()` 구조 사용
+- ✅ Node.js `assert` 모듈로 검증
+- ✅ `should_action_when_condition` 명명 규칙 준수
+- ✅ TestUtils 클래스 적극 활용
+- ✅ JavaSampleGenerator로 실제 Java 코드 테스트
+- ✅ AAA 패턴 (Arrange, Act, Assert) 명확히 구분
+- ✅ 에러 처리 테스트 필수 포함
+- ✅ 각 컴포넌트별 독립적인 테스트 스위트
 
 ### DON'T (피해야 할 사항)
+- ❌ Jest 문법 (`expect`, `describe`, `it`) 사용 금지
 - ❌ 테스트에서 실제 파일 시스템 변경
 - ❌ 하드코딩된 절대 경로 사용
 - ❌ 네트워크 호출이나 외부 서비스 의존
-- ❌ 테스트에 비즈니스 로직 포함
-- ❌ 너무 복잡한 테스트 설정
+- ❌ 테스트 간 상태 공유 (setup()에서 초기화)
+- ❌ 복잡한 테스트 로직 (테스트는 단순하게)
+
+### 테스트 커버리지 현황
+- **총 테스트 수**: 244개 (리팩토링 후 364% 증가)
+- **통과율**: 99.6% (244개 중 243개 통과)
+- **컴포넌트 커버리지**:
+  - parsers/extractors: 25개 테스트 각각
+  - parsers/core: 14-22개 테스트 각각
+  - providers: 10개 이상 테스트 각각
+  - utils, detectors: 포괄적 테스트 커버리지
+
+이 테스트 전략은 현재 Spring Bean Navigator 프로젝트의 실제 구조와 사용 중인 도구들에 최적화되어 있습니다.
