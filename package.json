@@ -3,12 +3,13 @@
   "displayName": "Spring Bean Navigator",
   "description": "Navigate to Spring Bean implementations",
   "version": "1.0.0",
-  "publisher": "spring-bean-navigator",
+  "publisher": "seunghun-ham",
   "engines": {
     "vscode": "^1.90.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Spring"
   ],
   "activationEvents": [
     "*"
