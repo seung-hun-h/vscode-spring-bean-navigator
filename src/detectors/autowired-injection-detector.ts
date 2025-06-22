@@ -1,71 +1,74 @@
 import * as vscode from 'vscode';
 import { ClassInfo, SpringAnnotationType, InjectionInfo, InjectionType } from '../models/spring-types';
 import { PositionCalculator } from '../parsers/core/position-calculator';
-import { IInjectionDetector } from './injection-detector';
+import { AbstractInjectionDetector } from './abstract-injection-detector';
 import { ErrorHandler } from '../parsers/core/parser-errors';
 
 /**
  * @Autowired 어노테이션 관련 탐지 및 처리를 담당하는 클래스
  */
-export class AutowiredInjectionDetector implements IInjectionDetector {
+export class AutowiredInjectionDetector extends AbstractInjectionDetector {
     private readonly positionCalculator: PositionCalculator;
 
     constructor(positionCalculator: PositionCalculator) {
+        super();
         this.positionCalculator = positionCalculator;
     }
 
     /**
-     * 클래스들에서 @Autowired 어노테이션이 붙은 필드들을 추출하여 주입 정보를 생성합니다.
+     * Detector 이름을 반환합니다.
+     */
+    protected getDetectorName(): string {
+        return 'AutowiredInjectionDetector';
+    }
+
+    /**
+     * 단일 클래스에서 @Autowired 어노테이션이 붙은 필드들을 추출하여 주입 정보를 생성합니다.
      * 
-     * @param classes - 파싱된 클래스 정보들
+     * @param classInfo - 분석할 클래스 정보
      * @returns @Autowired 필드들의 주입 정보
      */
-    public detectAllInjections(classes: ClassInfo[]): InjectionInfo[] {
+    protected detectInjectionsForClass(classInfo: ClassInfo): InjectionInfo[] {
         const injections: InjectionInfo[] = [];
 
-        if (!classes || !Array.isArray(classes)) {
+        // fields 배열 체크
+        if (!classInfo.fields || !Array.isArray(classInfo.fields)) {
             return injections;
         }
 
-        for (const classInfo of classes) {
-            // null 체크 및 fields 배열 체크
-            if (!classInfo || !classInfo.fields || !Array.isArray(classInfo.fields)) {
+        for (const field of classInfo.fields) {
+            if (!field || !field.annotations || !Array.isArray(field.annotations)) {
                 continue;
             }
 
-            for (const field of classInfo.fields) {
-                if (!field || !field.annotations || !Array.isArray(field.annotations)) {
-                    continue;
-                }
+            // @Autowired 어노테이션이 있는 필드인지 확인
+            const autowiredAnnotation = this.findAnnotation(
+                field.annotations,
+                annotation => annotation && annotation.type === SpringAnnotationType.AUTOWIRED
+            );
 
-                // @Autowired 어노테이션이 있는 필드인지 확인
-                const autowiredAnnotation = field.annotations.find(
-                    annotation => annotation && annotation.type === SpringAnnotationType.AUTOWIRED
-                );
+            if (autowiredAnnotation) {
+                // 실제 위치 찾기 (fallback)
+                const actualPosition = this.findFieldPositionInContent(classInfo, field.name, field.type);
 
-                if (autowiredAnnotation) {
-                    // 실제 위치 찾기 (fallback)
-                    const actualPosition = this.findFieldPositionInContent(classInfo, field.name, field.type);
+                const injection: InjectionInfo = {
+                    targetType: field.type,
+                    injectionType: InjectionType.FIELD,
+                    position: actualPosition || field.position,
+                    range: new vscode.Range(
+                        actualPosition || field.position,
+                        new vscode.Position(
+                            (actualPosition || field.position).line,
+                            (actualPosition || field.position).character + field.name.length
+                        )
+                    ),
+                    targetName: field.name,
+                    // resolvedBean과 candidateBeans는 나중에 BeanResolver에서 설정
+                    resolvedBean: undefined,
+                    candidateBeans: undefined
+                };
 
-                    const injection: InjectionInfo = {
-                        targetType: field.type,
-                        injectionType: InjectionType.FIELD,
-                        position: actualPosition || field.position,
-                        range: new vscode.Range(
-                            actualPosition || field.position,
-                            new vscode.Position(
-                                (actualPosition || field.position).line,
-                                (actualPosition || field.position).character + field.name.length
-                            )
-                        ),
-                        targetName: field.name,
-                        // resolvedBean과 candidateBeans는 나중에 BeanResolver에서 설정
-                        resolvedBean: undefined,
-                        candidateBeans: undefined
-                    };
-
-                    injections.push(injection);
-                }
+                injections.push(injection);
             }
         }
 

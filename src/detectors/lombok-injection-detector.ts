@@ -10,47 +10,38 @@ import {
     InjectionInfo,
     InjectionType
 } from '../models/spring-types';
-import { IInjectionDetector } from './injection-detector';
+import { AbstractInjectionDetector } from './abstract-injection-detector';
 import { ErrorHandler } from '../parsers/core/parser-errors';
 
 /**
  * Lombok 어노테이션 기반 의존성 주입을 탐지하는 클래스 (Phase 3)
  * 컴파일 타임에 생성되는 Lombok 생성자를 가상으로 시뮬레이션하여 주입 정보를 제공합니다.
  */
-export class LombokInjectionDetector implements IInjectionDetector {
+export class LombokInjectionDetector extends AbstractInjectionDetector {
 
     /**
-     * 모든 클래스에서 Lombok 기반 의존성 주입을 탐지합니다.
+     * Detector 이름을 반환합니다.
+     */
+    protected getDetectorName(): string {
+        return 'LombokInjectionDetector';
+    }
+
+    /**
+     * 단일 클래스에서 Lombok 기반 의존성 주입을 탐지합니다.
      * 
-     * @param classes - 분석할 클래스 정보 배열
+     * @param classInfo - 분석할 클래스 정보
      * @returns 탐지된 Lombok 주입 정보 배열
      */
-    public detectAllInjections(classes: ClassInfo[]): InjectionInfo[] {
+    protected detectInjectionsForClass(classInfo: ClassInfo): InjectionInfo[] {
         const injections: InjectionInfo[] = [];
 
-        if (!classes || classes.length === 0) {
-            return injections;
-        }
+        // @RequiredArgsConstructor 주입 탐지
+        const requiredArgsInjections = this.detectRequiredArgsConstructorInjections(classInfo);
+        injections.push(...requiredArgsInjections);
 
-        for (const classInfo of classes) {
-            try {
-                // @RequiredArgsConstructor 주입 탐지
-                const requiredArgsInjections = this.detectRequiredArgsConstructorInjections(classInfo);
-                injections.push(...requiredArgsInjections);
-
-                // @AllArgsConstructor 주입 탐지
-                const allArgsInjections = this.detectAllArgsConstructorInjections(classInfo);
-                injections.push(...allArgsInjections);
-
-            } catch (error) {
-                const parsingError = ErrorHandler.handleParsingError(error, 'Lombok 주입 탐지');
-                ErrorHandler.logError(parsingError, { 
-                    className: classInfo?.name || 'Unknown',
-                    fieldCount: classInfo?.fields?.length || 0,
-                    annotationCount: classInfo?.annotations?.length || 0
-                });
-            }
-        }
+        // @AllArgsConstructor 주입 탐지
+        const allArgsInjections = this.detectAllArgsConstructorInjections(classInfo);
+        injections.push(...allArgsInjections);
 
         return injections;
     }

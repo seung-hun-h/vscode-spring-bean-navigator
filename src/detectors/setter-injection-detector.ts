@@ -5,14 +5,31 @@ import {
     InjectionType,
     SpringAnnotationType
 } from '../models/spring-types';
-import { IInjectionDetector } from './injection-detector';
+import { AbstractInjectionDetector } from './abstract-injection-detector';
 import { ErrorHandler } from '../parsers/core/parser-errors';
 
 /**
  * Setter 주입 패턴을 탐지하는 클래스입니다.
  * Spring의 @Autowired setter 메서드를 지원합니다.
  */
-export class SetterInjectionDetector implements IInjectionDetector {
+export class SetterInjectionDetector extends AbstractInjectionDetector {
+
+    /**
+     * Detector 이름을 반환합니다.
+     */
+    protected getDetectorName(): string {
+        return 'SetterInjectionDetector';
+    }
+
+    /**
+     * 단일 클래스에서 Setter 주입을 탐지합니다.
+     * 
+     * @param classInfo - 분석할 클래스 정보
+     * @returns 탐지된 setter 주입 정보 배열
+     */
+    protected detectInjectionsForClass(classInfo: ClassInfo): InjectionInfo[] {
+        return this.detectSetterInjection(classInfo);
+    }
 
     /**
      * 클래스에서 Setter 주입을 탐지합니다.
@@ -61,35 +78,7 @@ export class SetterInjectionDetector implements IInjectionDetector {
         return injections;
     }
 
-    /**
-     * 모든 클래스에서 Setter 주입을 탐지합니다.
-     * 
-     * @param classes - 분석할 클래스 정보 배열
-     * @returns 탐지된 모든 setter 주입 정보 배열
-     */
-    public detectAllInjections(classes: ClassInfo[]): InjectionInfo[] {
-        const allInjections: InjectionInfo[] = [];
 
-        try {
-            if (!classes || classes.length === 0) {
-                return allInjections;
-            }
-
-            for (const classInfo of classes) {
-                const setterInjections = this.detectSetterInjection(classInfo);
-                allInjections.push(...setterInjections);
-            }
-
-        } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, 'Setter 주입 전체 탐지');
-            ErrorHandler.logError(parsingError, { 
-                totalClasses: classes?.length || 0,
-                processedInjections: allInjections.length
-            });
-        }
-
-        return allInjections;
-    }
 
     /**
      * 메서드에 @Autowired 어노테이션이 있는지 확인합니다.

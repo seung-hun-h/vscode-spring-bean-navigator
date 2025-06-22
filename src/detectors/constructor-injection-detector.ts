@@ -4,14 +4,44 @@ import {
     InjectionInfo, 
     InjectionType 
 } from '../models/spring-types';
-import { IInjectionDetector } from './injection-detector';
+import { AbstractInjectionDetector } from './abstract-injection-detector';
 import { ErrorHandler } from '../parsers/core/parser-errors';
 
 /**
  * 생성자 주입 패턴을 탐지하는 클래스입니다.
  * Spring Framework 5.0+의 단일 생성자 자동 주입과 @Autowired 생성자를 지원합니다.
  */
-export class ConstructorInjectionDetector implements IInjectionDetector {
+export class ConstructorInjectionDetector extends AbstractInjectionDetector {
+
+    /**
+     * Detector 이름을 반환합니다.
+     */
+    protected getDetectorName(): string {
+        return 'ConstructorInjectionDetector';
+    }
+
+    /**
+     * 단일 클래스에서 생성자 주입을 탐지합니다.
+     * 단일 생성자 주입과 @Autowired 생성자 주입을 모두 처리합니다.
+     * 
+     * @param classInfo - 분석할 클래스 정보
+     * @returns 탐지된 생성자 주입 정보 배열
+     */
+    protected detectInjectionsForClass(classInfo: ClassInfo): InjectionInfo[] {
+        const injections: InjectionInfo[] = [];
+
+        // 단일 생성자 주입 탐지
+        const singleConstructorInjections = this.detectSingleConstructorInjection(classInfo);
+        injections.push(...singleConstructorInjections);
+
+        // @Autowired 생성자 주입 탐지 (단일 생성자 주입과 중복되지 않도록)
+        if (singleConstructorInjections.length === 0) {
+            const autowiredConstructorInjections = this.detectAutowiredConstructorInjection(classInfo);
+            injections.push(...autowiredConstructorInjections);
+        }
+
+        return injections;
+    }
 
     /**
      * 단일 생성자 주입을 탐지합니다.
@@ -104,41 +134,5 @@ export class ConstructorInjectionDetector implements IInjectionDetector {
         return injections;
     }
 
-    /**
-     * 모든 클래스에서 생성자 주입을 탐지합니다.
-     * 단일 생성자 주입과 @Autowired 생성자 주입을 모두 처리합니다.
-     * 
-     * @param classes - 분석할 클래스 정보 배열
-     * @returns 탐지된 모든 생성자 주입 정보 배열
-     */
-    public detectAllInjections(classes: ClassInfo[]): InjectionInfo[] {
-        const allInjections: InjectionInfo[] = [];
 
-        try {
-            if (!classes || classes.length === 0) {
-                return allInjections;
-            }
-
-            for (const classInfo of classes) {
-                // 단일 생성자 주입 탐지
-                const singleConstructorInjections = this.detectSingleConstructorInjection(classInfo);
-                allInjections.push(...singleConstructorInjections);
-
-                // @Autowired 생성자 주입 탐지 (단일 생성자 주입과 중복되지 않도록)
-                if (!singleConstructorInjections.length) {
-                    const autowiredConstructorInjections = this.detectAutowiredConstructorInjection(classInfo);
-                    allInjections.push(...autowiredConstructorInjections);
-                }
-            }
-
-        } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, '생성자 주입 전체 탐지');
-            ErrorHandler.logError(parsingError, { 
-                totalClasses: classes?.length || 0,
-                processedInjections: allInjections.length
-            });
-        }
-
-        return allInjections;
-    }
 } 
