@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
-import { ClassInfo, FieldInfo, SpringAnnotationType, InjectionInfo, InjectionType } from '../../models/spring-types';
-import { PositionCalculator } from '../core/position-calculator';
+import { ClassInfo, SpringAnnotationType, InjectionInfo, InjectionType } from '../models/spring-types';
+import { PositionCalculator } from '../parsers/core/position-calculator';
+import { IInjectionDetector } from './injection-detector';
 
 /**
  * @Autowired 어노테이션 관련 탐지 및 처리를 담당하는 클래스
  */
-export class AutowiredDetector {
+export class AutowiredInjectionDetector implements IInjectionDetector {
     private readonly positionCalculator: PositionCalculator;
 
     constructor(positionCalculator: PositionCalculator) {
@@ -18,7 +19,7 @@ export class AutowiredDetector {
      * @param classes - 파싱된 클래스 정보들
      * @returns @Autowired 필드들의 주입 정보
      */
-    public extractAutowiredFields(classes: ClassInfo[]): InjectionInfo[] {
+    public detectAllInjections(classes: ClassInfo[]): InjectionInfo[] {
         const injections: InjectionInfo[] = [];
 
         if (!classes || !Array.isArray(classes)) {

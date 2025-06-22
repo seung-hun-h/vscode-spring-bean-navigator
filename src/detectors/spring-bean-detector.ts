@@ -8,7 +8,7 @@ import {
 } from '../models/spring-types';
 import { ConstructorInjectionDetector } from './constructor-injection-detector';
 import { SetterInjectionDetector } from './setter-injection-detector';
-import { AutowiredDetector } from './autowired-injeection-detector';
+import { AutowiredInjectionDetector } from './autowired-injection-detector';
 import { PositionCalculator } from '../parsers/core/position-calculator';
 
 /**
@@ -17,12 +17,12 @@ import { PositionCalculator } from '../parsers/core/position-calculator';
 export class SpringBeanDetector {
     private constructorDetector: ConstructorInjectionDetector;
     private setterDetector: SetterInjectionDetector;
-    private autowiredDetector: AutowiredDetector;
+    private autowiredDetector: AutowiredInjectionDetector;
     
     constructor() {
         this.constructorDetector = new ConstructorInjectionDetector();
         this.setterDetector = new SetterInjectionDetector();
-        this.autowiredDetector = new AutowiredDetector(new PositionCalculator());
+        this.autowiredDetector = new AutowiredInjectionDetector(new PositionCalculator());
     }
 
     /**

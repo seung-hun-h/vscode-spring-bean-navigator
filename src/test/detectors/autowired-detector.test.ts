@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { AutowiredDetector } from '../../parsers/extractors/autowired-detector';
+import { AutowiredInjectionDetector } from '../../detectors/autowired-injection-detector';
 import { PositionCalculator } from '../../parsers/core/position-calculator';
 import { ClassInfo, SpringAnnotationType, InjectionType } from '../../models/spring-types';
 
@@ -8,15 +8,15 @@ import { ClassInfo, SpringAnnotationType, InjectionType } from '../../models/spr
  * AutowiredDetector 테스트 스위트
  */
 suite('AutowiredDetector', () => {
-    let autowiredDetector: AutowiredDetector;
+    let autowiredDetector: AutowiredInjectionDetector;
     let positionCalculator: PositionCalculator;
 
     setup(() => {
         positionCalculator = new PositionCalculator();
-        autowiredDetector = new AutowiredDetector(positionCalculator);
+        autowiredDetector = new AutowiredInjectionDetector(positionCalculator);
     });
 
-    suite('extractAutowiredFields', () => {
+    suite('detectAllInjections', () => {
         test('should_extractInjectionInfo_when_autowiredFieldExists', () => {
             // Arrange
             const classInfo: ClassInfo = {
@@ -49,7 +49,7 @@ suite('AutowiredDetector', () => {
             };
 
             // Act
-            const result = autowiredDetector.extractAutowiredFields([classInfo]);
+            const result = autowiredDetector.detectAllInjections([classInfo]);
 
             // Assert
             assert.strictEqual(result.length, 1);
@@ -84,7 +84,7 @@ suite('AutowiredDetector', () => {
             };
 
             // Act
-            const result = autowiredDetector.extractAutowiredFields([classInfo]);
+            const result = autowiredDetector.detectAllInjections([classInfo]);
 
             // Assert
             assert.strictEqual(result.length, 0);
@@ -138,7 +138,7 @@ suite('AutowiredDetector', () => {
             };
 
             // Act
-            const result = autowiredDetector.extractAutowiredFields([classInfo]);
+            const result = autowiredDetector.detectAllInjections([classInfo]);
 
             // Assert
             assert.strictEqual(result.length, 2);
@@ -148,7 +148,7 @@ suite('AutowiredDetector', () => {
 
         test('should_handleEmptyClassList_when_emptyArrayProvided', () => {
             // Act
-            const result = autowiredDetector.extractAutowiredFields([]);
+            const result = autowiredDetector.detectAllInjections([]);
 
             // Assert
             assert.strictEqual(result.length, 0);
@@ -194,7 +194,7 @@ suite('AutowiredDetector', () => {
             };
 
             // Act
-            const result = autowiredDetector.extractAutowiredFields([classInfo]);
+            const result = autowiredDetector.detectAllInjections([classInfo]);
 
             // Assert
             assert.strictEqual(result.length, 1);
@@ -206,7 +206,7 @@ suite('AutowiredDetector', () => {
         test('should_handleNullClassInfo_when_nullProvided', () => {
             // Act & Assert
             assert.doesNotThrow(() => {
-                const result = autowiredDetector.extractAutowiredFields([null as any]);
+                const result = autowiredDetector.detectAllInjections([null as any]);
                 assert.strictEqual(result.length, 0);
             });
         });
@@ -227,7 +227,7 @@ suite('AutowiredDetector', () => {
 
             // Act & Assert
             assert.doesNotThrow(() => {
-                const result = autowiredDetector.extractAutowiredFields([classInfo]);
+                const result = autowiredDetector.detectAllInjections([classInfo]);
                 assert.strictEqual(result.length, 0);
             });
         });
