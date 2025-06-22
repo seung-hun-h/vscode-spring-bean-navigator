@@ -13,107 +13,89 @@ let codeLensProvider: SpringCodeLensProvider;
 let navigationProvider: SpringNavigationProvider;
 
 /**
- * Extension이 활성화될 때 호출됩니다.
+ * Called when the extension is activated.
  */
 export function activate(context: vscode.ExtensionContext) {
-	console.log('=== Spring Bean Navigator Extension 활성화 시작 ===');
-	console.log('VSCode 버전:', vscode.version);
-	console.log('Extension 경로:', context.extensionPath);
-	console.log('워크스페이스 폴더:', vscode.workspace.workspaceFolders?.map(f => f.uri.fsPath));
-
 	try {
-		// 핵심 컴포넌트들 초기화
+		// Initialize core components
 		initializeComponents();
 
-		// Provider들 등록
+		// Register providers
 		registerProviders(context);
 
-		// 명령어들 등록
+		// Register commands
 		registerCommands(context);
 
-		// 이벤트 리스너 등록
+		// Register event listeners
 		registerEventListeners(context);
 
-		// 초기 Bean 정의 로드
+		// Load initial bean definitions
 		loadInitialBeanDefinitions();
 
-		console.log('=== Spring Bean Navigator Extension 활성화 완료! ===');
-		vscode.window.showInformationMessage('🚀 Spring Bean Navigator가 활성화되었습니다!');
+		vscode.window.showInformationMessage('Spring Bean Navigator has been activated!');
 
 	} catch (error) {
-		const parsingError = ErrorHandler.handleParsingError(error, 'Extension 활성화');
+		const parsingError = ErrorHandler.handleParsingError(error, 'Extension activation');
 		ErrorHandler.logError(parsingError, { 
 			vscodeVersion: vscode.version,
 			workspaceFolders: vscode.workspace.workspaceFolders?.length || 0
 		});
-		vscode.window.showErrorMessage(`Spring Bean Navigator 활성화 실패: ${error}`);
+		vscode.window.showErrorMessage(`Failed to activate Spring Bean Navigator: ${error}`);
 	}
 }
 
 /**
- * Extension이 비활성화될 때 호출됩니다.
+ * Called when the extension is deactivated.
  */
 export function deactivate() {
-	console.log('Spring Bean Navigator Extension 비활성화됨');
-	
-	// 리소스 정리
 	if (beanResolver) {
 		beanResolver.clearCache();
 	}
 }
 
 /**
- * 핵심 컴포넌트들을 초기화합니다.
+ * Initialize core components.
  */
 function initializeComponents(): void {
-	console.log('컴포넌트 초기화 중...');
-	
-	// Bean 해결자 생성
+	// Create bean resolver
 	beanResolver = new BeanResolver();
 	
-	// Spring Bean 탐지기 생성
+	// Create Spring bean detector
 	beanDetector = new SpringBeanDetector();
 	
-	// CodeLens Provider 생성
+	// Create CodeLens provider
 	codeLensProvider = new SpringCodeLensProvider(beanResolver, beanDetector);
 	
-	// Navigation Provider 생성
+	// Create navigation provider
 	navigationProvider = new SpringNavigationProvider();
-	
-	console.log('컴포넌트 초기화 완료');
 }
 
 /**
- * VSCode Provider들을 등록합니다.
+ * Register VSCode providers.
  */
 function registerProviders(context: vscode.ExtensionContext): void {
-	console.log('Provider 등록 중...');
-	
-	// CodeLens Provider 등록 (Java 파일에만 적용)
+	// Register CodeLens provider (only for Java files)
 	const codeLensDisposable = vscode.languages.registerCodeLensProvider(
 		{ language: 'java', scheme: 'file' },
 		codeLensProvider
 	);
 	
 	context.subscriptions.push(codeLensDisposable);
-	console.log('CodeLens Provider 등록 완료');
 }
 
 /**
- * 확장 프로그램 명령어들을 등록합니다.
+ * Register extension commands.
  */
 function registerCommands(context: vscode.ExtensionContext): void {
-	console.log('명령어 등록 중...');
-	
-	// Navigation Provider의 명령어들 등록
+	// Register navigation provider commands
 	navigationProvider.registerCommands(context);
 	
-	// 추가 명령어들 등록
+	// Register additional commands
 	const refreshCommand = vscode.commands.registerCommand(
 		'spring-bean-navigator.refresh',
 		async () => {
 			await refreshBeanDefinitions();
-			vscode.window.showInformationMessage('Spring Bean 정의가 새로고침되었습니다.');
+			vscode.window.showInformationMessage('Spring bean definitions have been refreshed.');
 		}
 	);
 	
@@ -121,96 +103,74 @@ function registerCommands(context: vscode.ExtensionContext): void {
 		'spring-bean-navigator.showBeanCount',
 		() => {
 			const count = beanResolver.getBeanCount();
-			vscode.window.showInformationMessage(`발견된 Spring Bean: ${count}개`);
+			vscode.window.showInformationMessage(`Found Spring Beans: ${count}`);
 		}
 	);
 	
 	context.subscriptions.push(refreshCommand);
 	context.subscriptions.push(showBeanCountCommand);
-	
-	console.log('명령어 등록 완료');
 }
 
 /**
- * 파일 변경 등의 이벤트 리스너들을 등록합니다.
+ * Register event listeners for file changes etc.
  */
 function registerEventListeners(context: vscode.ExtensionContext): void {
-	console.log('이벤트 리스너 등록 중...');
-	
-	// 파일 저장 시 Bean 정의 업데이트
+	// Update bean definitions when files are saved
 	const onSaveDisposable = vscode.workspace.onDidSaveTextDocument(async (document) => {
 		if (document.languageId === 'java') {
 			await codeLensProvider.updateFileBean(document);
-			console.log(`Bean 정의 업데이트: ${document.fileName}`);
 		}
 	});
 	
-	// 워크스페이스 폴더 변경 시 전체 재로드
+	// Reload everything when workspace folders change
 	const onFoldersChangedDisposable = vscode.workspace.onDidChangeWorkspaceFolders(async () => {
 		await refreshBeanDefinitions();
-		console.log('워크스페이스 변경으로 Bean 정의 재로드');
 	});
 	
-	// 파일 생성/삭제 시 Bean 정의 업데이트
+	// Update bean definitions when files are created/deleted
 	const onFilesChangedDisposable = vscode.workspace.onDidChangeConfiguration((event) => {
 		if (event.affectsConfiguration('spring-bean-navigator')) {
 			refreshBeanDefinitions();
-			console.log('설정 변경으로 Bean 정의 재로드');
 		}
 	});
 	
 	context.subscriptions.push(onSaveDisposable);
 	context.subscriptions.push(onFoldersChangedDisposable);
 	context.subscriptions.push(onFilesChangedDisposable);
-	
-	console.log('이벤트 리스너 등록 완료');
 }
 
 /**
- * 초기 Bean 정의들을 로드합니다.
+ * Load initial bean definitions.
  */
 async function loadInitialBeanDefinitions(): Promise<void> {
-	console.log('초기 Bean 정의 로드 중...');
-	
 	if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
 		try {
-			// 첫 번째 워크스페이스 폴더에서 Bean 정의 로드
+			// Load bean definitions from the first workspace folder
 			const workspaceFolder = vscode.workspace.workspaceFolders[0];
 			await codeLensProvider.updateBeanDefinitions(workspaceFolder);
-			
-			            const beanCount = beanResolver.getBeanCount();
-            console.log(`초기 Bean 정의 로드 완료: ${beanCount}개 Bean 발견`);
-			
 		} catch (error) {
-			const parsingError = ErrorHandler.handleParsingError(error, '초기 Bean 정의 로드');
+			const parsingError = ErrorHandler.handleParsingError(error, 'Initial bean definition loading');
 			ErrorHandler.logError(parsingError, { 
 				workspaceFoldersCount: vscode.workspace.workspaceFolders?.length || 0,
 				firstWorkspaceFolder: vscode.workspace.workspaceFolders?.[0]?.uri.toString() || 'None'
 			});
 		}
-	} else {
-		console.log('워크스페이스 폴더가 없어 Bean 정의를 로드하지 않음');
 	}
 }
 
 /**
- * Bean 정의들을 새로고침합니다.
+ * Refresh bean definitions.
  */
 async function refreshBeanDefinitions(): Promise<void> {
-	console.log('Bean 정의 새로고침 중...');
-	
 	if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
 		try {
-			// 모든 워크스페이스 폴더에서 Bean 정의 새로고침
+			// Refresh bean definitions from all workspace folders
 			for (const workspaceFolder of vscode.workspace.workspaceFolders) {
 				await codeLensProvider.updateBeanDefinitions(workspaceFolder);
 			}
 			
-			const beanCount = beanResolver.getBeanCount();
-			console.log(`Bean 정의 새로고침 완료: ${beanCount}개 Bean 발견`);
-			
 		} catch (error) {
-			const parsingError = ErrorHandler.handleParsingError(error, 'Bean 정의 새로고침');
+			const parsingError = ErrorHandler.handleParsingError(error, 'Bean definition refresh');
 			ErrorHandler.logError(parsingError, { 
 				workspaceFoldersCount: vscode.workspace.workspaceFolders?.length || 0,
 				allWorkspaceFolders: vscode.workspace.workspaceFolders?.map(f => f.uri.toString()) || []
