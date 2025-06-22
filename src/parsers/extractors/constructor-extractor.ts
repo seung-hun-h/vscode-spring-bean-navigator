@@ -1,12 +1,18 @@
 import * as vscode from 'vscode';
-import { ConstructorInfo, ParameterInfo } from '../../models/spring-types';
+import { ConstructorInfo, ParameterInfo, SpringAnnotationType } from '../../models/spring-types';
 import { Position } from 'vscode';
+import { AnnotationParser } from './annotation-parser';
 
 /**
  * Java 클래스에서 생성자를 추출하는 클래스
  * Spring Framework의 생성자 주입 패턴을 감지합니다.
  */
 export class ConstructorExtractor {
+    private readonly annotationParser: AnnotationParser;
+
+    constructor(annotationParser?: AnnotationParser) {
+        this.annotationParser = annotationParser || new AnnotationParser();
+    }
     
     /**
      * Java 파일 내용에서 모든 생성자를 추출합니다.
@@ -78,31 +84,17 @@ export class ConstructorExtractor {
     }
     
     /**
-     * @Autowired 어노테이션 감지
+     * @Autowired 어노테이션 감지 (AnnotationParser를 사용하여 통합된 로직 적용)
      * @param lines Java 파일 라인들
      * @param constructorLineIndex 생성자 라인 인덱스
      * @returns @Autowired 어노테이션 존재 여부
      */
     detectAutowiredAnnotation(lines: string[], constructorLineIndex: number): boolean {
-        try {
-            // 생성자 위의 라인들에서 @Autowired 찾기
-            for (let i = constructorLineIndex - 1; i >= 0 && i >= constructorLineIndex - 5; i--) {
-                const line = lines[i].trim();
-                
-                if (line.includes('@Autowired') || line.includes('@org.springframework.beans.factory.annotation.Autowired')) {
-                    return true;
-                }
-                
-                // 다른 어노테이션이나 주석이 아닌 실제 코드가 나오면 중단
-                if (line && !line.startsWith('@') && !line.startsWith('//') && !line.startsWith('/*') && !line.startsWith('*')) {
-                    break;
-                }
-            }
-            
-            return false;
-        } catch (error) {
-            return false;
-        }
+        return this.annotationParser.detectAnnotationInLines(
+            lines, 
+            constructorLineIndex - 1, 
+            SpringAnnotationType.AUTOWIRED
+        );
     }
     
     /**

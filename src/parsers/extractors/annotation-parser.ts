@@ -328,4 +328,133 @@ export class AnnotationParser {
     public getAnnotationParameter(annotation: AnnotationInfo, paramName: string): string | undefined {
         return annotation.parameters?.get(paramName);
     }
+
+    /**
+     * 라인들에서 특정 어노테이션을 감지합니다. (메서드/생성자 위의 어노테이션 탐지용)
+     * 
+     * @param lines - Java 파일 라인들
+     * @param startLineIndex - 탐지를 시작할 라인 인덱스
+     * @param annotationType - 찾을 어노테이션 타입
+     * @param maxLookupLines - 최대 탐색 라인 수 (기본값: 5)
+     * @returns 어노테이션을 찾았으면 true
+     */
+    public detectAnnotationInLines(
+        lines: string[], 
+        startLineIndex: number, 
+        annotationType: SpringAnnotationType,
+        maxLookupLines: number = 5
+    ): boolean {
+        try {
+            // 시작 라인부터 역순으로 탐색
+            for (let i = startLineIndex; i >= 0 && i >= startLineIndex - maxLookupLines; i--) {
+                const line = lines[i].trim();
+                
+                // @Autowired 패턴 매칭
+                if (annotationType === SpringAnnotationType.AUTOWIRED) {
+                    if (/^\s*@Autowired\b/.test(line) || 
+                        /^\s*@org\.springframework\.beans\.factory\.annotation\.Autowired\b/.test(line)) {
+                        return true;
+                    }
+                }
+                
+                // Lombok 어노테이션들
+                if (annotationType === SpringAnnotationType.LOMBOK_REQUIRED_ARGS_CONSTRUCTOR) {
+                    if (/^\s*@RequiredArgsConstructor\b/.test(line) ||
+                        /^\s*@lombok\.RequiredArgsConstructor\b/.test(line)) {
+                        return true;
+                    }
+                }
+                
+                if (annotationType === SpringAnnotationType.LOMBOK_ALL_ARGS_CONSTRUCTOR) {
+                    if (/^\s*@AllArgsConstructor\b/.test(line) ||
+                        /^\s*@lombok\.AllArgsConstructor\b/.test(line)) {
+                        return true;
+                    }
+                }
+                
+                // 빈 라인이나 주석은 건너뛰기
+                if (line === '' || line.startsWith('//') || line.startsWith('/*') || line.startsWith('*')) {
+                    continue;
+                }
+                
+                // 다른 어노테이션은 계속 확인
+                if (line.startsWith('@')) {
+                    continue;
+                }
+                
+                // 어노테이션이 아닌 실제 코드가 나오면 중단
+                if (line && (line.includes('{') || line.includes('}') || line.includes(';') || 
+                           line.includes('public ') || line.includes('private ') || line.includes('protected '))) {
+                    break;
+                }
+            }
+            
+        } catch (error) {
+            const annotationError = new AnnotationParsingError(
+                '라인 어노테이션 감지 실패',
+                annotationType.toString(),
+                error instanceof Error ? error : undefined
+            );
+            ErrorHandler.logError(annotationError);
+        }
+        
+        return false;
+    }
+
+    /**
+     * 라인들에서 메서드의 모든 어노테이션들을 추출합니다.
+     * 
+     * @param lines - Java 파일 라인들
+     * @param methodLineIndex - 메서드 라인 인덱스
+     * @param maxLookupLines - 최대 탐색 라인 수 (기본값: 5)
+     * @returns 추출된 어노테이션 정보 배열
+     */
+    public extractMethodAnnotationsFromLines(
+        lines: string[], 
+        methodLineIndex: number,
+        maxLookupLines: number = 5
+    ): AnnotationInfo[] {
+        const annotations: AnnotationInfo[] = [];
+        
+        try {
+            for (let i = methodLineIndex - 1; i >= 0 && i >= methodLineIndex - maxLookupLines; i--) {
+                const line = lines[i].trim();
+                
+                // 어노테이션 패턴 찾기
+                if (line.startsWith('@')) {
+                    const annotationMatch = line.match(/@(\w+)/);
+                    if (annotationMatch) {
+                        const annotationName = annotationMatch[1];
+                        
+                        // 어노테이션 타입 매핑
+                        const annotationType = this.mapToSpringAnnotationType(annotationName);
+                        if (annotationType) {
+                            annotations.push({
+                                name: annotationName,
+                                type: annotationType,
+                                line: i,
+                                column: 0,
+                                parameters: new Map() // 라인 파싱에서는 매개변수 추출 생략
+                            });
+                        }
+                    }
+                }
+                
+                // 다른 어노테이션이나 주석이 아닌 실제 코드가 나오면 중단
+                if (line && !line.startsWith('@') && !line.startsWith('//') && !line.startsWith('/*') && !line.startsWith('*') && line !== '') {
+                    break;
+                }
+            }
+            
+        } catch (error) {
+            const annotationError = new AnnotationParsingError(
+                '메서드 어노테이션 추출 실패',
+                undefined,
+                error instanceof Error ? error : undefined
+            );
+            ErrorHandler.logError(annotationError);
+        }
+        
+        return annotations;
+    }
 } 

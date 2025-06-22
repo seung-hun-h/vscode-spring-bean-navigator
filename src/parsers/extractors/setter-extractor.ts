@@ -1,11 +1,17 @@
 import * as vscode from 'vscode';
 import { MethodInfo, ParameterInfo, AnnotationInfo, SpringAnnotationType } from '../../models/spring-types';
+import { AnnotationParser } from './annotation-parser';
 
 /**
  * Java 클래스에서 setter 메서드를 추출하는 클래스
  * Spring Framework의 setter 주입 패턴을 감지합니다.
  */
 export class SetterExtractor {
+    private readonly annotationParser: AnnotationParser;
+
+    constructor(annotationParser?: AnnotationParser) {
+        this.annotationParser = annotationParser || new AnnotationParser();
+    }
     
     /**
      * Java 파일 내용에서 @Autowired가 붙은 setter 메서드들을 추출합니다.
@@ -147,42 +153,17 @@ export class SetterExtractor {
     }
     
     /**
-     * @Autowired 어노테이션 감지
+     * @Autowired 어노테이션 감지 (AnnotationParser를 사용하여 통합된 로직 적용)
      * @param lines Java 파일 라인들
      * @param methodLineIndex 메서드 라인 인덱스
      * @returns @Autowired 어노테이션 존재 여부
      */
     detectAutowiredAnnotation(lines: string[], methodLineIndex: number): boolean {
-        try {
-            // 메서드 바로 위의 라인들에서만 @Autowired 찾기
-            for (let i = methodLineIndex - 1; i >= 0; i--) {
-                const line = lines[i].trim();
-                
-                // 실제 어노테이션 패턴만 매칭 (주석 내의 텍스트는 제외)
-                if (/^\s*@Autowired\b/.test(line) || /^\s*@org\.springframework\.beans\.factory\.annotation\.Autowired\b/.test(line)) {
-                    return true;
-                }
-                
-                // 빈 라인이나 주석은 건너뛰기
-                if (line === '' || line.startsWith('//') || line.startsWith('/*') || line.startsWith('*')) {
-                    continue;
-                }
-                
-                // 다른 어노테이션은 계속 확인
-                if (line.startsWith('@')) {
-                    continue;
-                }
-                
-                // 어노테이션이 아닌 실제 코드(필드, 메서드, 클래스, 중괄호 등)가 나오면 중단
-                if (line && (line.includes('{') || line.includes('}') || line.includes(';') || 
-                           line.includes('public ') || line.includes('private ') || line.includes('protected '))) {
-                    break;
-                }
-            }
-            return false;
-        } catch (error) {
-            return false;
-        }
+        return this.annotationParser.detectAnnotationInLines(
+            lines, 
+            methodLineIndex - 1, 
+            SpringAnnotationType.AUTOWIRED
+        );
     }
     
     /**
@@ -321,54 +302,10 @@ export class SetterExtractor {
     }
     
     /**
-     * 메서드의 어노테이션들을 추출합니다.
+     * 메서드의 어노테이션들을 추출합니다. (AnnotationParser를 사용하여 통합된 로직 적용)
      */
     private extractMethodAnnotations(lines: string[], methodLineIndex: number): AnnotationInfo[] {
-        const annotations: AnnotationInfo[] = [];
-        
-        try {
-            for (let i = methodLineIndex - 1; i >= 0 && i >= methodLineIndex - 5; i--) {
-                const line = lines[i].trim();
-                
-                // @Qualifier, @Value 등의 어노테이션 찾기
-                if (line.startsWith('@') && !line.includes('@Autowired')) {
-                    const annotationMatch = line.match(/@(\w+)/);
-                    if (annotationMatch) {
-                        const annotationName = annotationMatch[1];
-                        let annotationType: SpringAnnotationType;
-                        
-                        // 어노테이션 타입 결정
-                        switch (annotationName.toLowerCase()) {
-                            case 'qualifier':
-                                // @Qualifier는 현재 SpringAnnotationType에 없으므로 임시로 AUTOWIRED 사용
-                                annotationType = SpringAnnotationType.AUTOWIRED;
-                                break;
-                            case 'value':
-                                annotationType = SpringAnnotationType.AUTOWIRED;
-                                break;
-                            default:
-                                annotationType = SpringAnnotationType.AUTOWIRED;
-                        }
-                        
-                        annotations.push({
-                            name: annotationName,
-                            type: annotationType,
-                            line: i,
-                            column: 0
-                        });
-                    }
-                }
-                
-                // 다른 어노테이션이나 주석이 아닌 실제 코드가 나오면 중단
-                if (line && !line.startsWith('@') && !line.startsWith('//') && !line.startsWith('/*') && !line.startsWith('*')) {
-                    break;
-                }
-            }
-        } catch (error) {
-            // 에러 발생 시 빈 배열 반환
-        }
-        
-        return annotations;
+        return this.annotationParser.extractMethodAnnotationsFromLines(lines, methodLineIndex);
     }
     
     /**
