@@ -8,6 +8,7 @@ A VSCode Extension for Spring Framework developers. It detects various Spring Be
 - **@Autowired Field Injection**: Automatically detects fields annotated with `@Autowired`
 - **Constructor Injection**: Detects Bean injection based on constructor parameter types
 - **Setter Injection**: Detects Setter methods annotated with `@Autowired`
+- **Method Injection**: Detects Bean method parameters in `@Configuration` classes
 - **Lombok Injection**: Supports injection based on `@RequiredArgsConstructor` and `@AllArgsConstructor`
 
 ### Spring Bean Recognition
@@ -65,6 +66,23 @@ public class UserService {
 }
 ```
 
+### 5. Method Injection (@Bean Methods)
+```java
+@Configuration
+public class AppConfig {
+    
+    @Bean
+    public UserService userService(UserRepository userRepository, EmailService emailService) {
+        return new UserService(userRepository, emailService);
+    }
+    
+    @Bean
+    public OrderProcessor orderProcessor(PaymentService paymentService) {
+        return new OrderProcessor(paymentService);
+    }
+}
+```
+
 ## How to Use
 
 1. **Open Java File**: Open a Java file with Spring Bean injections
@@ -89,6 +107,7 @@ public class UserService {
 - [x] @Autowired field injection detection
 - [x] Constructor injection detection
 - [x] Setter injection detection
+- [x] Method injection (@Bean method parameters)
 - [x] Lombok annotation support
 - [x] CodeLens UI implementation
 - [x] Bean navigation functionality
