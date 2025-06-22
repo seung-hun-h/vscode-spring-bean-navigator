@@ -1,5 +1,5 @@
 import { AnnotationInfo, SpringAnnotationType } from '../../models/spring-types';
-import { JAVA_PARSER_CONFIG } from '../config/java-parser-config';
+import { JAVA_PARSER_CONFIG, SPRING_ANNOTATION_NAMES, SPRING_ANNOTATION_PACKAGES } from '../config/java-parser-config';
 import { ErrorHandler, AnnotationParsingError } from '../core/parser-errors';
 import { PositionCalculator } from '../core/position-calculator';
 
@@ -120,7 +120,7 @@ export class AnnotationParser {
     }
 
     /**
-     * 문자열을 SpringAnnotationType으로 매핑합니다.
+     * 문자열을 SpringAnnotationType으로 매핑합니다. (상수 사용으로 리팩토링)
      * 
      * @param annotationName - 어노테이션 이름
      * @returns SpringAnnotationType 또는 undefined
@@ -128,23 +128,23 @@ export class AnnotationParser {
     private mapToSpringAnnotationType(annotationName: string): SpringAnnotationType | undefined {
         switch (annotationName) {
             // Spring Framework 어노테이션
-            case 'Component': return SpringAnnotationType.COMPONENT;
-            case 'Service': return SpringAnnotationType.SERVICE;
-            case 'Repository': return SpringAnnotationType.REPOSITORY;
-            case 'Controller': return SpringAnnotationType.CONTROLLER;
-            case 'RestController': return SpringAnnotationType.REST_CONTROLLER;
-            case 'Configuration': return SpringAnnotationType.CONFIGURATION;
-            case 'Bean': return SpringAnnotationType.BEAN;
-            case 'Autowired': return SpringAnnotationType.AUTOWIRED;
+            case SPRING_ANNOTATION_NAMES.COMPONENT: return SpringAnnotationType.COMPONENT;
+            case SPRING_ANNOTATION_NAMES.SERVICE: return SpringAnnotationType.SERVICE;
+            case SPRING_ANNOTATION_NAMES.REPOSITORY: return SpringAnnotationType.REPOSITORY;
+            case SPRING_ANNOTATION_NAMES.CONTROLLER: return SpringAnnotationType.CONTROLLER;
+            case SPRING_ANNOTATION_NAMES.REST_CONTROLLER: return SpringAnnotationType.REST_CONTROLLER;
+            case SPRING_ANNOTATION_NAMES.CONFIGURATION: return SpringAnnotationType.CONFIGURATION;
+            case SPRING_ANNOTATION_NAMES.BEAN: return SpringAnnotationType.BEAN;
+            case SPRING_ANNOTATION_NAMES.AUTOWIRED: return SpringAnnotationType.AUTOWIRED;
             // Phase 3: Lombok 어노테이션들
-            case 'RequiredArgsConstructor': return SpringAnnotationType.LOMBOK_REQUIRED_ARGS_CONSTRUCTOR;
-            case 'AllArgsConstructor': return SpringAnnotationType.LOMBOK_ALL_ARGS_CONSTRUCTOR;
-            case 'NoArgsConstructor': return SpringAnnotationType.LOMBOK_NO_ARGS_CONSTRUCTOR;
-            case 'Data': return SpringAnnotationType.LOMBOK_DATA;
-            case 'Value': return SpringAnnotationType.LOMBOK_VALUE;
-            case 'Slf4j': return SpringAnnotationType.LOMBOK_SLF4J;
-            case 'NonNull': return SpringAnnotationType.LOMBOK_NON_NULL;
-            case 'Nonnull': return SpringAnnotationType.LOMBOK_NON_NULL;  // JSR-305 javax.annotation.Nonnull
+            case SPRING_ANNOTATION_NAMES.REQUIRED_ARGS_CONSTRUCTOR: return SpringAnnotationType.LOMBOK_REQUIRED_ARGS_CONSTRUCTOR;
+            case SPRING_ANNOTATION_NAMES.ALL_ARGS_CONSTRUCTOR: return SpringAnnotationType.LOMBOK_ALL_ARGS_CONSTRUCTOR;
+            case SPRING_ANNOTATION_NAMES.NO_ARGS_CONSTRUCTOR: return SpringAnnotationType.LOMBOK_NO_ARGS_CONSTRUCTOR;
+            case SPRING_ANNOTATION_NAMES.DATA: return SpringAnnotationType.LOMBOK_DATA;
+            case SPRING_ANNOTATION_NAMES.VALUE: return SpringAnnotationType.LOMBOK_VALUE;
+            case SPRING_ANNOTATION_NAMES.SLF4J: return SpringAnnotationType.LOMBOK_SLF4J;
+            case SPRING_ANNOTATION_NAMES.NON_NULL: return SpringAnnotationType.LOMBOK_NON_NULL;
+            case SPRING_ANNOTATION_NAMES.NONNULL: return SpringAnnotationType.LOMBOK_NON_NULL;  // JSR-305 javax.annotation.Nonnull
             default: return undefined;
         }
     }
@@ -349,25 +349,28 @@ export class AnnotationParser {
             for (let i = startLineIndex; i >= 0 && i >= startLineIndex - maxLookupLines; i--) {
                 const line = lines[i].trim();
                 
-                // @Autowired 패턴 매칭
+                // @Autowired 패턴 매칭 (상수 사용)
                 if (annotationType === SpringAnnotationType.AUTOWIRED) {
-                    if (/^\s*@Autowired\b/.test(line) || 
-                        /^\s*@org\.springframework\.beans\.factory\.annotation\.Autowired\b/.test(line)) {
+                    const autowiredPattern = new RegExp(`^\\s*@${SPRING_ANNOTATION_NAMES.AUTOWIRED}\\b`);
+                    const autowiredFullPattern = new RegExp(`^\\s*@${SPRING_ANNOTATION_PACKAGES.AUTOWIRED_FULL.replace('.', '\\.')}\\b`);
+                    if (autowiredPattern.test(line) || autowiredFullPattern.test(line)) {
                         return true;
                     }
                 }
                 
-                // Lombok 어노테이션들
+                // Lombok 어노테이션들 (상수 사용)
                 if (annotationType === SpringAnnotationType.LOMBOK_REQUIRED_ARGS_CONSTRUCTOR) {
-                    if (/^\s*@RequiredArgsConstructor\b/.test(line) ||
-                        /^\s*@lombok\.RequiredArgsConstructor\b/.test(line)) {
+                    const requiredArgsPattern = new RegExp(`^\\s*@${SPRING_ANNOTATION_NAMES.REQUIRED_ARGS_CONSTRUCTOR}\\b`);
+                    const requiredArgsFullPattern = new RegExp(`^\\s*@${SPRING_ANNOTATION_PACKAGES.LOMBOK_REQUIRED_ARGS_CONSTRUCTOR_FULL.replace('.', '\\.')}\\b`);
+                    if (requiredArgsPattern.test(line) || requiredArgsFullPattern.test(line)) {
                         return true;
                     }
                 }
                 
                 if (annotationType === SpringAnnotationType.LOMBOK_ALL_ARGS_CONSTRUCTOR) {
-                    if (/^\s*@AllArgsConstructor\b/.test(line) ||
-                        /^\s*@lombok\.AllArgsConstructor\b/.test(line)) {
+                    const allArgsPattern = new RegExp(`^\\s*@${SPRING_ANNOTATION_NAMES.ALL_ARGS_CONSTRUCTOR}\\b`);
+                    const allArgsFullPattern = new RegExp(`^\\s*@${SPRING_ANNOTATION_PACKAGES.LOMBOK_ALL_ARGS_CONSTRUCTOR_FULL.replace('.', '\\.')}\\b`);
+                    if (allArgsPattern.test(line) || allArgsFullPattern.test(line)) {
                         return true;
                     }
                 }

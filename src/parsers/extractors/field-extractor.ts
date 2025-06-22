@@ -10,6 +10,8 @@ import { AnnotationParser } from './annotation-parser';
 export class FieldExtractor {
     private readonly positionCalculator: PositionCalculator;
     private readonly annotationParser: AnnotationParser;
+    // 성능 최적화: 탐색 캐시
+    private exploredNodes = new Set<any>();
 
     constructor(
         positionCalculator: PositionCalculator,
@@ -20,51 +22,25 @@ export class FieldExtractor {
     }
 
     /**
-     * 클래스의 필드들을 추출합니다.
+     * 클래스의 필드들을 추출합니다. (성능 최적화 버전)
      * 
      * @param classDecl - 클래스 선언 CST 노드
      * @param lines - 파일 내용의 라인들
      * @returns 추출된 필드 정보 배열
      */
     public extractFields(classDecl: any, lines: string[]): FieldInfo[] {
-        const fields: FieldInfo[] = [];
+        // 성능 최적화: 캐시 초기화
+        this.exploredNodes.clear();
+        
+        // 성능 최적화: Map을 사용한 효율적인 중복 제거
+        const fieldMap = new Map<string, FieldInfo>();
         
         try {
-            const classBody = classDecl.children?.normalClassDeclaration?.[0]?.children?.classBody?.[0];
-            const classMemberDeclarations = classBody?.children?.classBodyDeclaration;
+            // 1단계: 표준 구조로 필드 탐색
+            this.extractFieldsFromStandardStructure(classDecl, lines, fieldMap);
             
-            if (classMemberDeclarations) {
-                for (const memberDecl of classMemberDeclarations) {
-                    // 기본 필드 선언 구조
-                    if (memberDecl.children?.classMemberDeclaration?.[0]?.children?.fieldDeclaration) {
-                        const fieldDecl = memberDecl.children.classMemberDeclaration[0].children.fieldDeclaration[0];
-                        const fieldInfo = this.parseFieldDeclaration(fieldDecl, lines);
-                        
-                        if (fieldInfo) {
-                            fields.push(fieldInfo);
-                        }
-                    }
-                    
-                    // 직접 fieldDeclaration이 있는 경우 (구조 변형)
-                    else if (memberDecl.children?.fieldDeclaration) {
-                        const fieldDecl = memberDecl.children.fieldDeclaration[0];
-                        const fieldInfo = this.parseFieldDeclaration(fieldDecl, lines);
-                        
-                        if (fieldInfo) {
-                            fields.push(fieldInfo);
-                        }
-                    }
-                }
-            }
-            
-            // 대안적인 방법: 전체 클래스에서 필드 선언을 재귀적으로 찾기
-            const additionalFields = this.findFieldsRecursively(classDecl, lines);
-            for (const field of additionalFields) {
-                // 중복 제거 (이름이 같은 필드가 이미 있으면 추가하지 않음)
-                if (!fields.some(existingField => existingField.name === field.name)) {
-                    fields.push(field);
-                }
-            }
+            // 2단계: 누락된 필드가 있을 수 있으므로 한 번만 재귀 탐색
+            this.extractFieldsRecursively(classDecl, lines, fieldMap);
             
         } catch (error) {
             const fieldError = new FieldExtractionError(
@@ -76,30 +52,68 @@ export class FieldExtractor {
             ErrorHandler.logError(fieldError);
         }
         
-        return fields;
+        // Map에서 Array로 변환하여 반환
+        return Array.from(fieldMap.values());
     }
 
     /**
-     * 클래스에서 재귀적으로 필드 선언을 찾습니다.
+     * 표준 클래스 구조에서 필드들을 추출합니다.
+     * 
+     * @param classDecl - 클래스 선언 CST 노드
+     * @param lines - 파일 내용의 라인들
+     * @param fieldMap - 필드를 저장할 Map (중복 제거용)
+     */
+    private extractFieldsFromStandardStructure(classDecl: any, lines: string[], fieldMap: Map<string, FieldInfo>): void {
+        try {
+            const classBody = classDecl.children?.normalClassDeclaration?.[0]?.children?.classBody?.[0];
+            const classMemberDeclarations = classBody?.children?.classBodyDeclaration;
+            
+            if (classMemberDeclarations) {
+                for (const memberDecl of classMemberDeclarations) {
+                    // 기본 필드 선언 구조
+                    if (memberDecl.children?.classMemberDeclaration?.[0]?.children?.fieldDeclaration) {
+                        const fieldDecl = memberDecl.children.classMemberDeclaration[0].children.fieldDeclaration[0];
+                        this.processFieldDeclaration(fieldDecl, lines, fieldMap);
+                    }
+                    
+                    // 직접 fieldDeclaration이 있는 경우 (구조 변형)
+                    else if (memberDecl.children?.fieldDeclaration) {
+                        const fieldDecl = memberDecl.children.fieldDeclaration[0];
+                        this.processFieldDeclaration(fieldDecl, lines, fieldMap);
+                    }
+                }
+            }
+        } catch (error) {
+            // 표준 구조 탐색 실패는 로깅만 하고 계속 진행
+            const fieldError = new FieldExtractionError(
+                '표준 구조 필드 추출 실패',
+                undefined,
+                'Standard structure extraction',
+                error instanceof Error ? error : undefined
+            );
+            ErrorHandler.logError(fieldError);
+        }
+    }
+
+    /**
+     * 재귀적으로 필드 선언을 찾습니다. (성능 최적화: 캐시 사용)
      * 
      * @param node - 탐색할 CST 노드
      * @param lines - 파일 내용의 라인들
-     * @returns 발견된 필드 정보 배열
+     * @param fieldMap - 필드를 저장할 Map (중복 제거용)
      */
-    private findFieldsRecursively(node: any, lines: string[]): FieldInfo[] {
-        const fields: FieldInfo[] = [];
-        
-        if (!node) {
-            return fields;
+    private extractFieldsRecursively(node: any, lines: string[], fieldMap: Map<string, FieldInfo>): void {
+        if (!node || this.exploredNodes.has(node)) {
+            return; // 이미 탐색한 노드는 건너뛰기
         }
+        
+        // 성능 최적화: 탐색한 노드 마킹
+        this.exploredNodes.add(node);
         
         try {
             // fieldDeclaration 노드를 직접 찾은 경우
             if (node.name === 'fieldDeclaration' || (node.children && this.isFieldDeclarationNode(node))) {
-                const fieldInfo = this.parseFieldDeclaration(node, lines);
-                if (fieldInfo) {
-                    fields.push(fieldInfo);
-                }
+                this.processFieldDeclaration(node, lines, fieldMap);
             }
             
             // 자식 노드들을 재귀적으로 탐색
@@ -107,8 +121,7 @@ export class FieldExtractor {
                 for (const key of Object.keys(node.children)) {
                     if (Array.isArray(node.children[key])) {
                         for (const child of node.children[key]) {
-                            const childFields = this.findFieldsRecursively(child, lines);
-                            fields.push(...childFields);
+                            this.extractFieldsRecursively(child, lines, fieldMap);
                         }
                     }
                 }
@@ -123,8 +136,30 @@ export class FieldExtractor {
             );
             ErrorHandler.logError(fieldError);
         }
-        
-        return fields;
+    }
+
+    /**
+     * 필드 선언을 처리하여 Map에 추가합니다. (성능 최적화: 중복 체크 O(1))
+     * 
+     * @param fieldDecl - 필드 선언 CST 노드
+     * @param lines - 파일 내용의 라인들
+     * @param fieldMap - 필드를 저장할 Map
+     */
+    private processFieldDeclaration(fieldDecl: any, lines: string[], fieldMap: Map<string, FieldInfo>): void {
+        try {
+            const fieldInfo = this.parseFieldDeclaration(fieldDecl, lines);
+            if (fieldInfo && !fieldMap.has(fieldInfo.name)) {
+                fieldMap.set(fieldInfo.name, fieldInfo);
+            }
+        } catch (error) {
+            const fieldError = new FieldExtractionError(
+                '필드 선언 처리 실패',
+                undefined,
+                'Field declaration processing',
+                error instanceof Error ? error : undefined
+            );
+            ErrorHandler.logError(fieldError);
+        }
     }
 
     /**

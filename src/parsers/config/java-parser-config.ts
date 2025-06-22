@@ -1,19 +1,72 @@
 /**
  * Java 파서 관련 설정 상수들
  */
+
+/**
+ * Spring Framework 어노테이션 이름 상수들
+ */
+export const SPRING_ANNOTATION_NAMES = {
+    // Core Spring Annotations
+    COMPONENT: 'Component' as string,
+    SERVICE: 'Service' as string, 
+    REPOSITORY: 'Repository' as string,
+    CONTROLLER: 'Controller' as string,
+    REST_CONTROLLER: 'RestController' as string,
+    CONFIGURATION: 'Configuration' as string,
+    BEAN: 'Bean' as string,
+    AUTOWIRED: 'Autowired' as string,
+    
+    // Lombok Annotations
+    REQUIRED_ARGS_CONSTRUCTOR: 'RequiredArgsConstructor' as string,
+    ALL_ARGS_CONSTRUCTOR: 'AllArgsConstructor' as string,
+    NO_ARGS_CONSTRUCTOR: 'NoArgsConstructor' as string,
+    DATA: 'Data' as string,
+    VALUE: 'Value' as string,
+    SLF4J: 'Slf4j' as string,
+    NON_NULL: 'NonNull' as string,
+    NONNULL: 'Nonnull' as string // JSR-305
+};
+
+/**
+ * Spring Framework 어노테이션 패키지 경로 상수들
+ */
+export const SPRING_ANNOTATION_PACKAGES = {
+    AUTOWIRED_FULL: 'org.springframework.beans.factory.annotation.Autowired',
+    LOMBOK_REQUIRED_ARGS_CONSTRUCTOR_FULL: 'lombok.RequiredArgsConstructor',
+    LOMBOK_ALL_ARGS_CONSTRUCTOR_FULL: 'lombok.AllArgsConstructor',
+    LOMBOK_NON_NULL_FULL: 'lombok.NonNull',
+    SPRING_NON_NULL_FULL: 'org.springframework.lang.NonNull',
+    JAVAX_NONNULL_FULL: 'javax.annotation.Nonnull'
+} as const;
+
+/**
+ * Java 파서 설정
+ */
 export const JAVA_PARSER_CONFIG = {
     /**
-     * Spring 어노테이션 목록 (Phase 3: Lombok 어노테이션 추가)
+     * 감지할 Spring 관련 어노테이션들의 Set
+     * Lombok 어노테이션들도 포함됨
      */
     SPRING_ANNOTATIONS: new Set([
-        // Spring Framework 어노테이션
-        'Component', 'Service', 'Repository', 'Controller', 'RestController',
-        'Configuration', 'Bean', 'Autowired',
+        // Core Spring Framework 어노테이션
+        SPRING_ANNOTATION_NAMES.COMPONENT,
+        SPRING_ANNOTATION_NAMES.SERVICE,
+        SPRING_ANNOTATION_NAMES.REPOSITORY,
+        SPRING_ANNOTATION_NAMES.CONTROLLER,
+        SPRING_ANNOTATION_NAMES.REST_CONTROLLER,
+        SPRING_ANNOTATION_NAMES.CONFIGURATION,
+        SPRING_ANNOTATION_NAMES.BEAN,
+        SPRING_ANNOTATION_NAMES.AUTOWIRED,
+        
         // Phase 3: Lombok 어노테이션들
-        'RequiredArgsConstructor', 'AllArgsConstructor', 'NoArgsConstructor',
-        'Data', 'Value', 'Slf4j', 'NonNull',
-        // JSR-305 어노테이션들
-        'Nonnull'  // javax.annotation.Nonnull
+        SPRING_ANNOTATION_NAMES.REQUIRED_ARGS_CONSTRUCTOR,
+        SPRING_ANNOTATION_NAMES.ALL_ARGS_CONSTRUCTOR,
+        SPRING_ANNOTATION_NAMES.NO_ARGS_CONSTRUCTOR,
+        SPRING_ANNOTATION_NAMES.DATA,
+        SPRING_ANNOTATION_NAMES.VALUE,
+        SPRING_ANNOTATION_NAMES.SLF4J,
+        SPRING_ANNOTATION_NAMES.NON_NULL,
+        SPRING_ANNOTATION_NAMES.NONNULL
     ]),
 
     /**
@@ -55,5 +108,21 @@ export const JAVA_PARSER_CONFIG = {
     /**
      * 인터페이스 이름 유효성 검사 정규식 (Java 명명 규칙)
      */
-    INTERFACE_NAME_REGEX: /^[A-Z][a-zA-Z0-9_]*$/
-}; 
+    INTERFACE_NAME_REGEX: /^[A-Z][a-zA-Z0-9_]*$/,
+
+    /**
+     * 파싱할 Java 파일 확장자들
+     */
+    JAVA_FILE_EXTENSIONS: ['.java'] as const,
+
+    /**
+     * 무시할 디렉토리 패턴들
+     */
+    IGNORE_PATTERNS: [
+        '**/target/**',
+        '**/build/**',
+        '**/.gradle/**',
+        '**/node_modules/**',
+        '**/.git/**'
+    ] as const
+} as const; 
