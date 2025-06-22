@@ -12,12 +12,14 @@ export enum SpringAnnotationType {
     CONFIGURATION = 'Configuration',
     BEAN = 'Bean',
     AUTOWIRED = 'Autowired',
+    QUALIFIER = 'Qualifier',
+    VALUE = 'Value', // Spring @Value 어노테이션
     // Phase 3: Lombok 어노테이션 타입들
     LOMBOK_REQUIRED_ARGS_CONSTRUCTOR = 'RequiredArgsConstructor',
     LOMBOK_ALL_ARGS_CONSTRUCTOR = 'AllArgsConstructor',
     LOMBOK_NO_ARGS_CONSTRUCTOR = 'NoArgsConstructor',
     LOMBOK_DATA = 'Data',
-    LOMBOK_VALUE = 'Value',
+    LOMBOK_VALUE = 'LombokValue', // Lombok @Value와 구분
     LOMBOK_SLF4J = 'Slf4j',
     LOMBOK_NON_NULL = 'NonNull'
 }

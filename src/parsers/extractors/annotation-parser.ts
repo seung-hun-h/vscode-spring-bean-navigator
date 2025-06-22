@@ -136,12 +136,14 @@ export class AnnotationParser {
             case SPRING_ANNOTATION_NAMES.CONFIGURATION: return SpringAnnotationType.CONFIGURATION;
             case SPRING_ANNOTATION_NAMES.BEAN: return SpringAnnotationType.BEAN;
             case SPRING_ANNOTATION_NAMES.AUTOWIRED: return SpringAnnotationType.AUTOWIRED;
+            case SPRING_ANNOTATION_NAMES.QUALIFIER: return SpringAnnotationType.QUALIFIER;
+            case SPRING_ANNOTATION_NAMES.VALUE: return SpringAnnotationType.VALUE;
             // Phase 3: Lombok 어노테이션들
             case SPRING_ANNOTATION_NAMES.REQUIRED_ARGS_CONSTRUCTOR: return SpringAnnotationType.LOMBOK_REQUIRED_ARGS_CONSTRUCTOR;
             case SPRING_ANNOTATION_NAMES.ALL_ARGS_CONSTRUCTOR: return SpringAnnotationType.LOMBOK_ALL_ARGS_CONSTRUCTOR;
             case SPRING_ANNOTATION_NAMES.NO_ARGS_CONSTRUCTOR: return SpringAnnotationType.LOMBOK_NO_ARGS_CONSTRUCTOR;
             case SPRING_ANNOTATION_NAMES.DATA: return SpringAnnotationType.LOMBOK_DATA;
-            case SPRING_ANNOTATION_NAMES.VALUE: return SpringAnnotationType.LOMBOK_VALUE;
+            case SPRING_ANNOTATION_NAMES.LOMBOK_VALUE: return SpringAnnotationType.LOMBOK_VALUE;
             case SPRING_ANNOTATION_NAMES.SLF4J: return SpringAnnotationType.LOMBOK_SLF4J;
             case SPRING_ANNOTATION_NAMES.NON_NULL: return SpringAnnotationType.LOMBOK_NON_NULL;
             case SPRING_ANNOTATION_NAMES.NONNULL: return SpringAnnotationType.LOMBOK_NON_NULL;  // JSR-305 javax.annotation.Nonnull

@@ -15,13 +15,15 @@ export const SPRING_ANNOTATION_NAMES = {
     CONFIGURATION: 'Configuration' as string,
     BEAN: 'Bean' as string,
     AUTOWIRED: 'Autowired' as string,
+    QUALIFIER: 'Qualifier' as string,
+    VALUE: 'Value' as string, // Spring @Value
     
     // Lombok Annotations
     REQUIRED_ARGS_CONSTRUCTOR: 'RequiredArgsConstructor' as string,
     ALL_ARGS_CONSTRUCTOR: 'AllArgsConstructor' as string,
     NO_ARGS_CONSTRUCTOR: 'NoArgsConstructor' as string,
     DATA: 'Data' as string,
-    VALUE: 'Value' as string,
+    LOMBOK_VALUE: 'Value' as string, // Lombok @Value
     SLF4J: 'Slf4j' as string,
     NON_NULL: 'NonNull' as string,
     NONNULL: 'Nonnull' as string // JSR-305
@@ -32,9 +34,12 @@ export const SPRING_ANNOTATION_NAMES = {
  */
 export const SPRING_ANNOTATION_PACKAGES = {
     AUTOWIRED_FULL: 'org.springframework.beans.factory.annotation.Autowired',
+    QUALIFIER_FULL: 'org.springframework.beans.factory.annotation.Qualifier',
+    VALUE_FULL: 'org.springframework.beans.factory.annotation.Value',
     LOMBOK_REQUIRED_ARGS_CONSTRUCTOR_FULL: 'lombok.RequiredArgsConstructor',
     LOMBOK_ALL_ARGS_CONSTRUCTOR_FULL: 'lombok.AllArgsConstructor',
     LOMBOK_NON_NULL_FULL: 'lombok.NonNull',
+    LOMBOK_VALUE_FULL: 'lombok.Value',
     SPRING_NON_NULL_FULL: 'org.springframework.lang.NonNull',
     JAVAX_NONNULL_FULL: 'javax.annotation.Nonnull'
 } as const;
@@ -57,13 +62,15 @@ export const JAVA_PARSER_CONFIG = {
         SPRING_ANNOTATION_NAMES.CONFIGURATION,
         SPRING_ANNOTATION_NAMES.BEAN,
         SPRING_ANNOTATION_NAMES.AUTOWIRED,
+        SPRING_ANNOTATION_NAMES.QUALIFIER,
+        SPRING_ANNOTATION_NAMES.VALUE,
         
         // Phase 3: Lombok 어노테이션들
         SPRING_ANNOTATION_NAMES.REQUIRED_ARGS_CONSTRUCTOR,
         SPRING_ANNOTATION_NAMES.ALL_ARGS_CONSTRUCTOR,
         SPRING_ANNOTATION_NAMES.NO_ARGS_CONSTRUCTOR,
         SPRING_ANNOTATION_NAMES.DATA,
-        SPRING_ANNOTATION_NAMES.VALUE,
+        SPRING_ANNOTATION_NAMES.LOMBOK_VALUE,
         SPRING_ANNOTATION_NAMES.SLF4J,
         SPRING_ANNOTATION_NAMES.NON_NULL,
         SPRING_ANNOTATION_NAMES.NONNULL

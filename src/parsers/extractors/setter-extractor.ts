@@ -57,18 +57,9 @@ export class SetterExtractor {
                     if (hasAutowired) {
                         const methodInfo = this.parseMethodFromLines(lines, i, uri);
                         if (methodInfo && methodInfo.isSetterMethod) {
-                            // @Autowired 어노테이션 추가
-                            const autowiredAnnotation: AnnotationInfo = {
-                                name: 'Autowired',
-                                type: SpringAnnotationType.AUTOWIRED,
-                                line: i - 1, // 어노테이션은 메서드 위에 있음
-                                column: 0
-                            };
-                            methodInfo.annotations = [autowiredAnnotation];
-                            
-                            // 다른 어노테이션도 찾기 (@Qualifier 등)
-                            const additionalAnnotations = this.extractMethodAnnotations(lines, i);
-                            methodInfo.annotations.push(...additionalAnnotations);
+                            // 모든 어노테이션을 한 번에 추출 (중복 방지)
+                            const allAnnotations = this.extractMethodAnnotations(lines, i);
+                            methodInfo.annotations = allAnnotations;
                             
                             methods.push(methodInfo);
                         }
