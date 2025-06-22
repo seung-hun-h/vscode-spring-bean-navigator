@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { BeanResolver } from '../utils/bean-resolver';
 import { SpringBeanDetector } from '../detectors/spring-bean-detector';
 import { JavaFileParser } from '../parsers/java-file-parser';
-import { InjectionInfo } from '../models/spring-types';
+import { InjectionInfo, InjectionType } from '../models/spring-types';
 import { ErrorHandler } from '../parsers/core/parser-errors';
 
 /**
@@ -134,19 +134,22 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
         if (resolutionResult.resolved) {
             // 단일 Bean이 해결된 경우
             const beanName = this.getBeanDisplayName(resolutionResult.resolved.type);
-            title = `→ Go to Bean: ${beanName}`;
+            const injectionTypeText = this.getInjectionTypeText(injection.injectionType);
+            title = `→ Go to Bean: ${beanName}${injectionTypeText}`;
             command = 'spring-bean-navigator.goToBean';
             args = [resolutionResult.resolved];
             
         } else if (resolutionResult.candidates.length > 1) {
             // 다중 후보가 있는 경우
-            title = `→ Multiple candidates (${resolutionResult.candidates.length})`;
+            const injectionTypeText = this.getInjectionTypeText(injection.injectionType);
+            title = `→ Multiple candidates (${resolutionResult.candidates.length})${injectionTypeText}`;
             command = 'spring-bean-navigator.selectBean';
             args = [resolutionResult.candidates];
             
         } else {
             // Bean을 찾을 수 없는 경우
-            title = `→ Bean not found: ${injection.targetType}`;
+            const injectionTypeText = this.getInjectionTypeText(injection.injectionType);
+            title = `→ Bean not found: ${injection.targetType}${injectionTypeText}`;
             command = 'spring-bean-navigator.beanNotFound';
             args = [injection.targetType];
         }
@@ -181,6 +184,27 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
             return beanType.substring(lastDotIndex + 1);
         }
         return beanType;
+    }
+
+    /**
+     * 주입 타입에 따른 텍스트를 생성합니다.
+     * 
+     * @param injectionType - 주입 타입
+     * @returns 주입 타입 설명 텍스트
+     */
+    private getInjectionTypeText(injectionType: InjectionType): string {
+        switch (injectionType) {
+            case InjectionType.CONSTRUCTOR_LOMBOK:
+                return ' (Lombok Constructor)';
+            case InjectionType.CONSTRUCTOR:
+                return ' (Constructor)';
+            case InjectionType.SETTER:
+                return ' (Setter)';
+            case InjectionType.FIELD:
+                return ' (Field)';
+            default:
+                return '';
+        }
     }
 
     /**

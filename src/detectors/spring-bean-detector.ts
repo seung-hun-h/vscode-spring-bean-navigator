@@ -9,6 +9,7 @@ import {
 import { ConstructorInjectionDetector } from './constructor-injection-detector';
 import { SetterInjectionDetector } from './setter-injection-detector';
 import { AutowiredInjectionDetector } from './autowired-injection-detector';
+import { LombokInjectionDetector } from './lombok-injection-detector';
 import { PositionCalculator } from '../parsers/core/position-calculator';
 import { ErrorHandler } from '../parsers/core/parser-errors';
 
@@ -19,11 +20,13 @@ export class SpringBeanDetector {
     private constructorDetector: ConstructorInjectionDetector;
     private setterDetector: SetterInjectionDetector;
     private autowiredDetector: AutowiredInjectionDetector;
+    private lombokDetector: LombokInjectionDetector;
     
     constructor() {
         this.constructorDetector = new ConstructorInjectionDetector();
         this.setterDetector = new SetterInjectionDetector();
         this.autowiredDetector = new AutowiredInjectionDetector(new PositionCalculator());
+        this.lombokDetector = new LombokInjectionDetector();
     }
 
     /**
@@ -267,6 +270,10 @@ export class SpringBeanDetector {
             // 3. Setter 주입 탐지
             const setterInjections = this.setterDetector.detectAllInjections([classInfo]);
             injections.push(...setterInjections);
+
+            // 4. Lombok 주입 탐지 (Phase 3)
+            const lombokInjections = this.lombokDetector.detectAllInjections([classInfo]);
+            injections.push(...lombokInjections);
 
         } catch (error) {
             const parsingError = ErrorHandler.handleParsingError(error, '주입 탐지');
