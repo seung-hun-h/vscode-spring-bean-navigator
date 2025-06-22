@@ -5,6 +5,7 @@ import {
     InjectionType 
 } from '../models/spring-types';
 import { IInjectionDetector } from './injection-detector';
+import { ErrorHandler, JavaParsingError } from '../parsers/core/parser-errors';
 
 /**
  * 생성자 주입 패턴을 탐지하는 클래스입니다.
@@ -48,7 +49,11 @@ export class ConstructorInjectionDetector implements IInjectionDetector {
             }
 
         } catch (error) {
-            // 에러 발생 시 빈 배열 반환 (로깅은 추후 추가)
+            const parsingError = ErrorHandler.handleParsingError(error, '단일 생성자 주입 탐지');
+            ErrorHandler.logError(parsingError, { 
+                className: classInfo?.name || 'Unknown',
+                constructorCount: classInfo?.constructors?.length || 0
+            });
         }
 
         return injections;
@@ -89,7 +94,11 @@ export class ConstructorInjectionDetector implements IInjectionDetector {
             }
 
         } catch (error) {
-            // 에러 발생 시 빈 배열 반환
+            const parsingError = ErrorHandler.handleParsingError(error, '@Autowired 생성자 주입 탐지');
+            ErrorHandler.logError(parsingError, { 
+                className: classInfo?.name || 'Unknown',
+                constructorCount: classInfo?.constructors?.length || 0
+            });
         }
 
         return injections;
@@ -123,7 +132,11 @@ export class ConstructorInjectionDetector implements IInjectionDetector {
             }
 
         } catch (error) {
-            // 에러 발생 시 현재까지 수집된 주입 정보 반환
+            const parsingError = ErrorHandler.handleParsingError(error, '생성자 주입 전체 탐지');
+            ErrorHandler.logError(parsingError, { 
+                totalClasses: classes?.length || 0,
+                processedInjections: allInjections.length
+            });
         }
 
         return allInjections;

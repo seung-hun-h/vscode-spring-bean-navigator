@@ -6,6 +6,7 @@ import {
     SpringAnnotationType
 } from '../models/spring-types';
 import { IInjectionDetector } from './injection-detector';
+import { ErrorHandler, JavaParsingError } from '../parsers/core/parser-errors';
 
 /**
  * Setter 주입 패턴을 탐지하는 클래스입니다.
@@ -50,7 +51,11 @@ export class SetterInjectionDetector implements IInjectionDetector {
             }
 
         } catch (error) {
-            // 에러 발생 시 빈 배열 반환 (로깅은 추후 추가)
+            const parsingError = ErrorHandler.handleParsingError(error, 'Setter 주입 탐지');
+            ErrorHandler.logError(parsingError, { 
+                className: classInfo?.name || 'Unknown',
+                methodCount: classInfo?.methods?.length || 0
+            });
         }
 
         return injections;
@@ -76,7 +81,11 @@ export class SetterInjectionDetector implements IInjectionDetector {
             }
 
         } catch (error) {
-            // 에러 발생 시 현재까지 수집된 주입 정보 반환
+            const parsingError = ErrorHandler.handleParsingError(error, 'Setter 주입 전체 탐지');
+            ErrorHandler.logError(parsingError, { 
+                totalClasses: classes?.length || 0,
+                processedInjections: allInjections.length
+            });
         }
 
         return allInjections;
@@ -100,6 +109,11 @@ export class SetterInjectionDetector implements IInjectionDetector {
             );
 
         } catch (error) {
+            const parsingError = ErrorHandler.handleParsingError(error, '@Autowired 어노테이션 확인');
+            ErrorHandler.logError(parsingError, { 
+                methodName: method?.name || 'Unknown',
+                annotationCount: method?.annotations?.length || 0
+            });
             return false;
         }
     }

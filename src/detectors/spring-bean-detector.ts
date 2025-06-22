@@ -10,6 +10,7 @@ import { ConstructorInjectionDetector } from './constructor-injection-detector';
 import { SetterInjectionDetector } from './setter-injection-detector';
 import { AutowiredInjectionDetector } from './autowired-injection-detector';
 import { PositionCalculator } from '../parsers/core/position-calculator';
+import { ErrorHandler, JavaParsingError } from '../parsers/core/parser-errors';
 
 /**
  * Spring Bean을 탐지하고 Bean 정의를 생성하는 클래스
@@ -43,7 +44,11 @@ export class SpringBeanDetector {
             }
             
         } catch (error) {
-            console.error('Bean 탐지 중 오류 발생:', error);
+            const parsingError = ErrorHandler.handleParsingError(error, 'Bean 탐지');
+            ErrorHandler.logError(parsingError, { 
+                fileUri: fileUri.toString(),
+                classCount: parseResult.classes.length 
+            });
             // 에러가 발생해도 빈 배열 반환 (테스트 요구사항)
         }
         
@@ -264,7 +269,11 @@ export class SpringBeanDetector {
             injections.push(...setterInjections);
 
         } catch (error) {
-            console.error('주입 탐지 중 오류 발생:', error);
+            const parsingError = ErrorHandler.handleParsingError(error, '주입 탐지');
+            ErrorHandler.logError(parsingError, { 
+                className: classInfo?.name || 'Unknown',
+                fullyQualifiedName: classInfo?.fullyQualifiedName 
+            });
         }
 
         return injections;

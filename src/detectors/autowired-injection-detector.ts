@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { ClassInfo, SpringAnnotationType, InjectionInfo, InjectionType } from '../models/spring-types';
 import { PositionCalculator } from '../parsers/core/position-calculator';
 import { IInjectionDetector } from './injection-detector';
+import { ErrorHandler, JavaParsingError } from '../parsers/core/parser-errors';
 
 /**
  * @Autowired 어노테이션 관련 탐지 및 처리를 담당하는 클래스
@@ -94,7 +95,12 @@ export class AutowiredInjectionDetector implements IInjectionDetector {
             return this.positionCalculator.findFieldPosition(fieldName, fieldType, lines);
 
         } catch (error) {
-            console.warn('필드 위치 찾기 실패:', error);
+            const parsingError = ErrorHandler.handleParsingError(error, '필드 위치 찾기');
+            ErrorHandler.logError(parsingError, { 
+                className: classInfo?.name || 'Unknown',
+                fieldName: fieldName || 'Unknown',
+                fieldType: fieldType || 'Unknown'
+            });
         }
 
         return undefined;

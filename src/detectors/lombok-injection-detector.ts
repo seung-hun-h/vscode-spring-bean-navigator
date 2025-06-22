@@ -11,6 +11,7 @@ import {
     InjectionType
 } from '../models/spring-types';
 import { IInjectionDetector } from './injection-detector';
+import { ErrorHandler, JavaParsingError } from '../parsers/core/parser-errors';
 
 /**
  * Lombok 어노테이션 기반 의존성 주입을 탐지하는 클래스 (Phase 3)
@@ -42,8 +43,12 @@ export class LombokInjectionDetector implements IInjectionDetector {
                 injections.push(...allArgsInjections);
 
             } catch (error) {
-                // 에러 발생 시 해당 클래스는 건너뛰고 계속 진행
-                console.error(`Lombok 주입 탐지 실패 - 클래스: ${classInfo.name}`, error);
+                const parsingError = ErrorHandler.handleParsingError(error, 'Lombok 주입 탐지');
+                ErrorHandler.logError(parsingError, { 
+                    className: classInfo?.name || 'Unknown',
+                    fieldCount: classInfo?.fields?.length || 0,
+                    annotationCount: classInfo?.annotations?.length || 0
+                });
             }
         }
 
