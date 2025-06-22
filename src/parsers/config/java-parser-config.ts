@@ -11,7 +11,9 @@ export const JAVA_PARSER_CONFIG = {
         'Configuration', 'Bean', 'Autowired',
         // Phase 3: Lombok 어노테이션들
         'RequiredArgsConstructor', 'AllArgsConstructor', 'NoArgsConstructor',
-        'Data', 'Value', 'Slf4j', 'NonNull'
+        'Data', 'Value', 'Slf4j', 'NonNull',
+        // JSR-305 어노테이션들
+        'Nonnull'  // javax.annotation.Nonnull
     ]),
 
     /**

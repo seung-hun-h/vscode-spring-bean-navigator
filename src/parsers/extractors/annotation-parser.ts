@@ -144,6 +144,7 @@ export class AnnotationParser {
             case 'Value': return SpringAnnotationType.LOMBOK_VALUE;
             case 'Slf4j': return SpringAnnotationType.LOMBOK_SLF4J;
             case 'NonNull': return SpringAnnotationType.LOMBOK_NON_NULL;
+            case 'Nonnull': return SpringAnnotationType.LOMBOK_NON_NULL;  // JSR-305 javax.annotation.Nonnull
             default: return undefined;
         }
     }

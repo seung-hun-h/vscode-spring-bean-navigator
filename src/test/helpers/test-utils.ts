@@ -1213,4 +1213,275 @@ export class LombokJavaSampleGenerator {
         }
         `.trim();
     }
+}
+
+/**
+ * Field Extractor용 Mock 데이터 생성기 (Task 1.2)
+ * 복잡한 CST 구조를 간단하게 생성할 수 있는 Builder 패턴
+ */
+export class FieldMockBuilder {
+    private fieldName: string = 'testField';
+    private fieldType: string = 'String';
+    private isPrimitive: boolean = false;
+    private modifiers: string[] = [];
+
+    /**
+     * 필드 이름 설정
+     */
+    public withName(name: string): FieldMockBuilder {
+        this.fieldName = name;
+        return this;
+    }
+
+    /**
+     * 필드 타입 설정 (참조 타입)
+     */
+    public withType(type: string): FieldMockBuilder {
+        this.fieldType = type;
+        this.isPrimitive = false;
+        return this;
+    }
+
+    /**
+     * 기본 타입 설정 (int, boolean, etc.)
+     */
+    public withPrimitiveType(type: 'int' | 'boolean' | 'char' | 'byte' | 'short' | 'long' | 'float' | 'double'): FieldMockBuilder {
+        this.fieldType = type;
+        this.isPrimitive = true;
+        return this;
+    }
+
+    /**
+     * private 제한자 추가
+     */
+    public asPrivate(): FieldMockBuilder {
+        this.modifiers.push('Private');
+        return this;
+    }
+
+    /**
+     * public 제한자 추가
+     */
+    public asPublic(): FieldMockBuilder {
+        this.modifiers.push('Public');
+        return this;
+    }
+
+    /**
+     * protected 제한자 추가
+     */
+    public asProtected(): FieldMockBuilder {
+        this.modifiers.push('Protected');
+        return this;
+    }
+
+    /**
+     * final 제한자 추가
+     */
+    public asFinal(): FieldMockBuilder {
+        this.modifiers.push('Final');
+        return this;
+    }
+
+    /**
+     * static 제한자 추가
+     */
+    public asStatic(): FieldMockBuilder {
+        this.modifiers.push('Static');
+        return this;
+    }
+
+    /**
+     * transient 제한자 추가
+     */
+    public asTransient(): FieldMockBuilder {
+        this.modifiers.push('Transient');
+        return this;
+    }
+
+    /**
+     * volatile 제한자 추가
+     */
+    public asVolatile(): FieldMockBuilder {
+        this.modifiers.push('Volatile');
+        return this;
+    }
+
+    /**
+     * CST 구조의 field mock 데이터 빌드
+     */
+    public build(): any {
+        return {
+            children: {
+                unannType: [this.buildTypeStructure()],
+                variableDeclaratorList: [this.buildVariableDeclaratorList()],
+                fieldModifier: this.buildFieldModifiers()
+            }
+        };
+    }
+
+    /**
+     * 타입 구조 빌드 (참조 타입 vs 기본 타입)
+     */
+    private buildTypeStructure(): any {
+        if (this.isPrimitive) {
+            return this.buildPrimitiveType();
+        } else {
+            return this.buildReferenceType();
+        }
+    }
+
+    /**
+     * 참조 타입 구조 빌드
+     */
+    private buildReferenceType(): any {
+        return {
+            children: {
+                unannReferenceType: [{
+                    children: {
+                        unannClassOrInterfaceType: [{
+                            children: {
+                                unannClassType: [{
+                                    children: {
+                                        Identifier: [{ image: this.fieldType }]
+                                    }
+                                }]
+                            }
+                        }]
+                    }
+                }]
+            }
+        };
+    }
+
+    /**
+     * 기본 타입 구조 빌드
+     */
+    private buildPrimitiveType(): any {
+        const primitiveMap: Record<string, any> = {
+            'int': { IntegralType: [{ children: { Int: [{ image: 'int' }] } }] },
+            'boolean': { Boolean: [{ image: 'boolean' }] },
+            'char': { IntegralType: [{ children: { Char: [{ image: 'char' }] } }] },
+            'byte': { IntegralType: [{ children: { Byte: [{ image: 'byte' }] } }] },
+            'short': { IntegralType: [{ children: { Short: [{ image: 'short' }] } }] },
+            'long': { IntegralType: [{ children: { Long: [{ image: 'long' }] } }] },
+            'float': { FloatingPointType: [{ children: { Float: [{ image: 'float' }] } }] },
+            'double': { FloatingPointType: [{ children: { Double: [{ image: 'double' }] } }] }
+        };
+
+        return {
+            children: {
+                unannPrimitiveType: [{
+                    children: primitiveMap[this.fieldType]
+                }]
+            }
+        };
+    }
+
+    /**
+     * 변수 선언자 리스트 빌드
+     */
+    private buildVariableDeclaratorList(): any {
+        return {
+            children: {
+                variableDeclarator: [{
+                    children: {
+                        variableDeclaratorId: [{
+                            children: {
+                                Identifier: [{ image: this.fieldName }]
+                            }
+                        }]
+                    }
+                }]
+            }
+        };
+    }
+
+    /**
+     * 필드 제한자들 빌드
+     */
+    private buildFieldModifiers(): any[] {
+        return this.modifiers.map(modifier => ({
+            children: {
+                [modifier]: [{ image: modifier.toLowerCase() }]
+            }
+        }));
+    }
+
+    /**
+     * 새로운 Builder 인스턴스 생성
+     */
+    public static create(): FieldMockBuilder {
+        return new FieldMockBuilder();
+    }
+
+    /**
+     * 자주 사용되는 패턴들을 위한 정적 메서드들
+     */
+
+    /**
+     * private final String 필드
+     */
+    public static privateFinalString(name: string): any {
+        return FieldMockBuilder.create()
+            .withName(name)
+            .withType('String')
+            .asPrivate()
+            .asFinal()
+            .build();
+    }
+
+    /**
+     * private final int 필드
+     */
+    public static privateFinalInt(name: string): any {
+        return FieldMockBuilder.create()
+            .withName(name)
+            .withPrimitiveType('int')
+            .asPrivate()
+            .asFinal()
+            .build();
+    }
+
+    /**
+     * private static final 상수 필드
+     */
+    public static privateStaticFinalString(name: string): any {
+        return FieldMockBuilder.create()
+            .withName(name)
+            .withType('String')
+            .asPrivate()
+            .asStatic()
+            .asFinal()
+            .build();
+    }
+
+    /**
+     * @NonNull 어노테이션이 있는 필드 mock
+     */
+    public static withNonNullAnnotation(name: string, type: string = 'String'): any {
+        const fieldMock = FieldMockBuilder.create()
+            .withName(name)
+            .withType(type)
+            .asPrivate()
+            .build();
+        
+        // @NonNull 어노테이션 추가
+        fieldMock.children.fieldModifier.push({
+            children: {
+                annotation: [{
+                    children: {
+                        At: [{ image: '@' }],
+                        typeName: [{
+                            children: {
+                                Identifier: [{ image: 'NonNull' }]
+                            }
+                        }]
+                    }
+                }]
+            }
+        });
+
+        return fieldMock;
+    }
 } 
