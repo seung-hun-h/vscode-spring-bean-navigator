@@ -123,8 +123,10 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
         injection: InjectionInfo, 
         document: vscode.TextDocument
     ): Promise<vscode.CodeLens | undefined> {
-        // Bean 해결 시도
-        const resolutionResult = this.beanResolver.resolveBeanForInjection(injection.targetType);
+        // Bean 해결 시도 - Bean 메서드 매개변수인 경우 이름 기반 매칭 사용
+        const resolutionResult = injection.injectionType === InjectionType.BEAN_METHOD 
+            ? this.beanResolver.resolveBeanForInjectionWithName(injection.targetType, injection.targetName)
+            : this.beanResolver.resolveBeanForInjection(injection.targetType);
 
         let title: string;
         let command: string;

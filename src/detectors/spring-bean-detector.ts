@@ -5,6 +5,8 @@ import {
     ClassInfo, 
     InjectionInfo,
     JavaFileParseResult,
+    AnnotationInfo,
+    MethodInfo,
 } from '../models/spring-types';
 import { ConstructorInjectionDetector } from './constructor-injection-detector';
 import { SetterInjectionDetector } from './setter-injection-detector';
@@ -147,42 +149,79 @@ export class SpringBeanDetector {
     private extractBeanMethods(classInfo: ClassInfo, fileUri: vscode.Uri): BeanDefinition[] {
         const beans: BeanDefinition[] = [];
         
-        // 현재는 간단한 구현으로 메소드 파싱은 향후 구현
-        // 테스트를 위해 가상의 Bean 메소드들을 생성
-        if (classInfo.name === 'DatabaseConfig') {
-            // 테스트 케이스에 맞춘 임시 구현
-            const dataSourceBean: BeanDefinition = {
-                name: 'dataSource',
-                type: 'DataSource',
-                implementationClass: 'javax.sql.DataSource',
-                fileUri,
-                position: classInfo.position,
-                definitionType: 'method',
-                annotation: SpringAnnotationType.BEAN,
-                beanName: 'dataSource',
-                className: 'DataSource',
-                annotationType: SpringAnnotationType.BEAN,
-                fullyQualifiedName: 'javax.sql.DataSource'
-            };
-            
-            const emfBean: BeanDefinition = {
-                name: 'entityManagerFactory',
-                type: 'EntityManagerFactory',
-                implementationClass: 'javax.persistence.EntityManagerFactory',
-                fileUri,
-                position: classInfo.position,
-                definitionType: 'method',
-                annotation: SpringAnnotationType.BEAN,
-                beanName: 'entityManagerFactory',
-                className: 'EntityManagerFactory',
-                annotationType: SpringAnnotationType.BEAN,
-                fullyQualifiedName: 'javax.persistence.EntityManagerFactory'
-            };
-            
-            beans.push(dataSourceBean, emfBean);
+        // 클래스의 모든 메서드 확인
+        if (classInfo.methods) {
+            for (const method of classInfo.methods) {
+                // @Bean 어노테이션이 있는 메서드 확인
+                const beanAnnotation = method.annotations.find(
+                    annotation => annotation.type === SpringAnnotationType.BEAN
+                );
+                
+                if (beanAnnotation) {
+                    const beanDefinition = this.createBeanDefinitionFromMethod(method, classInfo, fileUri);
+                    beans.push(beanDefinition);
+                }
+            }
         }
         
         return beans;
+    }
+    
+    /**
+     * @Bean 메서드에서 Bean 정의를 생성합니다.
+     * 
+     * @param method 메서드 정보
+     * @param classInfo 클래스 정보
+     * @param fileUri 파일 URI
+     * @returns Bean 정의
+     */
+    private createBeanDefinitionFromMethod(
+        method: MethodInfo, 
+        classInfo: ClassInfo, 
+        fileUri: vscode.Uri
+    ): BeanDefinition {
+        // @Bean 어노테이션에서 커스텀 이름 확인
+        const beanAnnotation = method.annotations.find(
+            annotation => annotation.type === SpringAnnotationType.BEAN
+        );
+        
+        const customBeanName = beanAnnotation ? this.extractCustomBeanNameFromAnnotation(beanAnnotation) : undefined;
+        const beanName = customBeanName || this.generateBeanName(method.name);
+        
+        const beanDefinition: BeanDefinition = {
+            name: beanName,
+            type: method.returnType || 'Object',
+            implementationClass: method.returnType || 'Object',
+            fileUri,
+            position: method.position,
+            definitionType: 'method',
+            annotation: SpringAnnotationType.BEAN,
+            beanName,
+            className: method.returnType || 'Object',
+            annotationType: SpringAnnotationType.BEAN,
+            fullyQualifiedName: method.returnType || 'Object'
+        };
+
+        return beanDefinition;
+    }
+    
+    /**
+     * 어노테이션에서 커스텀 Bean 이름을 추출합니다.
+     * 
+     * @param annotation 어노테이션 정보
+     * @returns 커스텀 Bean 이름 (없으면 undefined)
+     */
+    private extractCustomBeanNameFromAnnotation(annotation: AnnotationInfo): string | undefined {
+        if (annotation && annotation.parameters) {
+            // value 또는 name 매개변수 확인
+            const value = annotation.parameters.get('value') || annotation.parameters.get('name');
+            if (value) {
+                // 따옴표 제거
+                return value.replace(/["']/g, '');
+            }
+        }
+        
+        return undefined;
     }
 
     /**

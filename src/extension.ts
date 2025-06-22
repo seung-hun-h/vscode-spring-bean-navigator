@@ -178,8 +178,8 @@ async function loadInitialBeanDefinitions(): Promise<void> {
 			const workspaceFolder = vscode.workspace.workspaceFolders[0];
 			await codeLensProvider.updateBeanDefinitions(workspaceFolder);
 			
-			const beanCount = beanResolver.getBeanCount();
-			console.log(`초기 Bean 정의 로드 완료: ${beanCount}개 Bean 발견`);
+			            const beanCount = beanResolver.getBeanCount();
+            console.log(`초기 Bean 정의 로드 완료: ${beanCount}개 Bean 발견`);
 			
 		} catch (error) {
 			const parsingError = ErrorHandler.handleParsingError(error, '초기 Bean 정의 로드');

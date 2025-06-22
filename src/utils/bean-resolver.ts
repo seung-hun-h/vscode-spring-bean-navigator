@@ -105,6 +105,22 @@ export class BeanResolver {
      * @returns Bean 해결 결과
      */
     public resolveBeanForInjection(targetType: string): BeanResolutionResult {
+        return this.resolveBeanForInjectionWithName(targetType, undefined);
+    }
+
+    /**
+     * 타입과 이름을 기반으로 Bean을 해결합니다.
+     * 
+     * Spring의 Bean 해결 규칙:
+     * 1. 타입이 일치하는 Bean이 하나면 그것을 주입
+     * 2. 같은 타입의 Bean이 여러 개면 매개변수 이름과 Bean 이름을 매칭
+     * 3. 컬렉션 타입 처리
+     * 
+     * @param targetType - 주입할 타입
+     * @param targetName - 주입 대상 이름 (매개변수명 등)
+     * @returns Bean 해결 결과
+     */
+    public resolveBeanForInjectionWithName(targetType: string, targetName?: string): BeanResolutionResult {
         // 먼저 정확한 타입 매칭 시도 (컬렉션 타입 포함)
         const directCandidates = this.findBeansByType(targetType);
         
@@ -116,7 +132,18 @@ export class BeanResolver {
                     candidates: directCandidates
                 };
             } else {
-                // 다중 후보가 있는 경우 자동 해결하지 않음
+                // 다중 후보가 있는 경우 이름 기반 매칭 시도
+                if (targetName) {
+                    const nameMatchedBean = this.findBeanByNameFromCandidates(directCandidates, targetName);
+                    if (nameMatchedBean) {
+                        return {
+                            resolved: nameMatchedBean,
+                            candidates: directCandidates
+                        };
+                    }
+                }
+                
+                // 이름 매칭도 실패한 경우 모든 후보 반환
                 return {
                     resolved: undefined,
                     candidates: directCandidates
@@ -366,5 +393,86 @@ export class BeanResolver {
             resolved: undefined, // 컬렉션은 단일 resolved로 처리하지 않음
             candidates: candidates
         };
+    }
+
+    /**
+     * 후보 Bean들 중에서 이름이 매칭되는 Bean을 찾습니다.
+     * 
+     * Spring의 이름 매칭 규칙:
+     * 1. 정확한 Bean 이름 매칭
+     * 2. camelCase 변환된 이름 매칭 (예: saveContentStep -> saveContentStep)
+     * 
+     * @param candidates - 후보 Bean들
+     * @param targetName - 찾을 이름 (매개변수명 등)
+     * @returns 매칭되는 Bean 또는 undefined
+     */
+    private findBeanByNameFromCandidates(candidates: BeanDefinition[], targetName: string): BeanDefinition | undefined {
+        if (!candidates || candidates.length === 0 || !targetName || targetName.trim() === '') {
+            return undefined;
+        }
+
+        const trimmedTargetName = targetName.trim();
+
+        // 1. 정확한 Bean 이름 매칭
+        const exactMatch = candidates.find(bean => bean.name === trimmedTargetName);
+        if (exactMatch) {
+            return exactMatch;
+        }
+
+        // 2. Bean 이름의 다양한 형태와 매칭 시도
+        for (const candidate of candidates) {
+            // Bean 이름이 매개변수 이름과 일치하는지 확인
+            if (this.isNameMatching(candidate.name, trimmedTargetName)) {
+                return candidate;
+            }
+        }
+
+        return undefined;
+    }
+
+    /**
+     * Bean 이름과 대상 이름이 매칭되는지 확인합니다.
+     * 
+     * @param beanName - Bean 이름
+     * @param targetName - 대상 이름
+     * @returns 매칭 여부
+     */
+    private isNameMatching(beanName: string, targetName: string): boolean {
+        if (!beanName || !targetName) {
+            return false;
+        }
+
+        // 정확한 매칭
+        if (beanName === targetName) {
+            return true;
+        }
+
+        // 대소문자 무시 매칭
+        if (beanName.toLowerCase() === targetName.toLowerCase()) {
+            return true;
+        }
+
+        // camelCase/PascalCase 변환 매칭
+        // 예: SaveContentStep -> saveContentStep
+        if (this.toCamelCase(beanName) === targetName || beanName === this.toCamelCase(targetName)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * 문자열을 camelCase로 변환합니다.
+     * 
+     * @param str - 변환할 문자열
+     * @returns camelCase로 변환된 문자열
+     */
+    private toCamelCase(str: string): string {
+        if (!str || str.length === 0) {
+            return str;
+        }
+
+        // 첫 글자를 소문자로
+        return str.charAt(0).toLowerCase() + str.slice(1);
     }
 } 
