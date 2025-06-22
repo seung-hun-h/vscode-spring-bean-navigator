@@ -11,6 +11,7 @@ import { FieldExtractor } from './extractors/field-extractor';
 import { ClassExtractor } from './extractors/class-extractor';
 import { ConstructorExtractor } from './extractors/constructor-extractor';
 import { SetterExtractor } from './extractors/setter-extractor';
+import { MethodExtractor } from './extractors/method-extractor';
 import { SpringBeanDetector } from '../detectors/spring-bean-detector';
 
 /**
@@ -24,6 +25,7 @@ export class JavaFileParser {
     private readonly classExtractor: ClassExtractor;
     private readonly constructorExtractor: ConstructorExtractor;
     private readonly setterExtractor: SetterExtractor;
+    private readonly methodExtractor: MethodExtractor;
     private readonly springBeanDetector: SpringBeanDetector;
 
     constructor() {
@@ -34,6 +36,7 @@ export class JavaFileParser {
         this.classExtractor = new ClassExtractor(this.cstNavigator, this.positionCalculator, this.annotationParser, this.fieldExtractor);
         this.constructorExtractor = new ConstructorExtractor();
         this.setterExtractor = new SetterExtractor();
+        this.methodExtractor = new MethodExtractor(this.annotationParser);
         this.springBeanDetector = new SpringBeanDetector();
     }
 
@@ -67,10 +70,10 @@ export class JavaFileParser {
                     classInfo.constructors = constructors;
                 }
 
-                // Setter 메서드 정보 추가
-                const setterMethods = this.setterExtractor.extractSetterMethods(content, fileUri);
-                if (setterMethods.length > 0) {
-                    classInfo.methods = setterMethods;
+                // 모든 메서드 정보 추가 (Setter, @Bean 메서드 포함)
+                const allMethods = this.methodExtractor.extractAllMethods(content, fileUri);
+                if (allMethods.length > 0) {
+                    classInfo.methods = allMethods;
                 }
             }
 

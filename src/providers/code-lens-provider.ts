@@ -226,6 +226,8 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
                 return ' (Setter)';
             case InjectionType.FIELD:
                 return ' (Field)';
+            case InjectionType.BEAN_METHOD:
+                return ' (Bean Method)';
             default:
                 return '';
         }

@@ -33,7 +33,8 @@ export enum InjectionType {
     CONSTRUCTOR = 'constructor', // 생성자 주입 (Phase 2)
     SETTER = 'setter',         // Setter 주입 (Phase 2)
     LOMBOK = 'lombok',         // Lombok 기반 주입 (Phase 3)
-    CONSTRUCTOR_LOMBOK = 'constructor_lombok' // Lombok 생성자 주입 (Phase 3)
+    CONSTRUCTOR_LOMBOK = 'constructor_lombok', // Lombok 생성자 주입 (Phase 3)
+    BEAN_METHOD = 'bean_method' // @Bean 메서드 매개변수 주입 (Phase 4)
 }
 
 /**

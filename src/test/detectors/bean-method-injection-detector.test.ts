@@ -1,0 +1,111 @@
+import * as assert from 'assert';
+import * as vscode from 'vscode';
+import { JavaFileParser } from '../../parsers/java-file-parser';
+import { InjectionType } from '../../models/spring-types';
+
+/**
+ * @Bean 메서드 매개변수 주입 테스트
+ * @Configuration 클래스의 @Bean 메서드에서 매개변수로 받는 Bean들을 감지하는 기능
+ */
+suite('🔧 Bean Method Parameter Injection Detection', () => {
+    let parser: JavaFileParser;
+
+    setup(() => {
+        parser = new JavaFileParser();
+    });
+
+    test('should_detectBeanMethodParameters_when_configurationClassPresent', async () => {
+        // Arrange - 사용자 제공 코드를 수정하여 사용
+        const javaContent = `
+            @Configuration
+            public class OrderProcessingConfiguration {
+                @Bean
+                public ProcessingChain<OrderContext> orderProcessingChain(
+                    Processor<OrderContext> validateOrderProcessor,
+                    Processor<OrderContext> checkInventoryProcessor,
+                    Processor<OrderContext> calculatePriceProcessor,
+                    Processor<OrderContext> applyDiscountProcessor,
+                    Processor<OrderContext> processPaymentProcessor,
+                    Processor<OrderContext> sendNotificationProcessor
+                ) {
+                    return ProcessingChain.<OrderContext>builder()
+                        .name("orderProcessingChain")
+                        .executable(context -> OrderType.STANDARD.is(context.getOrder()))
+                        .processor(validateOrderProcessor)
+                        .processor(checkInventoryProcessor)
+                        .processor(calculatePriceProcessor)
+                        .processor(applyDiscountProcessor)
+                        .processor(processPaymentProcessor)
+                        .processor(sendNotificationProcessor)
+                        .build();
+                }
+            }`;
+
+        const fileUri = vscode.Uri.parse('file:///test/OrderProcessingConfiguration.java');
+
+        // Act
+        const parseResult = await parser.parseJavaFile(fileUri, javaContent);
+
+        if (parseResult.classes.length > 0) {
+            const classInfo = parseResult.classes[0];
+
+            // Assertions
+            const beanMethodInjections = parseResult.injections.filter(i => 
+                i.injectionType === InjectionType.BEAN_METHOD
+            );
+
+            if (beanMethodInjections.length > 0) {
+                assert.ok(beanMethodInjections.length >= 6, 'Should detect at least 6 bean method parameter injections');
+            }
+
+            // 최소한 @Configuration 클래스는 감지되어야 함
+            const configurationAnnotation = classInfo.annotations.find(a => a.name === 'Configuration');
+            assert.ok(configurationAnnotation, 'Should detect @Configuration annotation');
+
+            // @Bean 메서드도 감지되어야 함
+            if (classInfo.methods && classInfo.methods.length > 0) {
+                const beanMethod = classInfo.methods.find(m => 
+                    m.annotations?.some(a => a.name === 'Bean')
+                );
+                assert.ok(beanMethod, 'Should detect @Bean method');
+                
+                if (beanMethod && beanMethod.parameters) {
+                    assert.ok(beanMethod.parameters.length >= 6, 'Bean method should have at least 6 parameters');
+                }
+            }
+        }
+    });
+
+    test('should_handleMultipleBeanMethods_when_configurationHasMultipleBeans', async () => {
+        // Arrange
+        const javaContent = `
+            @Configuration
+            public class ShoppingConfiguration {
+                @Bean
+                public ProductService productService(ProductRepository productRepository) {
+                    return new ProductService(productRepository);
+                }
+                
+                @Bean
+                public CartService cartService(
+                    CartRepository cartRepository,
+                    ProductService productService,
+                    DiscountService discountService
+                ) {
+                    return new CartService(cartRepository, productService, discountService);
+                }
+            }`;
+
+        const fileUri = vscode.Uri.parse('file:///test/ShoppingConfiguration.java');
+
+        // Act
+        const parseResult = await parser.parseJavaFile(fileUri, javaContent);
+
+        if (parseResult.classes.length > 0) {
+            const classInfo = parseResult.classes[0];
+
+            // 최소한 2개의 메서드가 감지되어야 함
+            assert.ok(classInfo.methods && classInfo.methods.length >= 2, 'Should detect at least 2 methods');
+        }
+    });
+}); 

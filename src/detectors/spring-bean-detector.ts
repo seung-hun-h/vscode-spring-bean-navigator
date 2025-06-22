@@ -10,6 +10,7 @@ import { ConstructorInjectionDetector } from './constructor-injection-detector';
 import { SetterInjectionDetector } from './setter-injection-detector';
 import { AutowiredInjectionDetector } from './autowired-injection-detector';
 import { LombokInjectionDetector } from './lombok-injection-detector';
+import { BeanMethodInjectionDetector } from './bean-method-injection-detector';
 import { PositionCalculator } from '../parsers/core/position-calculator';
 import { ErrorHandler } from '../parsers/core/parser-errors';
 
@@ -21,12 +22,14 @@ export class SpringBeanDetector {
     private setterDetector: SetterInjectionDetector;
     private autowiredDetector: AutowiredInjectionDetector;
     private lombokDetector: LombokInjectionDetector;
+    private beanMethodDetector: BeanMethodInjectionDetector;
     
     constructor() {
         this.constructorDetector = new ConstructorInjectionDetector();
         this.setterDetector = new SetterInjectionDetector();
         this.autowiredDetector = new AutowiredInjectionDetector(new PositionCalculator());
         this.lombokDetector = new LombokInjectionDetector();
+        this.beanMethodDetector = new BeanMethodInjectionDetector();
     }
 
     /**
@@ -274,6 +277,10 @@ export class SpringBeanDetector {
             // 4. Lombok 주입 탐지 (Phase 3)
             const lombokInjections = this.lombokDetector.detectAllInjections([classInfo]);
             injections.push(...lombokInjections);
+
+            // 5. Bean 메서드 매개변수 주입 탐지 (Phase 4)
+            const beanMethodInjections = this.beanMethodDetector.detectInjections(classInfo);
+            injections.push(...beanMethodInjections);
 
         } catch (error) {
             const parsingError = ErrorHandler.handleParsingError(error, '주입 탐지');
