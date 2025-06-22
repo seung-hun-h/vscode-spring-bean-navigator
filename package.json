@@ -12,7 +12,7 @@
     "Spring"
   ],
   "activationEvents": [
-    "*"
+    "onLanguage:java"
   ],
   "main": "./dist/extension.js",
   "contributes": {
