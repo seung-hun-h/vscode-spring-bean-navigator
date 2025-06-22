@@ -38,47 +38,18 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
         try {
             // Java 파일 파싱하여 @Autowired 필드 찾기
             const content = document.getText();
-            console.log('📄 Java 파일 내용 길이:', content.length);
             
             const parseResult = await this.javaParser.parseJavaFile(document.uri, content);
-            console.log('🔍 파싱 결과:', {
-                errors: parseResult.errors.length,
-                classes: parseResult.classes.length,
-                injections: parseResult.injections.length
-            });
             
             if (parseResult.errors.length > 0) {
-                console.log('❌ 파싱 에러:', parseResult.errors);
                 return [];
             }
 
             // 각 주입 정보에 대해 CodeLens 생성
-            console.log('🎯 주입 정보들:', parseResult.injections);
             for (const injection of parseResult.injections) {
-                console.log('🔧 CodeLens 생성 중:', {
-                    targetType: injection.targetType,
-                    targetName: injection.targetName,
-                    position: {
-                        line: injection.position.line,
-                        character: injection.position.character
-                    },
-                    range: {
-                        start: {
-                            line: injection.range.start.line,
-                            character: injection.range.start.character
-                        },
-                        end: {
-                            line: injection.range.end.line,
-                            character: injection.range.end.character
-                        }
-                    }
-                });
-                
                 const codeLens = await this.createCodeLensForInjection(injection, document);
                 if (codeLens) {
                     codeLenses.push(codeLens);
-                } else {
-                    console.log('❌ CodeLens 생성 실패');
                 }
             }
 
@@ -92,7 +63,6 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
             return [];
         }
 
-        console.log(`🎉 총 ${codeLenses.length}개 CodeLens 반환`);
         return codeLenses;
     }
 
@@ -138,43 +108,39 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
 
         if (resolutionResult.resolved) {
             // 단일 Bean이 해결된 경우
-            const beanName = this.getBeanDisplayName(resolutionResult.resolved.type);
-            const injectionTypeText = this.getInjectionTypeText(injection.injectionType);
-            title = `→ Go to Bean: ${beanName}${injectionTypeText}`;
+            const beanName = this.getBeanDisplayName(resolutionResult.resolved.name);
+            title = `→ Go to Bean: ${beanName}`;
             command = 'spring-bean-navigator.goToBean';
             args = [resolutionResult.resolved];
             
         } else if (resolutionResult.candidates.length > 1) {
             // 다중 후보가 있는 경우 (컬렉션 포함)
-            const injectionTypeText = this.getInjectionTypeText(injection.injectionType);
             if (isCollection) {
-                title = `→ Collection beans (${resolutionResult.candidates.length} items)${injectionTypeText}`;
+                title = `→ Collection beans (${resolutionResult.candidates.length} items)`;
             } else {
-                title = `→ Multiple candidates (${resolutionResult.candidates.length})${injectionTypeText}`;
+                title = `→ Multiple candidates (${resolutionResult.candidates.length})`;
             }
             command = 'spring-bean-navigator.selectBean';
             args = [resolutionResult.candidates];
             
         } else if (resolutionResult.candidates.length === 1) {
             // 컬렉션에서 단일 Bean이 있는 경우
-            const injectionTypeText = this.getInjectionTypeText(injection.injectionType);
             if (isCollection) {
-                const beanName = this.getBeanDisplayName(resolutionResult.candidates[0].type);
-                title = `→ Collection bean: ${beanName}${injectionTypeText}`;
+                const beanName = this.getBeanDisplayName(resolutionResult.candidates[0].name);
+                title = `→ Collection bean: ${beanName}`;
             } else {
-                const beanName = this.getBeanDisplayName(resolutionResult.candidates[0].type);
-                title = `→ Go to Bean: ${beanName}${injectionTypeText}`;
+                const beanName = this.getBeanDisplayName(resolutionResult.candidates[0].name);
+                title = `→ Go to Bean: ${beanName}`;
             }
             command = 'spring-bean-navigator.goToBean';
             args = [resolutionResult.candidates[0]];
             
         } else {
             // Bean을 찾을 수 없는 경우
-            const injectionTypeText = this.getInjectionTypeText(injection.injectionType);
             if (isCollection) {
-                title = `→ Collection beans not found: ${displayType}${injectionTypeText}`;
+                title = `→ Collection beans not found: ${displayType}`;
             } else {
-                title = `→ Bean not found: ${injection.targetType}${injectionTypeText}`;
+                title = `→ Bean not found: ${injection.targetType}`;
             }
             command = 'spring-bean-navigator.beanNotFound';
             args = [injection.targetType];
@@ -210,29 +176,6 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
             return beanType.substring(lastDotIndex + 1);
         }
         return beanType;
-    }
-
-    /**
-     * 주입 타입에 따른 텍스트를 생성합니다.
-     * 
-     * @param injectionType - 주입 타입
-     * @returns 주입 타입 설명 텍스트
-     */
-    private getInjectionTypeText(injectionType: InjectionType): string {
-        switch (injectionType) {
-            case InjectionType.CONSTRUCTOR_LOMBOK:
-                return ' (Lombok Constructor)';
-            case InjectionType.CONSTRUCTOR:
-                return ' (Constructor)';
-            case InjectionType.SETTER:
-                return ' (Setter)';
-            case InjectionType.FIELD:
-                return ' (Field)';
-            case InjectionType.BEAN_METHOD:
-                return ' (Bean Method)';
-            default:
-                return '';
-        }
     }
 
     /**
@@ -274,8 +217,6 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
                     // 개별 파일 실패는 무시하고 계속 진행
                 }
             }
-
-            console.log(`Bean 정의 업데이트 완료: ${this.beanResolver.getBeanCount()}개 Bean 발견`);
             
         } catch (error) {
             const parsingError = ErrorHandler.handleParsingError(error, 'Bean 정의 업데이트');

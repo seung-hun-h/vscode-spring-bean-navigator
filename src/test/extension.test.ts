@@ -25,7 +25,6 @@ suite('🚀 Extension Integration Test Suite', () => {
 	});
 
 	suite('📊 전체 워크플로우 테스트', () => {
-
 		test('should_BeanResolver_기본_동작_확인', () => {
 			// 수동으로 Bean 정의 생성 (실제 BeanDefinition 구조에 맞춰)
 			const testBean: BeanDefinition = {
@@ -178,8 +177,6 @@ suite('🚀 Extension Integration Test Suite', () => {
 	suite('🔧 생성자/Setter 주입 통합 테스트', () => {
 
 		test('should_생성자주입_전체워크플로우_성공_when_단일생성자존재', async () => {
-			console.log('🏗️ 단일 생성자 주입 전체 워크플로우 테스트...');
-
 			// Arrange: 의존성 Bean들 등록
 			const userRepositoryBean: BeanDefinition = {
 				name: 'userRepository',
@@ -264,12 +261,9 @@ suite('🚀 Extension Integration Test Suite', () => {
 			assert.ok(emailServiceCodeLens, 'EmailService CodeLens가 생성되어야 함');
 			assert.strictEqual(emailServiceCodeLens.command?.command, 'spring-bean-navigator.goToBean');
 
-			console.log('✅ 단일 생성자 주입 전체 워크플로우 테스트 완료');
 		});
 
 		test('should_Autowired생성자주입_전체워크플로우_성공_when_다중생성자존재', async () => {
-			console.log('🏗️ @Autowired 생성자 주입 전체 워크플로우 테스트...');
-
 			// Arrange: 의존성 Bean들 등록
 			const userRepositoryBean: BeanDefinition = {
 				name: 'userRepository',
@@ -338,12 +332,9 @@ suite('🚀 Extension Integration Test Suite', () => {
 			const codeLenses = await codeLensProvider.provideCodeLenses(mockDocument);
 			assert.strictEqual(codeLenses.length, 2, '2개의 CodeLens가 생성되어야 함');
 
-			console.log('✅ @Autowired 생성자 주입 전체 워크플로우 테스트 완료');
 		});
 
 		test('should_Setter주입_전체워크플로우_성공_when_AutowiredSetter존재', async () => {
-			console.log('🔧 Setter 주입 전체 워크플로우 테스트...');
-
 			// Arrange: 의존성 Bean들 등록
 			const emailServiceBean: BeanDefinition = {
 				name: 'emailService',
@@ -420,12 +411,9 @@ suite('🚀 Extension Integration Test Suite', () => {
 			const codeLenses = await codeLensProvider.provideCodeLenses(mockDocument);
 			assert.strictEqual(codeLenses.length, 2, '2개의 CodeLens가 생성되어야 함');
 
-			console.log('✅ Setter 주입 전체 워크플로우 테스트 완료');
 		});
 
 		test('should_혼합주입_전체워크플로우_성공_when_필드생성자Setter조합', async () => {
-			console.log('🎭 혼합 주입 전체 워크플로우 테스트...');
-
 			// Arrange: 의존성 Bean들 등록
 			const userRepositoryBean: BeanDefinition = {
 				name: 'userRepository',
@@ -533,12 +521,9 @@ suite('🚀 Extension Integration Test Suite', () => {
 			assert.ok(emailServiceCodeLens, 'EmailService CodeLens가 생성되어야 함');
 			assert.ok(paymentGatewayCodeLens, 'PaymentGateway CodeLens가 생성되어야 함');
 
-			console.log('✅ 혼합 주입 전체 워크플로우 테스트 완료');
 		});
 
 		test('should_다중후보Bean_처리워크플로우_성공_when_인터페이스에_다중구현체존재', async () => {
-			console.log('🔀 다중 후보 Bean 처리 워크플로우 테스트...');
-
 			// Arrange: 같은 인터페이스의 다중 구현체 Bean들 등록
 			const jpaImpl: BeanDefinition = {
 				name: 'notificationServiceJpa',
@@ -609,11 +594,9 @@ public class UserService {
 			assert.strictEqual(codeLens.command?.command, 'spring-bean-navigator.selectBean');
 			assert.strictEqual(codeLens.command?.arguments?.[0].length, 2, '2개의 후보가 전달되어야 함');
 
-			console.log('✅ 다중 후보 Bean 처리 워크플로우 테스트 완료');
 		});
 
 		test('should_Bean미발견_처리워크플로우_성공_when_존재하지않는Bean타입', async () => {
-			console.log('❌ Bean 미발견 처리 워크플로우 테스트...');
 
 			// Arrange: 의존성 Bean을 등록하지 않음
 			// beanResolver에 Bean을 추가하지 않아서 찾을 수 없는 상황 생성
@@ -652,14 +635,12 @@ public class UserService {
 			assert.strictEqual(codeLens.command?.command, 'spring-bean-navigator.beanNotFound');
 			assert.strictEqual(codeLens.command?.arguments?.[0], 'UnknownService', 'Bean 타입이 전달되어야 함');
 
-			console.log('✅ Bean 미발견 처리 워크플로우 테스트 완료');
 		});
 	});
 
 	suite('성능 및 안정성 테스트', () => {
 
 		test('should_대량_Bean_처리_성능_확인', () => {
-			console.log('📈 대량 Bean 처리 성능 테스트...');
 
 			const startTime = Date.now();
 
@@ -698,11 +679,9 @@ public class UserService {
 			assert.ok(foundBean, 'Bean 검색 성공');
 			assert.ok(searchTime < 100, `검색 시간이 100ms 미만이어야 함 (실제: ${searchTime}ms)`);
 
-			console.log(`✅ 대량 Bean 처리 완료 (등록: ${processingTime}ms, 검색: ${searchTime}ms)`);
 		});
 
 		test('should_에러_상황_견고성_확인', () => {
-			console.log('🔧 에러 상황 견고성 테스트...');
 
 			// null/undefined 입력 테스트
 			const nullResult = beanResolver.findBeanByName(null as any);
@@ -722,11 +701,9 @@ public class UserService {
 			assert.strictEqual(nullTypeResults.length, 0, 'null 타입 검색 시 빈 배열 반환');
 			assert.strictEqual(emptyTypeResults.length, 0, '빈 타입 검색 시 빈 배열 반환');
 
-			console.log('✅ 에러 상황 견고성 테스트 완료');
 		});
 
 		test('should_메모리_효율성_확인', () => {
-			console.log('💾 메모리 효율성 테스트...');
 
 			// Bean 추가
 			const testBean: BeanDefinition = {
@@ -754,14 +731,12 @@ public class UserService {
 			const notFound = beanResolver.findBeanByName('cacheTestBean');
 			assert.strictEqual(notFound, undefined, '캐시 클리어 후에는 Bean을 찾을 수 없어야 함');
 
-			console.log('✅ 메모리 효율성 테스트 완료');
 		});
 	});
 
 	suite('실제 시나리오 테스트', () => {
 
 		test('should_Extension_초기화_시뮬레이션_성공', () => {
-			console.log('🚀 Extension 초기화 시뮬레이션...');
 
 			// Extension 활성화 시나리오 시뮬레이션
 			// 1. 컴포넌트들이 올바르게 생성되는지 확인
@@ -777,11 +752,9 @@ public class UserService {
 			// (SpringCodeLensProvider가 BeanResolver와 SpringBeanDetector를 받는지)
 			// 이는 생성자에서 이미 확인됨
 
-			console.log('✅ Extension 초기화 시뮬레이션 완료');
 		});
 
 		test('should_전형적인_Spring_Boot_시나리오_시뮬레이션', () => {
-			console.log('📋 전형적인 Spring Boot 시나리오 시뮬레이션...');
 
 			// 시나리오: Spring Boot 프로젝트에서 Service와 Repository가 있는 상황
 
@@ -836,11 +809,9 @@ public class UserService {
 			assert.strictEqual(navigationInfo.title, 'Go to ProductRepository');
 			assert.ok(navigationInfo.uri.fsPath.includes('ProductRepository.java'));
 
-			console.log('✅ 전형적인 Spring Boot 시나리오 시뮬레이션 완료');
 		});
 
 		test('should_다중_구현체_후보_처리_시뮬레이션', () => {
-			console.log('🔀 다중 구현체 후보 처리 시뮬레이션...');
 
 			// 같은 인터페이스의 여러 구현체 상황
 			const jpaImpl: BeanDefinition = {
@@ -887,7 +858,6 @@ public class UserService {
 			const candidateNames = multipleResolution.candidates.map(c => c.className).sort();
 			assert.deepStrictEqual(candidateNames, ['UserRepositoryJpaImpl', 'UserRepositoryMongoImpl']);
 
-			console.log('✅ 다중 구현체 후보 처리 시뮬레이션 완료');
 		});
 	});
 }); 
