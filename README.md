@@ -1,63 +1,107 @@
 # Spring Bean Navigator
 
-Spring Framework 개발자를 위한 VSCode Extension입니다. Java 파일에서 @Autowired 어노테이션이 붙은 필드에 CodeLens를 표시하여 해당 Bean의 구현체로 쉽게 이동할 수 있습니다.
+A VSCode Extension for Spring Framework developers. It detects various Spring Bean injection patterns in Java files and helps you easily navigate to the corresponding Bean implementations.
 
-## 주요 기능
+## Key Features
 
-- **@Autowired 필드 탐지**: @Autowired 어노테이션이 붙은 필드를 자동으로 감지합니다
-- **Spring Bean 탐지**: @Service, @Component, @Repository, @Controller, @RestController, @Configuration 어노테이션이 붙은 클래스를 Bean으로 인식합니다
-- **CodeLens 표시**: @Autowired 필드 옆에 "Go to Bean" 링크를 표시합니다
-- **Bean 구현체로 이동**: CodeLens를 클릭하면 해당 Bean의 구현체 클래스로 이동합니다
-- **다중 Bean 후보 지원**: 여러 구현체가 있는 경우 선택 UI를 제공합니다
+### Bean Injection Detection
+- **@Autowired Field Injection**: Automatically detects fields annotated with `@Autowired`
+- **Constructor Injection**: Detects Bean injection based on constructor parameter types
+- **Setter Injection**: Detects Setter methods annotated with `@Autowired`
+- **Lombok Injection**: Supports injection based on `@RequiredArgsConstructor` and `@AllArgsConstructor`
 
-## 지원하는 Spring 어노테이션
+### Spring Bean Recognition
+- Supports `@Service`, `@Component`, `@Repository`, `@Controller`, `@RestController`, `@Configuration`, `@Bean` annotations
+- Automatic interface implementation matching
+- Multiple Bean candidate selection UI
 
-- `@Autowired` (필드 주입)
-- `@Service`
-- `@Component` 
-- `@Repository`
-- `@Controller`
-- `@RestController`
-- `@Configuration`
-- `@Bean` (메소드)
+### Convenient Navigation
+- **CodeLens Display**: Shows "Go to Bean" links at Bean injection points
+- **One-click Navigation**: Click to instantly navigate to Bean implementation classes
+- **Multiple Candidate Handling**: Provides selection UI when multiple implementations exist
 
-## 사용 방법
+## Supported Injection Patterns
 
-1. Java 파일을 열고 @Autowired 필드를 확인합니다
-2. 필드 옆에 표시되는 CodeLens를 클릭합니다
-3. Bean 구현체 클래스로 자동 이동됩니다
+### 1. Field Injection
+```java
+@Service
+public class UserService {
+    @Autowired
+    private UserRepository userRepository;
+}
+```
 
-## 명령어
+### 2. Constructor Injection
+```java
+@Service
+public class UserService {
+    private final UserRepository userRepository;
+    
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+}
+```
 
-- `Spring Bean Navigator: Refresh Spring Bean Definitions` - Bean 정의를 새로고침합니다
-- `Spring Bean Navigator: Show Bean Count` - 발견된 Bean 개수를 표시합니다
+### 3. Lombok Constructor Injection
+```java
+@Service
+@RequiredArgsConstructor
+public class UserService {
+    private final UserRepository userRepository;
+}
+```
 
-## 시스템 요구사항
+### 4. Setter Injection
+```java
+@Service
+public class UserService {
+    private UserRepository userRepository;
+    
+    @Autowired
+    public void setUserRepository(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+}
+```
 
-- Visual Studio Code 1.101.0 이상
-- Java 파일 (*.java)
+## How to Use
 
-## 개발 단계
+1. **Open Java File**: Open a Java file with Spring Bean injections
+2. **Check CodeLens**: "→ Go to Bean" links will be displayed at Bean injection points
+3. **Click to Navigate**: Click the link to navigate to the corresponding Bean implementation
+4. **Select Multiple Candidates**: If multiple implementations exist, a selection UI will appear
 
-- **Phase 1**: @Autowired 어노테이션 탐지 ✅
-- **Phase 2**: 생성자 주입 및 Setter 주입 지원 (예정)
-- **Phase 3**: Lombok 어노테이션 지원 (예정)
-- **Phase 4**: Kotlin 지원 확장 (예정)
+## Commands
 
-## 알려진 이슈
+- `Spring Bean Navigator: Refresh Spring Bean Definitions` - Refresh Bean definitions
+- `Spring Bean Navigator: Show Bean Count` - Display the number of discovered Beans
 
-- 현재 필드 주입(@Autowired)만 지원합니다
-- 생성자 주입은 향후 업데이트에서 지원 예정입니다
+## System Requirements
 
-## 릴리즈 노트
+- **Visual Studio Code**: 1.90.0 or higher
+- **Supported Languages**: Java (*.java)
+- **Spring Framework**: 3.0 or higher
 
-### 0.0.1
+## Development Status
 
-- 초기 릴리즈
-- @Autowired 필드 탐지 기능
-- Spring Bean 탐지 기능
-- CodeLens를 통한 Bean 네비게이션 기능
+### Completed Features
+- [x] @Autowired field injection detection
+- [x] Constructor injection detection
+- [x] Setter injection detection
+- [x] Lombok annotation support
+- [x] CodeLens UI implementation
+- [x] Bean navigation functionality
+- [x] Multiple Bean candidate selection
+
+### Features in Development
+- [ ] Kotlin support
+- [ ] Bean dependency graph visualization
+- [ ] Bean search functionality
+
+## Known Issues
+
+- Currently only supports Java files (Kotlin support planned for future)
+- Detection may be limited for very complex Bean dependencies
 
 ---
-
-**Spring Framework 개발을 더욱 편리하게!**

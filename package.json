@@ -1,8 +1,8 @@
 {
   "name": "vscode-spring-bean-navigator",
   "displayName": "Spring Bean Navigator",
-  "description": "Navigate to Spring Bean implementations from @Autowired fields",
-  "version": "0.0.1",
+  "description": "Navigate to Spring Bean implementations",
+  "version": "1.0.0",
   "publisher": "spring-bean-navigator",
   "engines": {
     "vscode": "^1.90.0"
