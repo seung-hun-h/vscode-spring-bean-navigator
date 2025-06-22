@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { ConstructorInfo, ParameterInfo, SpringAnnotationType } from '../../models/spring-types';
 import { Position } from 'vscode';
 import { AnnotationParser } from './annotation-parser';
+import { ErrorHandler } from '../core/parser-errors';
 
 /**
  * Java 클래스에서 생성자를 추출하는 클래스
@@ -25,12 +26,14 @@ export class ConstructorExtractor {
             return [];
         }
         
+        // 클래스명을 최상위에서 추출하여 catch 블록에서도 접근 가능하도록 함
+        let className = undefined;
+        
         try {
             const lines = content.split('\n');
             const constructors: ConstructorInfo[] = [];
             
-            // 클래스명 추출
-            const className = this.extractClassName(content);
+            className = this.extractClassName(content);
             if (!className) {
                 return [];
             }
@@ -51,7 +54,12 @@ export class ConstructorExtractor {
             }
             return constructors;
         } catch (error) {
-            console.error('Error extracting constructors:', error);
+            const parsingError = ErrorHandler.handleParsingError(error, '생성자 추출');
+            ErrorHandler.logError(parsingError, { 
+                fileName: uri.toString(),
+                className: className || 'Unknown',
+                contentLength: content.length
+            });
             return [];
         }
     }
@@ -79,6 +87,10 @@ export class ConstructorExtractor {
             
             return { parameters };
         } catch (error) {
+            const parsingError = ErrorHandler.handleParsingError(error, '생성자 선언 파싱');
+            ErrorHandler.logError(parsingError, { 
+                constructorDeclaration: constructorDeclaration?.substring(0, 100) || 'Unknown'
+            });
             return undefined;
         }
     }
@@ -122,6 +134,10 @@ export class ConstructorExtractor {
             
             return parameters;
         } catch (error) {
+            const parsingError = ErrorHandler.handleParsingError(error, '매개변수 추출');
+            ErrorHandler.logError(parsingError, { 
+                parametersDeclaration: parametersDeclaration?.substring(0, 100) || 'Unknown'
+            });
             return [];
         }
     }
@@ -240,6 +256,12 @@ export class ConstructorExtractor {
                 range
             };
         } catch (error) {
+            const parsingError = ErrorHandler.handleParsingError(error, '생성자 라인 파싱');
+            ErrorHandler.logError(parsingError, { 
+                className: className || 'Unknown',
+                startIndex: startIndex,
+                fileName: uri.toString()
+            });
             return null;
         }
     }
@@ -325,6 +347,10 @@ export class ConstructorExtractor {
             
             return '';
         } catch (error) {
+            const parsingError = ErrorHandler.handleParsingError(error, '생성자 매개변수 문자열 추출');
+            ErrorHandler.logError(parsingError, { 
+                declaration: declaration?.substring(0, 100) || 'Unknown'
+            });
             return '';
         }
     }
@@ -349,6 +375,10 @@ export class ConstructorExtractor {
             
             return { name, type };
         } catch (error) {
+            const parsingError = ErrorHandler.handleParsingError(error, '매개변수 파싱');
+            ErrorHandler.logError(parsingError, { 
+                parameterString: parameterString?.substring(0, 50) || 'Unknown'
+            });
             return null;
         }
     }

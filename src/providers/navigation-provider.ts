@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { BeanDefinition, BeanQuickPickItem, BeanDisplayInfo, SpringAnnotationType } from '../models/spring-types';
+import { ErrorHandler } from '../parsers/core/parser-errors';
 
 /**
  * Spring Bean 네비게이션을 담당하는 클래스
@@ -26,7 +27,12 @@ export class SpringNavigationProvider {
             });
 
         } catch (error) {
-            console.error('Bean 파일 열기 실패:', error);
+            const parsingError = ErrorHandler.handleParsingError(error, 'Bean 파일 열기');
+            ErrorHandler.logError(parsingError, { 
+                beanName: bean.name || 'Unknown',
+                beanType: bean.implementationClass || 'Unknown',
+                filePath: bean.fileUri.toString()
+            });
             
             const errorMessage = `Bean 파일을 열 수 없습니다: ${this.getBeanDisplayInfo(bean.implementationClass).className}`;
             await vscode.window.showErrorMessage(errorMessage);

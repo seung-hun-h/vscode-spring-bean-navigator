@@ -6,7 +6,7 @@ import {
     SpringAnnotationType
 } from '../models/spring-types';
 import { IInjectionDetector } from './injection-detector';
-import { ErrorHandler, JavaParsingError } from '../parsers/core/parser-errors';
+import { ErrorHandler } from '../parsers/core/parser-errors';
 
 /**
  * Setter 주입 패턴을 탐지하는 클래스입니다.

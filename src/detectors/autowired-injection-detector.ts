@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { ClassInfo, SpringAnnotationType, InjectionInfo, InjectionType } from '../models/spring-types';
 import { PositionCalculator } from '../parsers/core/position-calculator';
 import { IInjectionDetector } from './injection-detector';
-import { ErrorHandler, JavaParsingError } from '../parsers/core/parser-errors';
+import { ErrorHandler } from '../parsers/core/parser-errors';
 
 /**
  * @Autowired 어노테이션 관련 탐지 및 처리를 담당하는 클래스

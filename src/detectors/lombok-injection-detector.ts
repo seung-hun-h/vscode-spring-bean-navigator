@@ -11,7 +11,7 @@ import {
     InjectionType
 } from '../models/spring-types';
 import { IInjectionDetector } from './injection-detector';
-import { ErrorHandler, JavaParsingError } from '../parsers/core/parser-errors';
+import { ErrorHandler } from '../parsers/core/parser-errors';
 
 /**
  * Lombok 어노테이션 기반 의존성 주입을 탐지하는 클래스 (Phase 3)

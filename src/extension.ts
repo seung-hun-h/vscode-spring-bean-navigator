@@ -5,6 +5,7 @@ import { BeanResolver } from './utils/bean-resolver';
 import { SpringBeanDetector } from './detectors/spring-bean-detector';
 import { SpringCodeLensProvider } from './providers/code-lens-provider';
 import { SpringNavigationProvider } from './providers/navigation-provider';
+import { ErrorHandler } from './parsers/core/parser-errors';
 
 let beanResolver: BeanResolver;
 let beanDetector: SpringBeanDetector;
@@ -40,7 +41,11 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.showInformationMessage('🚀 Spring Bean Navigator가 활성화되었습니다!');
 
 	} catch (error) {
-		console.error('Extension 활성화 실패:', error);
+		const parsingError = ErrorHandler.handleParsingError(error, 'Extension 활성화');
+		ErrorHandler.logError(parsingError, { 
+			vscodeVersion: vscode.version,
+			workspaceFolders: vscode.workspace.workspaceFolders?.length || 0
+		});
 		vscode.window.showErrorMessage(`Spring Bean Navigator 활성화 실패: ${error}`);
 	}
 }
@@ -177,7 +182,11 @@ async function loadInitialBeanDefinitions(): Promise<void> {
 			console.log(`초기 Bean 정의 로드 완료: ${beanCount}개 Bean 발견`);
 			
 		} catch (error) {
-			console.error('초기 Bean 정의 로드 실패:', error);
+			const parsingError = ErrorHandler.handleParsingError(error, '초기 Bean 정의 로드');
+			ErrorHandler.logError(parsingError, { 
+				workspaceFoldersCount: vscode.workspace.workspaceFolders?.length || 0,
+				firstWorkspaceFolder: vscode.workspace.workspaceFolders?.[0]?.uri.toString() || 'None'
+			});
 		}
 	} else {
 		console.log('워크스페이스 폴더가 없어 Bean 정의를 로드하지 않음');
@@ -201,7 +210,11 @@ async function refreshBeanDefinitions(): Promise<void> {
 			console.log(`Bean 정의 새로고침 완료: ${beanCount}개 Bean 발견`);
 			
 		} catch (error) {
-			console.error('Bean 정의 새로고침 실패:', error);
+			const parsingError = ErrorHandler.handleParsingError(error, 'Bean 정의 새로고침');
+			ErrorHandler.logError(parsingError, { 
+				workspaceFoldersCount: vscode.workspace.workspaceFolders?.length || 0,
+				allWorkspaceFolders: vscode.workspace.workspaceFolders?.map(f => f.uri.toString()) || []
+			});
 		}
 	}
 }

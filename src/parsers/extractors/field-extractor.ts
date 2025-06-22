@@ -333,7 +333,13 @@ export class FieldExtractor {
                 }
             }
         } catch (error) {
-            // 재귀 탐색 중 에러는 무시하고 계속 진행
+            const fieldError = new FieldExtractionError(
+                '재귀 타입 탐색 실패',
+                undefined,
+                'Recursive type search context',
+                error instanceof Error ? error : undefined
+            );
+            ErrorHandler.logError(fieldError);
         }
         
         return undefined;

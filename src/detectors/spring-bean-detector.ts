@@ -10,7 +10,7 @@ import { ConstructorInjectionDetector } from './constructor-injection-detector';
 import { SetterInjectionDetector } from './setter-injection-detector';
 import { AutowiredInjectionDetector } from './autowired-injection-detector';
 import { PositionCalculator } from '../parsers/core/position-calculator';
-import { ErrorHandler, JavaParsingError } from '../parsers/core/parser-errors';
+import { ErrorHandler } from '../parsers/core/parser-errors';
 
 /**
  * Spring Bean을 탐지하고 Bean 정의를 생성하는 클래스

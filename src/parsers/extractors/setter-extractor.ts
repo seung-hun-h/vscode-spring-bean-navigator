@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { MethodInfo, ParameterInfo, AnnotationInfo, SpringAnnotationType } from '../../models/spring-types';
 import { AnnotationParser } from './annotation-parser';
+import { ErrorHandler } from '../core/parser-errors';
 
 /**
  * Java 클래스에서 setter 메서드를 추출하는 클래스
@@ -69,7 +70,11 @@ export class SetterExtractor {
             
             return methods;
         } catch (error) {
-            console.error('Error extracting setter methods:', error);
+            const parsingError = ErrorHandler.handleParsingError(error, 'Setter 메서드 추출');
+            ErrorHandler.logError(parsingError, { 
+                fileName: uri.toString(),
+                contentLength: content.length
+            });
             return [];
         }
     }
@@ -105,6 +110,11 @@ export class SetterExtractor {
                 parameters
             };
         } catch (error) {
+            const parsingError = ErrorHandler.handleParsingError(error, '매개변수와 함께 메서드 선언 파싱');
+            ErrorHandler.logError(parsingError, { 
+                methodDeclaration: methodDeclaration?.substring(0, 100) || 'Unknown',
+                parametersString: parametersString?.substring(0, 50) || 'Unknown'
+            });
             return undefined;
         }
     }
@@ -139,6 +149,10 @@ export class SetterExtractor {
                 parameters
             };
         } catch (error) {
+            const parsingError = ErrorHandler.handleParsingError(error, '메서드 선언 파싱');
+            ErrorHandler.logError(parsingError, { 
+                methodDeclaration: methodDeclaration?.substring(0, 100) || 'Unknown'
+            });
             return undefined;
         }
     }
@@ -170,6 +184,11 @@ export class SetterExtractor {
                    methodName.length > 3 && 
                    parameterCount > 0;
         } catch (error) {
+            const parsingError = ErrorHandler.handleParsingError(error, 'Setter 메서드 판별');
+            ErrorHandler.logError(parsingError, { 
+                methodName: methodName || 'Unknown',
+                parameterCount: parameterCount || 0
+            });
             return false;
         }
     }
@@ -288,6 +307,11 @@ export class SetterExtractor {
                 returnType: parsedMethod.returnType
             };
         } catch (error) {
+            const parsingError = ErrorHandler.handleParsingError(error, '메서드 라인 파싱');
+            ErrorHandler.logError(parsingError, { 
+                startIndex: startIndex,
+                fileName: uri.toString()
+            });
             return null;
         }
     }
@@ -324,6 +348,10 @@ export class SetterExtractor {
             
             return parameters;
         } catch (error) {
+            const parsingError = ErrorHandler.handleParsingError(error, 'Setter 매개변수 추출');
+            ErrorHandler.logError(parsingError, { 
+                parametersDeclaration: parametersDeclaration?.substring(0, 100) || 'Unknown'
+            });
             return [];
         }
     }
@@ -410,6 +438,10 @@ export class SetterExtractor {
             
             return '';
         } catch (error) {
+            const parsingError = ErrorHandler.handleParsingError(error, 'Setter 매개변수 문자열 추출');
+            ErrorHandler.logError(parsingError, { 
+                declaration: declaration?.substring(0, 100) || 'Unknown'
+            });
             return '';
         }
     }
@@ -434,6 +466,10 @@ export class SetterExtractor {
             
             return { name, type };
         } catch (error) {
+            const parsingError = ErrorHandler.handleParsingError(error, 'Setter 매개변수 파싱');
+            ErrorHandler.logError(parsingError, { 
+                parameterString: parameterString?.substring(0, 50) || 'Unknown'
+            });
             return null;
         }
     }

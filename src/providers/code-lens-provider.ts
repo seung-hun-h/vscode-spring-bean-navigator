@@ -2,7 +2,8 @@ import * as vscode from 'vscode';
 import { BeanResolver } from '../utils/bean-resolver';
 import { SpringBeanDetector } from '../detectors/spring-bean-detector';
 import { JavaFileParser } from '../parsers/java-file-parser';
-import { InjectionInfo, BeanDefinition } from '../models/spring-types';
+import { InjectionInfo } from '../models/spring-types';
+import { ErrorHandler } from '../parsers/core/parser-errors';
 
 /**
  * Spring @Autowired 필드에 CodeLens를 제공하는 클래스
@@ -82,7 +83,11 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
             }
 
         } catch (error) {
-            console.error('❌ CodeLens 제공 중 오류 발생:', error);
+            const parsingError = ErrorHandler.handleParsingError(error, 'CodeLens 제공');
+            ErrorHandler.logError(parsingError, { 
+                fileName: document.uri.toString(),
+                contentLength: document.getText().length
+            });
             // 에러 발생 시 빈 배열 반환
             return [];
         }
@@ -209,7 +214,11 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
                         this.beanResolver.addBeanDefinition(bean);
                     }
                 } catch (fileError) {
-                    console.warn(`파일 처리 실패: ${fileUri.fsPath}`, fileError);
+                    const parsingError = ErrorHandler.handleParsingError(fileError, '개별 파일 Bean 정의 추출');
+                    ErrorHandler.logError(parsingError, { 
+                        fileName: fileUri.toString(),
+                        filePath: fileUri.fsPath
+                    });
                     // 개별 파일 실패는 무시하고 계속 진행
                 }
             }
@@ -217,7 +226,11 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
             console.log(`Bean 정의 업데이트 완료: ${this.beanResolver.getBeanCount()}개 Bean 발견`);
             
         } catch (error) {
-            console.error('Bean 정의 업데이트 실패:', error);
+            const parsingError = ErrorHandler.handleParsingError(error, 'Bean 정의 업데이트');
+            ErrorHandler.logError(parsingError, { 
+                workspaceFolderName: workspaceFolder.name,
+                workspaceFolderPath: workspaceFolder.uri.toString()
+            });
         }
     }
 
@@ -245,7 +258,11 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
             }
             
         } catch (error) {
-            console.warn(`파일 Bean 업데이트 실패: ${document.uri.fsPath}`, error);
+            const parsingError = ErrorHandler.handleParsingError(error, '파일 Bean 업데이트');
+            ErrorHandler.logError(parsingError, { 
+                fileName: document.uri.toString(),
+                filePath: document.uri.fsPath
+            });
         }
     }
 } 
