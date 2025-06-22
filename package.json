@@ -17,28 +17,12 @@
   "contributes": {
     "commands": [
       {
-        "command": "spring-bean-navigator.goToBean",
-        "title": "Go to Bean"
-      },
-      {
-        "command": "spring-bean-navigator.selectBean",
-        "title": "Select Bean"
-      },
-      {
-        "command": "spring-bean-navigator.beanNotFound",
-        "title": "Bean Not Found"
-      },
-      {
         "command": "spring-bean-navigator.refresh",
-        "title": "Refresh Spring Bean Definitions"
+        "title": "Spring Bean Navigator: Refresh Spring Bean Definitions"
       },
       {
         "command": "spring-bean-navigator.showBeanCount",
-        "title": "Show Bean Count"
-      },
-      {
-        "command": "spring-bean-navigator.test",
-        "title": "Test Spring Bean Navigator"
+        "title": "Spring Bean Navigator: Show Bean Count"
       }
     ],
     "languages": [
