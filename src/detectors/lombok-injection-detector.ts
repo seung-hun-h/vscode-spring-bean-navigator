@@ -89,12 +89,17 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
         const injections: InjectionInfo[] = [];
 
         for (const parameter of virtualConstructor.parameters) {
+            // 각 매개변수에 해당하는 실제 필드 찾기
+            const correspondingField = classInfo.fields.find(field => 
+                field.name === parameter.name && field.type === parameter.type
+            );
+
             const injection: InjectionInfo = {
                 targetType: parameter.type,
                 targetName: parameter.name,
                 injectionType: InjectionType.CONSTRUCTOR_LOMBOK, // Lombok 생성자 주입을 구분
-                position: parameter.position || classInfo.position,
-                range: classInfo.range
+                position: correspondingField?.position || parameter.position || classInfo.position,
+                range: correspondingField?.range || classInfo.range
             };
 
             injections.push(injection);
