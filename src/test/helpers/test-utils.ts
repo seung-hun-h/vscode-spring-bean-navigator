@@ -968,4 +968,249 @@ export class AssertionHelper {
         assert.ok(classInfo.fields, 'Class fields should be defined');
         assert.ok(classInfo.imports, 'Class imports should be defined');
     }
+}
+
+/**
+ * Lombok 관련 Java 파일 샘플 생성기 (Phase 3)
+ */
+export class LombokJavaSampleGenerator {
+    
+    /**
+     * @RequiredArgsConstructor 기본 케이스
+     */
+    public static requiredArgsConstructorBasic(): string {
+        return `
+        package com.example.service;
+        
+        import lombok.RequiredArgsConstructor;
+        import org.springframework.stereotype.Service;
+        
+        @Service
+        @RequiredArgsConstructor
+        public class UserService {
+            private final UserRepository userRepository;
+            private final EmailService emailService;
+            private String tempData;
+        }
+        `.trim();
+    }
+
+    /**
+     * @RequiredArgsConstructor + @NonNull 조합
+     */
+    public static requiredArgsWithNonNull(): string {
+        return `
+        package com.example.service;
+        
+        import lombok.RequiredArgsConstructor;
+        import lombok.NonNull;
+        import org.springframework.stereotype.Service;
+        
+        @Service
+        @RequiredArgsConstructor
+        public class OrderService {
+            private final UserRepository userRepository;
+            @NonNull
+            private PaymentGateway paymentGateway;
+            private String optionalField;
+        }
+        `.trim();
+    }
+
+    /**
+     * @AllArgsConstructor 케이스
+     */
+    public static allArgsConstructor(): string {
+        return `
+        package com.example.service;
+        
+        import lombok.AllArgsConstructor;
+        import org.springframework.stereotype.Service;
+        
+        @Service
+        @AllArgsConstructor
+        public class NotificationService {
+            private final EmailService emailService;
+            private SmsService smsService;
+            private String configValue;
+        }
+        `.trim();
+    }
+
+    /**
+     * 복잡한 Lombok 조합
+     */
+    public static complexLombokAnnotations(): string {
+        return `
+        package com.example.service;
+        
+        import lombok.RequiredArgsConstructor;
+        import lombok.Slf4j;
+        import org.springframework.stereotype.Service;
+        
+        @Service
+        @RequiredArgsConstructor
+        @Slf4j
+        public class ComplexService {
+            private final UserRepository userRepository;
+            private final EmailService emailService;
+            @NonNull
+            private PaymentGateway paymentGateway;
+            private String optionalConfig;
+        }
+        `.trim();
+    }
+
+    /**
+     * @Data 어노테이션 케이스 (생성자 관련 부분만)
+     */
+    public static dataAnnotationConstructor(): string {
+        return `
+        package com.example.model;
+        
+        import lombok.Data;
+        import org.springframework.stereotype.Service;
+        
+        @Service
+        @Data
+        public class DataService {
+            private final UserRepository userRepository;
+            private final EmailService emailService;
+            private String configurableField;
+        }
+        `.trim();
+    }
+
+    /**
+     * Lombok + 기존 생성자 혼재 케이스
+     */
+    public static lombokWithExplicitConstructor(): string {
+        return `
+        package com.example.service;
+        
+        import lombok.RequiredArgsConstructor;
+        import org.springframework.stereotype.Service;
+        
+        @Service
+        @RequiredArgsConstructor
+        public class MixedConstructorService {
+            private final UserRepository userRepository;
+            private final EmailService emailService;
+            
+            // 명시적 생성자가 있으면 Lombok 생성자는 생성되지 않음
+            public MixedConstructorService(UserRepository userRepository) {
+                this.userRepository = userRepository;
+                this.emailService = null;
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * 상속 관계에서의 Lombok 처리
+     */
+    public static lombokWithInheritance(): string {
+        return `
+        package com.example.service;
+        
+        import lombok.RequiredArgsConstructor;
+        import org.springframework.stereotype.Service;
+        
+        @Service
+        @RequiredArgsConstructor
+        public class ChildService extends BaseService {
+            private final UserRepository userRepository;
+            private final EmailService emailService;
+        }
+        
+        class BaseService {
+            protected final LogService logService;
+            
+            public BaseService(LogService logService) {
+                this.logService = logService;
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * 잘못된 Lombok 사용 케이스 (에러 테스트용)
+     */
+    public static invalidLombokUsage(): string {
+        return `
+        package com.example.service;
+        
+        import lombok.RequiredArgsConstructor;
+        import lombok.AllArgsConstructor;
+        import org.springframework.stereotype.Service;
+        
+        @Service
+        @RequiredArgsConstructor
+        @AllArgsConstructor  // 동시에 사용하면 에러
+        public class InvalidService {
+            private final UserRepository userRepository;
+        }
+        `.trim();
+    }
+
+    /**
+     * Lombok이 없는 일반 클래스
+     */
+    public static plainClassWithoutLombok(): string {
+        return `
+        package com.example.service;
+        
+        import org.springframework.stereotype.Service;
+        import org.springframework.beans.factory.annotation.Autowired;
+        
+        @Service
+        public class PlainService {
+            @Autowired
+            private UserRepository userRepository;
+            
+            public void doSomething() {
+                // 일반 메서드
+            }
+        }
+        `.trim();
+    }
+
+    /**
+     * 빈 필드를 가진 Lombok 클래스
+     */
+    public static lombokClassWithoutFields(): string {
+        return `
+        package com.example.service;
+        
+        import lombok.RequiredArgsConstructor;
+        import org.springframework.stereotype.Service;
+        
+        @Service
+        @RequiredArgsConstructor
+        public class EmptyFieldsService {
+            // 필드가 없음
+        }
+        `.trim();
+    }
+
+    /**
+     * Static final 필드를 가진 Lombok 클래스
+     */
+    public static lombokWithStaticFields(): string {
+        return `
+        package com.example.service;
+        
+        import lombok.AllArgsConstructor;
+        import org.springframework.stereotype.Service;
+        
+        @Service
+        @AllArgsConstructor
+        public class StaticFieldService {
+            private final UserRepository userRepository;
+            private EmailService emailService;
+            private static final String VERSION = "1.0";
+            private static int instanceCount = 0;
+        }
+        `.trim();
+    }
 } 

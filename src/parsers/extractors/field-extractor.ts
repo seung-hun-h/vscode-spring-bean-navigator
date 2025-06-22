@@ -35,6 +35,7 @@ export class FieldExtractor {
             
             if (classMemberDeclarations) {
                 for (const memberDecl of classMemberDeclarations) {
+                    // 기본 필드 선언 구조
                     if (memberDecl.children?.classMemberDeclaration?.[0]?.children?.fieldDeclaration) {
                         const fieldDecl = memberDecl.children.classMemberDeclaration[0].children.fieldDeclaration[0];
                         const fieldInfo = this.parseFieldDeclaration(fieldDecl, lines);
@@ -43,6 +44,25 @@ export class FieldExtractor {
                             fields.push(fieldInfo);
                         }
                     }
+                    
+                    // 직접 fieldDeclaration이 있는 경우 (구조 변형)
+                    else if (memberDecl.children?.fieldDeclaration) {
+                        const fieldDecl = memberDecl.children.fieldDeclaration[0];
+                        const fieldInfo = this.parseFieldDeclaration(fieldDecl, lines);
+                        
+                        if (fieldInfo) {
+                            fields.push(fieldInfo);
+                        }
+                    }
+                }
+            }
+            
+            // 대안적인 방법: 전체 클래스에서 필드 선언을 재귀적으로 찾기
+            const additionalFields = this.findFieldsRecursively(classDecl, lines);
+            for (const field of additionalFields) {
+                // 중복 제거 (이름이 같은 필드가 이미 있으면 추가하지 않음)
+                if (!fields.some(existingField => existingField.name === field.name)) {
+                    fields.push(field);
                 }
             }
             
@@ -57,6 +77,72 @@ export class FieldExtractor {
         }
         
         return fields;
+    }
+
+    /**
+     * 클래스에서 재귀적으로 필드 선언을 찾습니다.
+     * 
+     * @param node - 탐색할 CST 노드
+     * @param lines - 파일 내용의 라인들
+     * @returns 발견된 필드 정보 배열
+     */
+    private findFieldsRecursively(node: any, lines: string[]): FieldInfo[] {
+        const fields: FieldInfo[] = [];
+        
+        if (!node) {
+            return fields;
+        }
+        
+        try {
+            // fieldDeclaration 노드를 직접 찾은 경우
+            if (node.name === 'fieldDeclaration' || (node.children && this.isFieldDeclarationNode(node))) {
+                const fieldInfo = this.parseFieldDeclaration(node, lines);
+                if (fieldInfo) {
+                    fields.push(fieldInfo);
+                }
+            }
+            
+            // 자식 노드들을 재귀적으로 탐색
+            if (node.children) {
+                for (const key of Object.keys(node.children)) {
+                    if (Array.isArray(node.children[key])) {
+                        for (const child of node.children[key]) {
+                            const childFields = this.findFieldsRecursively(child, lines);
+                            fields.push(...childFields);
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            // 재귀 탐색 중 에러는 로깅만 하고 계속 진행
+            const fieldError = new FieldExtractionError(
+                '재귀 필드 탐색 실패',
+                undefined,
+                'Recursive field search context',
+                error instanceof Error ? error : undefined
+            );
+            ErrorHandler.logError(fieldError);
+        }
+        
+        return fields;
+    }
+
+    /**
+     * 노드가 fieldDeclaration 노드인지 확인합니다.
+     * 
+     * @param node - 확인할 노드
+     * @returns fieldDeclaration 노드이면 true
+     */
+    private isFieldDeclarationNode(node: any): boolean {
+        try {
+            // fieldDeclaration 노드의 특징적인 구조 확인
+            return !!(
+                node.children?.unannType &&
+                node.children?.variableDeclaratorList
+            );
+        } catch (error) {
+            return false;
+        }
     }
 
     /**
@@ -122,10 +208,42 @@ export class FieldExtractor {
     public extractFieldType(fieldDecl: any): string | undefined {
         try {
             const unannType = fieldDecl.children?.unannType?.[0];
-            // 실제 구조: unannType → unannReferenceType → unannClassOrInterfaceType → unannClassType → Identifier
+            
+            // 참조 타입 (클래스, 인터페이스) 처리
             if (unannType?.children?.unannReferenceType?.[0]?.children?.unannClassOrInterfaceType?.[0]?.children?.unannClassType?.[0]?.children?.Identifier?.[0]?.image) {
                 const typeName = unannType.children.unannReferenceType[0].children.unannClassOrInterfaceType[0].children.unannClassType[0].children.Identifier[0].image;
                 return typeName;
+            }
+            
+            // 기본 타입 (int, boolean, char, etc.) 처리
+            if (unannType?.children?.unannPrimitiveType?.[0]?.children) {
+                const primitiveType = unannType.children.unannPrimitiveType[0].children;
+                
+                // 숫자 타입들
+                if (primitiveType.IntegralType?.[0]?.children) {
+                    const integralChildren = primitiveType.IntegralType[0].children;
+                    if (integralChildren.Int) {return 'int';}
+                    if (integralChildren.Byte) {return 'byte';}
+                    if (integralChildren.Short) {return 'short';}
+                    if (integralChildren.Long) {return 'long';}
+                    if (integralChildren.Char) {return 'char';}
+                }
+                
+                // 실수 타입들
+                if (primitiveType.FloatingPointType?.[0]?.children) {
+                    const floatingChildren = primitiveType.FloatingPointType[0].children;
+                    if (floatingChildren.Float) {return 'float';}
+                    if (floatingChildren.Double) {return 'double';}
+                }
+                
+                // 불린 타입
+                if (primitiveType.Boolean) {return 'boolean';}
+            }
+            
+            // 대안적인 방법: 전체 노드에서 타입 식별자 찾기
+            const typeFromRecursive = this.findTypeRecursively(unannType);
+            if (typeFromRecursive) {
+                return typeFromRecursive;
             }
             
         } catch (error) {
@@ -136,6 +254,51 @@ export class FieldExtractor {
                 error instanceof Error ? error : undefined
             );
             ErrorHandler.logError(fieldError);
+        }
+        
+        return undefined;
+    }
+
+    /**
+     * 재귀적으로 노드에서 타입 정보를 찾습니다.
+     * 
+     * @param node - 탐색할 노드
+     * @returns 발견된 타입 또는 undefined
+     */
+    private findTypeRecursively(node: any): string | undefined {
+        if (!node) {
+            return undefined;
+        }
+        
+        try {
+            // 기본 타입 키워드들 확인
+            const primitiveTypes = ['int', 'boolean', 'char', 'byte', 'short', 'long', 'float', 'double'];
+            
+            if (node.image && typeof node.image === 'string') {
+                if (primitiveTypes.includes(node.image.toLowerCase())) {
+                    return node.image;
+                }
+                // 첫 글자가 대문자인 식별자면 클래스/인터페이스 타입일 가능성
+                if (node.image.match(/^[A-Z][a-zA-Z0-9_]*$/)) {
+                    return node.image;
+                }
+            }
+            
+            // 자식 노드들을 재귀적으로 탐색
+            if (node.children) {
+                for (const key of Object.keys(node.children)) {
+                    if (Array.isArray(node.children[key])) {
+                        for (const child of node.children[key]) {
+                            const result = this.findTypeRecursively(child);
+                            if (result) {
+                                return result;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            // 재귀 탐색 중 에러는 무시하고 계속 진행
         }
         
         return undefined;

@@ -11,7 +11,15 @@ export enum SpringAnnotationType {
     REST_CONTROLLER = 'RestController',
     CONFIGURATION = 'Configuration',
     BEAN = 'Bean',
-    AUTOWIRED = 'Autowired'
+    AUTOWIRED = 'Autowired',
+    // Phase 3: Lombok 어노테이션 타입들
+    LOMBOK_REQUIRED_ARGS_CONSTRUCTOR = 'RequiredArgsConstructor',
+    LOMBOK_ALL_ARGS_CONSTRUCTOR = 'AllArgsConstructor',
+    LOMBOK_NO_ARGS_CONSTRUCTOR = 'NoArgsConstructor',
+    LOMBOK_DATA = 'Data',
+    LOMBOK_VALUE = 'Value',
+    LOMBOK_SLF4J = 'Slf4j',
+    LOMBOK_NON_NULL = 'NonNull'
 }
 
 /**
@@ -21,7 +29,8 @@ export enum InjectionType {
     FIELD = 'field',           // @Autowired 필드 주입 (Phase 1)
     CONSTRUCTOR = 'constructor', // 생성자 주입 (Phase 2)
     SETTER = 'setter',         // Setter 주입 (Phase 2)
-    LOMBOK = 'lombok'          // Lombok 기반 주입 (Phase 3)
+    LOMBOK = 'lombok',         // Lombok 기반 주입 (Phase 3)
+    CONSTRUCTOR_LOMBOK = 'constructor_lombok' // Lombok 생성자 주입 (Phase 3)
 }
 
 /**

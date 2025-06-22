@@ -127,6 +127,7 @@ export class AnnotationParser {
      */
     private mapToSpringAnnotationType(annotationName: string): SpringAnnotationType | undefined {
         switch (annotationName) {
+            // Spring Framework 어노테이션
             case 'Component': return SpringAnnotationType.COMPONENT;
             case 'Service': return SpringAnnotationType.SERVICE;
             case 'Repository': return SpringAnnotationType.REPOSITORY;
@@ -135,6 +136,14 @@ export class AnnotationParser {
             case 'Configuration': return SpringAnnotationType.CONFIGURATION;
             case 'Bean': return SpringAnnotationType.BEAN;
             case 'Autowired': return SpringAnnotationType.AUTOWIRED;
+            // Phase 3: Lombok 어노테이션들
+            case 'RequiredArgsConstructor': return SpringAnnotationType.LOMBOK_REQUIRED_ARGS_CONSTRUCTOR;
+            case 'AllArgsConstructor': return SpringAnnotationType.LOMBOK_ALL_ARGS_CONSTRUCTOR;
+            case 'NoArgsConstructor': return SpringAnnotationType.LOMBOK_NO_ARGS_CONSTRUCTOR;
+            case 'Data': return SpringAnnotationType.LOMBOK_DATA;
+            case 'Value': return SpringAnnotationType.LOMBOK_VALUE;
+            case 'Slf4j': return SpringAnnotationType.LOMBOK_SLF4J;
+            case 'NonNull': return SpringAnnotationType.LOMBOK_NON_NULL;
             default: return undefined;
         }
     }

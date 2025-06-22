@@ -3,11 +3,15 @@
  */
 export const JAVA_PARSER_CONFIG = {
     /**
-     * Spring 어노테이션 목록
+     * Spring 어노테이션 목록 (Phase 3: Lombok 어노테이션 추가)
      */
     SPRING_ANNOTATIONS: new Set([
+        // Spring Framework 어노테이션
         'Component', 'Service', 'Repository', 'Controller', 'RestController',
-        'Configuration', 'Bean', 'Autowired'
+        'Configuration', 'Bean', 'Autowired',
+        // Phase 3: Lombok 어노테이션들
+        'RequiredArgsConstructor', 'AllArgsConstructor', 'NoArgsConstructor',
+        'Data', 'Value', 'Slf4j', 'NonNull'
     ]),
 
     /**

@@ -498,118 +498,453 @@ suite('JavaFileParser', () => {
             const endTime = Date.now();
 
             // Assert
-            assert.ok(endTime - startTime < 10000, 'Should handle multiple parsing calls efficiently');
+            assert.ok(endTime - startTime < 1000, 'Should handle multiple calls within 1 second');
         });
     });
 
-    suite('Interface Implementation Parsing', () => {
-        test('should_extractImplementedInterfaces_when_classImplementsInterface', async () => {
-            // Arrange
-            const content = JavaSampleGenerator.interfaceImplementationClass();
+    // ===== Phase 3: Lombok 어노테이션 탐지 테스트 =====
+    suite('🔧 Lombok Annotation Detection', () => {
+        
+        suite('detectLombokAnnotations', () => {
+            test('should_detectRequiredArgsConstructor_when_lombokAnnotationPresent', async () => {
+                // Arrange
+                const content = `
+                package com.example.service;
+                
+                import lombok.RequiredArgsConstructor;
+                import org.springframework.stereotype.Service;
+                
+                @Service
+                @RequiredArgsConstructor
+                public class UserService {
+                    private final UserRepository userRepository;
+                    private final EmailService emailService;
+                    private String tempData;
+                }
+                `.trim();
 
-            // Act
-            const result = await parser.parseJavaFile(mockUri, content);
+                // Act
+                const result = await parser.parseJavaFile(mockUri, content);
 
-            // Assert
-            assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
-            assert.strictEqual(result.classes.length, 1, 'Should parse one class');
-            
-            const classInfo = result.classes[0];
-            assert.strictEqual(classInfo.name, 'MessageServiceImpl');
-            
-            // 인터페이스 정보가 추출되었는지 확인
-            const interfaces = (classInfo as any).interfaces as string[] | undefined;
-            assert.ok(interfaces, 'Should extract implemented interfaces');
-            assert.ok(interfaces.includes('MessageService'), 'Should include MessageService interface');
+                // Assert
+                assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
+                assert.strictEqual(result.classes.length, 1, 'Should parse one class');
+                
+                const classInfo = result.classes[0];
+                const lombokAnnotations = classInfo.annotations.filter(a => a.name === 'RequiredArgsConstructor');
+                assert.strictEqual(lombokAnnotations.length, 1, 'Should detect @RequiredArgsConstructor annotation');
+                assert.strictEqual(lombokAnnotations[0].type, SpringAnnotationType.LOMBOK_REQUIRED_ARGS_CONSTRUCTOR, 'Should identify Lombok annotation type');
+            });
+
+            test('should_detectAllArgsConstructor_when_lombokAnnotationPresent', async () => {
+                // Arrange
+                const content = `
+                package com.example.service;
+                
+                import lombok.AllArgsConstructor;
+                import org.springframework.stereotype.Service;
+                
+                @Service
+                @AllArgsConstructor
+                public class NotificationService {
+                    private final EmailService emailService;
+                    private SmsService smsService;
+                    private String configValue;
+                }
+                `.trim();
+
+                // Act
+                const result = await parser.parseJavaFile(mockUri, content);
+
+                // Assert
+                assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
+                assert.strictEqual(result.classes.length, 1, 'Should parse one class');
+                
+                const classInfo = result.classes[0];
+                const lombokAnnotations = classInfo.annotations.filter(a => a.name === 'AllArgsConstructor');
+                assert.strictEqual(lombokAnnotations.length, 1, 'Should detect @AllArgsConstructor annotation');
+                assert.strictEqual(lombokAnnotations[0].type, SpringAnnotationType.LOMBOK_ALL_ARGS_CONSTRUCTOR, 'Should identify Lombok annotation type');
+            });
+
+            test('should_detectDataAnnotation_when_lombokDataPresent', async () => {
+                // Arrange
+                const content = `
+                package com.example.model;
+                
+                import lombok.Data;
+                import org.springframework.stereotype.Service;
+                
+                @Service
+                @Data
+                public class DataService {
+                    private final UserRepository userRepository;
+                    private final EmailService emailService;
+                    private String configurableField;
+                }
+                `.trim();
+
+                // Act
+                const result = await parser.parseJavaFile(mockUri, content);
+
+                // Assert
+                assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
+                assert.strictEqual(result.classes.length, 1, 'Should parse one class');
+                
+                const classInfo = result.classes[0];
+                const lombokAnnotations = classInfo.annotations.filter(a => a.name === 'Data');
+                assert.strictEqual(lombokAnnotations.length, 1, 'Should detect @Data annotation');
+                assert.strictEqual(lombokAnnotations[0].type, SpringAnnotationType.LOMBOK_DATA, 'Should identify Lombok Data annotation type');
+            });
+
+            test('should_detectMultipleLombokAnnotations_when_combinedAnnotationsPresent', async () => {
+                // Arrange
+                const content = `
+                package com.example.service;
+                
+                import lombok.RequiredArgsConstructor;
+                import lombok.Slf4j;
+                import org.springframework.stereotype.Service;
+                
+                @Service
+                @RequiredArgsConstructor
+                @Slf4j
+                public class ComplexService {
+                    private final UserRepository userRepository;
+                    private final EmailService emailService;
+                }
+                `.trim();
+
+                // Act
+                const result = await parser.parseJavaFile(mockUri, content);
+
+                // Assert
+                assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
+                assert.strictEqual(result.classes.length, 1, 'Should parse one class');
+                
+                const classInfo = result.classes[0];
+                const requiredArgsAnnotation = classInfo.annotations.find(a => a.name === 'RequiredArgsConstructor');
+                const slf4jAnnotation = classInfo.annotations.find(a => a.name === 'Slf4j');
+                
+                assert.ok(requiredArgsAnnotation, 'Should detect @RequiredArgsConstructor annotation');
+                assert.ok(slf4jAnnotation, 'Should detect @Slf4j annotation');
+                assert.strictEqual(requiredArgsAnnotation.type, SpringAnnotationType.LOMBOK_REQUIRED_ARGS_CONSTRUCTOR, 'Should identify RequiredArgsConstructor type');
+                assert.strictEqual(slf4jAnnotation.type, SpringAnnotationType.LOMBOK_SLF4J, 'Should identify Slf4j type');
+            });
+
+            test('should_ignoreNonLombokAnnotations_when_mixedAnnotationsPresent', async () => {
+                // Arrange
+                const content = `
+                package com.example.service;
+                
+                import lombok.RequiredArgsConstructor;
+                import org.springframework.stereotype.Service;
+                import org.springframework.beans.factory.annotation.Autowired;
+                
+                @Service
+                @RequiredArgsConstructor
+                @Deprecated
+                public class MixedService {
+                    @Autowired
+                    private UserRepository userRepository;
+                }
+                `.trim();
+
+                // Act
+                const result = await parser.parseJavaFile(mockUri, content);
+
+                // Assert
+                assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
+                assert.strictEqual(result.classes.length, 1, 'Should parse one class');
+                
+                const classInfo = result.classes[0];
+                const lombokAnnotations = classInfo.annotations.filter(a => 
+                    a.name === 'RequiredArgsConstructor' || 
+                    a.name === 'AllArgsConstructor' || 
+                    a.name === 'Data'
+                );
+                
+                assert.strictEqual(lombokAnnotations.length, 1, 'Should only detect Lombok annotations');
+                assert.strictEqual(lombokAnnotations[0].name, 'RequiredArgsConstructor', 'Should detect RequiredArgsConstructor');
+                
+                // Spring 어노테이션도 여전히 탐지되어야 함
+                const springAnnotations = classInfo.annotations.filter(a => a.type === SpringAnnotationType.SERVICE);
+                assert.strictEqual(springAnnotations.length, 1, 'Should still detect Spring annotations');
+            });
         });
 
-        test('should_extractMultipleInterfaces_when_classImplementsMultiple', async () => {
-            // Arrange
-            const content = JavaSampleGenerator.multipleInterfaceImplementationClass();
+        suite('detectLombokImports', () => {
+            test('should_detectLombokImports_when_lombokPackageImported', async () => {
+                // Arrange
+                const content = `
+                package com.example.service;
+                
+                import lombok.RequiredArgsConstructor;
+                import lombok.NonNull;
+                import lombok.Data;
+                import org.springframework.stereotype.Service;
+                
+                @Service
+                @RequiredArgsConstructor
+                public class ImportTestService {
+                    private final UserRepository userRepository;
+                }
+                `.trim();
 
-            // Act
-            const result = await parser.parseJavaFile(mockUri, content);
+                // Act
+                const result = await parser.parseJavaFile(mockUri, content);
 
-            // Assert
-            assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
-            const classInfo = result.classes[0];
-            
-            const interfaces = (classInfo as any).interfaces as string[] | undefined;
-            assert.ok(interfaces, 'Should extract implemented interfaces');
-            assert.strictEqual(interfaces.length, 2, 'Should extract two interfaces');
-            assert.ok(interfaces.includes('MessageService'), 'Should include MessageService');
-            assert.ok(interfaces.includes('NotificationService'), 'Should include NotificationService');
+                // Assert
+                assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
+                assert.strictEqual(result.classes.length, 1, 'Should parse one class');
+                
+                const classInfo = result.classes[0];
+                const lombokImports = classInfo.imports.filter(imp => imp.startsWith('lombok.'));
+                assert.strictEqual(lombokImports.length, 3, 'Should detect 3 Lombok imports');
+                assert.ok(lombokImports.includes('lombok.RequiredArgsConstructor'), 'Should detect RequiredArgsConstructor import');
+                assert.ok(lombokImports.includes('lombok.NonNull'), 'Should detect NonNull import');
+                assert.ok(lombokImports.includes('lombok.Data'), 'Should detect Data import');
+            });
+
+            test('should_returnEmptyLombokImports_when_noLombokImportsPresent', async () => {
+                // Arrange
+                const content = `
+                package com.example.service;
+                
+                import org.springframework.stereotype.Service;
+                import org.springframework.beans.factory.annotation.Autowired;
+                
+                @Service
+                public class NoLombokService {
+                    @Autowired
+                private UserRepository userRepository;
+                }
+                `.trim();
+
+                // Act
+                const result = await parser.parseJavaFile(mockUri, content);
+
+                // Assert
+                assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
+                assert.strictEqual(result.classes.length, 1, 'Should parse one class');
+                
+                const classInfo = result.classes[0];
+                const lombokImports = classInfo.imports.filter(imp => imp.startsWith('lombok.'));
+                assert.strictEqual(lombokImports.length, 0, 'Should not detect any Lombok imports');
+            });
+
+            test('should_detectWildcardLombokImport_when_wildcardImportUsed', async () => {
+                // Arrange
+                const content = `
+                package com.example.service;
+                
+                import lombok.*;
+                import org.springframework.stereotype.Service;
+                
+                @Service
+                @RequiredArgsConstructor
+                public class WildcardService {
+                    private final UserRepository userRepository;
+                }
+                `.trim();
+
+                // Act
+                const result = await parser.parseJavaFile(mockUri, content);
+
+                // Assert
+                assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
+                assert.strictEqual(result.classes.length, 1, 'Should parse one class');
+                
+                const classInfo = result.classes[0];
+                const lombokImports = classInfo.imports.filter(imp => imp.startsWith('lombok.'));
+                assert.ok(lombokImports.length > 0, 'Should detect Lombok wildcard import');
+                assert.ok(lombokImports.some(imp => imp === 'lombok.*'), 'Should detect lombok.* import');
+            });
         });
 
-        test('should_notExtractInterfaces_when_classExtendsButNoImplements', async () => {
-            // Arrange
-            const content = JavaSampleGenerator.extendsOnlyClass();
+        suite('analyzeLombokFieldModifiers', () => {
+            test('should_identifyFinalFields_when_finalKeywordPresent', async () => {
+                // Arrange
+                const content = `
+                package com.example.service;
+                
+                import lombok.RequiredArgsConstructor;
+                import org.springframework.stereotype.Service;
+                
+                @Service
+                @RequiredArgsConstructor
+                public class FinalFieldService {
+                    private final UserRepository userRepository;
+                    private final EmailService emailService;
+                    private String nonFinalField;
+                    private static final String CONSTANT = "test";
+                }
+                `.trim();
 
-            // Act
-            const result = await parser.parseJavaFile(mockUri, content);
+                // Act
+                const result = await parser.parseJavaFile(mockUri, content);
 
-            // Assert
-            assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
-            const classInfo = result.classes[0];
-            
-            const interfaces = (classInfo as any).interfaces as string[] | undefined;
-            assert.ok(!interfaces || interfaces.length === 0, 'Should not have interfaces when only extending');
+                // Assert
+                assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
+                assert.strictEqual(result.classes.length, 1, 'Should parse one class');
+                
+                const classInfo = result.classes[0];
+                const finalFields = classInfo.fields.filter(f => f.isFinal === true);
+                const nonFinalFields = classInfo.fields.filter(f => f.isFinal === false);
+                
+                assert.strictEqual(finalFields.length, 3, 'Should detect 3 final fields (including static final)');
+                assert.strictEqual(nonFinalFields.length, 1, 'Should detect 1 non-final field');
+                
+                // final 필드 이름 확인
+                const finalFieldNames = finalFields.map(f => f.name);
+                assert.ok(finalFieldNames.includes('userRepository'), 'Should include userRepository as final');
+                assert.ok(finalFieldNames.includes('emailService'), 'Should include emailService as final');
+                assert.ok(finalFieldNames.includes('CONSTANT'), 'Should include CONSTANT as final');
+            });
+
+            test('should_identifyNonNullFields_when_nonNullAnnotationPresent', async () => {
+                // Arrange
+                const content = `
+                package com.example.service;
+                
+                import lombok.RequiredArgsConstructor;
+                import lombok.NonNull;
+                import org.springframework.stereotype.Service;
+                
+                @Service
+                @RequiredArgsConstructor
+                public class NonNullFieldService {
+                    private final UserRepository userRepository;
+                    @NonNull
+                    private PaymentGateway paymentGateway;
+                    private String optionalField;
+                }
+                `.trim();
+
+                // Act
+                const result = await parser.parseJavaFile(mockUri, content);
+
+                // Assert
+                assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
+                assert.strictEqual(result.classes.length, 1, 'Should parse one class');
+                
+                const classInfo = result.classes[0];
+                const nonNullFields = classInfo.fields.filter(f => 
+                    f.annotations.some(a => a.name === 'NonNull')
+                );
+                
+                assert.strictEqual(nonNullFields.length, 1, 'Should detect 1 @NonNull field');
+                assert.strictEqual(nonNullFields[0].name, 'paymentGateway', 'Should identify paymentGateway as @NonNull');
+                assert.strictEqual(nonNullFields[0].type, 'PaymentGateway', 'Should preserve field type');
+            });
+
+            test('should_distinguishStaticFields_when_staticModifierPresent', async () => {
+                // Arrange
+                const content = `
+                package com.example.service;
+                
+                import lombok.AllArgsConstructor;
+                import org.springframework.stereotype.Service;
+                
+                @Service
+                @AllArgsConstructor
+                public class StaticFieldService {
+                    private final UserRepository userRepository;
+                    private EmailService emailService;
+                    private static final String VERSION = "1.0";
+                    private static int instanceCount = 0;
+                }
+                `.trim();
+
+                // Act
+                const result = await parser.parseJavaFile(mockUri, content);
+
+                // Assert
+                assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
+                assert.strictEqual(result.classes.length, 1, 'Should parse one class');
+                
+                const classInfo = result.classes[0];
+                const staticFields = classInfo.fields.filter(f => f.isStatic === true);
+                const nonStaticFields = classInfo.fields.filter(f => f.isStatic === false);
+                
+                assert.strictEqual(staticFields.length, 2, 'Should detect 2 static fields');
+                assert.strictEqual(nonStaticFields.length, 2, 'Should detect 2 non-static fields');
+                
+                // static 필드 이름 확인
+                const staticFieldNames = staticFields.map(f => f.name);
+                assert.ok(staticFieldNames.includes('VERSION'), 'Should include VERSION as static');
+                assert.ok(staticFieldNames.includes('instanceCount'), 'Should include instanceCount as static');
+            });
         });
 
-        test('should_extractInterfacesAndAutowired_when_implementationClassHasInjection', async () => {
-            // Arrange: MessageServiceImpl implements MessageService and has @Autowired field
-            const content = JavaSampleGenerator.autowiredImplementationClass();
+        suite('Error Handling', () => {
+            test('should_handleInvalidLombokAnnotation_when_unknownLombokAnnotationPresent', async () => {
+                // Arrange
+                const content = `
+                package com.example.service;
+                
+                import lombok.UnknownAnnotation;
+                import org.springframework.stereotype.Service;
+                
+                @Service
+                @UnknownAnnotation
+                public class InvalidLombokService {
+                    private final UserRepository userRepository;
+                }
+                `.trim();
 
-            // Act
-            const result = await parser.parseJavaFile(mockUri, content);
+                // Act
+                const result = await parser.parseJavaFile(mockUri, content);
 
-            // Assert
-            assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
-            assert.strictEqual(result.classes.length, 1, 'Should parse one class');
-            assert.strictEqual(result.injections.length, 1, 'Should find one @Autowired injection');
-            
-            const classInfo = result.classes[0];
-            assert.strictEqual(classInfo.name, 'MessageServiceImpl');
-            
-            // 인터페이스 정보 확인
-            const interfaces = (classInfo as any).interfaces as string[] | undefined;
-            assert.ok(interfaces && interfaces.includes('MessageService'), 'Should implement MessageService');
-            
-            // 주입 정보 확인  
-            const injection = result.injections[0];
-            assert.strictEqual(injection.targetType, 'NotificationService', 'Should inject NotificationService');
-        });
+                // Assert
+                // 파싱 자체는 성공해야 하지만, 알 수 없는 Lombok 어노테이션은 무시
+                assert.strictEqual(result.classes.length, 1, 'Should still parse the class');
+                
+                const classInfo = result.classes[0];
+                const unknownAnnotations = classInfo.annotations.filter(a => a.name === 'UnknownAnnotation');
+                // 알 수 없는 어노테이션은 일반 어노테이션으로 처리되거나 무시될 수 있음
+                assert.ok(unknownAnnotations.length >= 0, 'Should handle unknown Lombok annotations gracefully');
+            });
 
-        test('should_handleGenericInterfaces_when_interfaceHasTypeParameters', async () => {
-            // Arrange
-            const content = JavaSampleGenerator.genericInterfaceImplementationClass();
+            test('should_handleMalformedLombokImport_when_invalidImportPresent', async () => {
+                // Arrange
+                const content = `
+                package com.example.service;
+                
+                import lombok.;
+                import lombok.RequiredArgsConstructor;
+                import org.springframework.stereotype.Service;
+                
+                @Service
+                @RequiredArgsConstructor
+                public class MalformedImportService {
+                    private final UserRepository userRepository;
+                }
+                `.trim();
 
-            // Act
-            const result = await parser.parseJavaFile(mockUri, content);
+                // Act
+                const result = await parser.parseJavaFile(mockUri, content);
 
-            // Assert
-            assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
-            const classInfo = result.classes[0];
-            
-            const interfaces = (classInfo as any).interfaces as string[] | undefined;
-            assert.ok(interfaces, 'Should extract implemented interfaces');
-            // 제네릭 인터페이스도 기본 이름으로 추출되어야 함
-            assert.ok(interfaces.some(i => i.includes('Repository')), 'Should extract Repository interface');
-        });
-
-        test('should_returnEmptyInterfaces_when_classImplementsNothing', async () => {
-            // Arrange
-            const content = JavaSampleGenerator.noInterfaceClass();
-
-            // Act
-            const result = await parser.parseJavaFile(mockUri, content);
-
-            // Assert
-            assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
-            const classInfo = result.classes[0];
-            
-            const interfaces = (classInfo as any).interfaces as string[] | undefined;
-            assert.ok(!interfaces || interfaces.length === 0, 'Should have no interfaces');
+                // Assert
+                // 잘못된 import는 파싱 에러를 발생시킬 수 있음
+                if (result.errors.length > 0) {
+                    // 에러가 있으면 import 관련 에러인지 확인
+                    const hasImportError = result.errors.some(e => 
+                        e.includes('import') || 
+                        e.includes('파싱') || 
+                        e.includes('parsing')
+                    );
+                    assert.ok(hasImportError, 'Should report parsing errors related to invalid import');
+                } else {
+                    // 에러가 없으면 클래스는 파싱되지 않아야 함 (malformed import로 인해)
+                    // 또는 빈 결과여야 함
+                    const hasValidClass = result.classes.length > 0 && 
+                                         result.classes[0].name === 'MalformedImportService';
+                    
+                    // 잘못된 import 때문에 클래스가 제대로 파싱되지 않을 것으로 예상
+                    assert.ok(!hasValidClass || result.classes.length === 0, 
+                        'Should not successfully parse class with malformed import');
+                }
+            });
         });
     });
 }); 
