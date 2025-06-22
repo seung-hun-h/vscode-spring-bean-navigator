@@ -7,7 +7,11 @@ import {
     BeanDefinition, 
     InjectionInfo, 
     InjectionType,
-    ParameterInfo
+    ParameterInfo,
+    VirtualConstructorInfo,
+    LombokAnnotationInfo,
+    LombokFieldAnalysis,
+    LombokSimulationResult
 } from '../../models/spring-types';
 
 /**
@@ -972,246 +976,372 @@ export class AssertionHelper {
 
 /**
  * Lombok 관련 Java 파일 샘플 생성기 (Phase 3)
+ * Lombok 어노테이션 테스트를 위한 Java 코드 템플릿 제공
  */
 export class LombokJavaSampleGenerator {
     
     /**
      * @RequiredArgsConstructor 기본 케이스
+     * final 필드가 있는 서비스 클래스
      */
     public static requiredArgsConstructorBasic(): string {
         return `
-        package com.example.service;
-        
-        import lombok.RequiredArgsConstructor;
-        import org.springframework.stereotype.Service;
-        
-        @Service
-        @RequiredArgsConstructor
-        public class UserService {
-            private final UserRepository userRepository;
-            private final EmailService emailService;
-            private String tempData;
-        }
-        `.trim();
+package com.example.service;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class UserService {
+    private final UserRepository userRepository;
+    private final EmailService emailService;
+    private String tempData; // final이 아니므로 생성자에 포함되지 않음
+    
+    public void createUser(String name) {
+        // 메서드 구현
+    }
+}`.trim();
     }
 
     /**
      * @RequiredArgsConstructor + @NonNull 조합
+     * final과 @NonNull 필드가 혼재된 케이스
      */
     public static requiredArgsWithNonNull(): string {
         return `
-        package com.example.service;
-        
-        import lombok.RequiredArgsConstructor;
-        import lombok.NonNull;
-        import org.springframework.stereotype.Service;
-        
-        @Service
-        @RequiredArgsConstructor
-        public class OrderService {
-            private final UserRepository userRepository;
-            @NonNull
-            private PaymentGateway paymentGateway;
-            private String optionalField;
-        }
-        `.trim();
+package com.example.service;
+
+import lombok.RequiredArgsConstructor;
+import lombok.NonNull;
+import org.springframework.stereotype.Service;
+
+@Service  
+@RequiredArgsConstructor
+public class OrderService {
+    private final UserRepository userRepository;
+    @NonNull private ProductService productService;
+    private PaymentService paymentService; // final도 @NonNull도 아니므로 제외
+    
+    public void processOrder() {
+        // 구현
+    }
+}`.trim();
     }
 
     /**
      * @AllArgsConstructor 케이스
+     * 모든 필드를 생성자 매개변수로 포함
      */
     public static allArgsConstructor(): string {
         return `
-        package com.example.service;
-        
-        import lombok.AllArgsConstructor;
-        import org.springframework.stereotype.Service;
-        
-        @Service
-        @AllArgsConstructor
-        public class NotificationService {
-            private final EmailService emailService;
-            private SmsService smsService;
-            private String configValue;
-        }
-        `.trim();
+package com.example.service;
+
+import lombok.AllArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@AllArgsConstructor
+public class ReportService {
+    private UserRepository userRepository;
+    private EmailService emailService;
+    private ConfigService configService;
+    private static final String VERSION = "1.0"; // static 필드는 제외
+    
+    public void generateReport() {
+        // 구현
+    }
+}`.trim();
     }
 
     /**
      * 복잡한 Lombok 조합
+     * @RequiredArgsConstructor + @Slf4j + @Service 조합
      */
     public static complexLombokAnnotations(): string {
         return `
-        package com.example.service;
-        
-        import lombok.RequiredArgsConstructor;
-        import lombok.Slf4j;
-        import org.springframework.stereotype.Service;
-        
-        @Service
-        @RequiredArgsConstructor
-        @Slf4j
-        public class ComplexService {
-            private final UserRepository userRepository;
-            private final EmailService emailService;
-            @NonNull
-            private PaymentGateway paymentGateway;
-            private String optionalConfig;
-        }
-        `.trim();
+package com.example.service;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class NotificationService {
+    private final EmailService emailService;
+    private final SmsService smsService;
+    
+    public void sendNotification(String message) {
+        log.info("Sending notification: {}", message);
+    }
+}`.trim();
     }
 
     /**
      * @Data 어노테이션 케이스 (생성자 관련 부분만)
+     * @Data는 @RequiredArgsConstructor를 포함함
      */
     public static dataAnnotationConstructor(): string {
         return `
-        package com.example.model;
-        
-        import lombok.Data;
-        import org.springframework.stereotype.Service;
-        
-        @Service
-        @Data
-        public class DataService {
-            private final UserRepository userRepository;
-            private final EmailService emailService;
-            private String configurableField;
-        }
-        `.trim();
+package com.example.model;
+
+import lombok.Data;
+import org.springframework.stereotype.Component;
+
+@Component
+@Data
+public class UserProfile {
+    private final String userId;
+    private final String email;
+    private String displayName; // final이 아니므로 @RequiredArgsConstructor에서 제외
+    private int age;
+}`.trim();
     }
 
     /**
      * Lombok + 기존 생성자 혼재 케이스
+     * 명시적 생성자가 있으면 Lombok 생성자 무시
      */
     public static lombokWithExplicitConstructor(): string {
         return `
-        package com.example.service;
-        
-        import lombok.RequiredArgsConstructor;
-        import org.springframework.stereotype.Service;
-        
-        @Service
-        @RequiredArgsConstructor
-        public class MixedConstructorService {
-            private final UserRepository userRepository;
-            private final EmailService emailService;
-            
-            // 명시적 생성자가 있으면 Lombok 생성자는 생성되지 않음
-            public MixedConstructorService(UserRepository userRepository) {
-                this.userRepository = userRepository;
-                this.emailService = null;
-            }
-        }
-        `.trim();
-    }
+package com.example.service;
 
-    /**
-     * 상속 관계에서의 Lombok 처리
-     */
-    public static lombokWithInheritance(): string {
-        return `
-        package com.example.service;
-        
-        import lombok.RequiredArgsConstructor;
-        import org.springframework.stereotype.Service;
-        
-        @Service
-        @RequiredArgsConstructor
-        public class ChildService extends BaseService {
-            private final UserRepository userRepository;
-            private final EmailService emailService;
-        }
-        
-        class BaseService {
-            protected final LogService logService;
-            
-            public BaseService(LogService logService) {
-                this.logService = logService;
-            }
-        }
-        `.trim();
-    }
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
-    /**
-     * 잘못된 Lombok 사용 케이스 (에러 테스트용)
-     */
-    public static invalidLombokUsage(): string {
-        return `
-        package com.example.service;
-        
-        import lombok.RequiredArgsConstructor;
-        import lombok.AllArgsConstructor;
-        import org.springframework.stereotype.Service;
-        
-        @Service
-        @RequiredArgsConstructor
-        @AllArgsConstructor  // 동시에 사용하면 에러
-        public class InvalidService {
-            private final UserRepository userRepository;
-        }
-        `.trim();
+@Service
+@RequiredArgsConstructor
+public class CustomService {
+    private final UserRepository userRepository;
+    
+    // 명시적 생성자가 있으면 Lombok이 생성자를 만들지 않음
+    public CustomService(UserRepository userRepository, String customParam) {
+        this.userRepository = userRepository;
+        // 커스텀 로직
+    }
+}`.trim();
     }
 
     /**
      * Lombok이 없는 일반 클래스
+     * 대조군 테스트용
      */
     public static plainClassWithoutLombok(): string {
         return `
-        package com.example.service;
-        
-        import org.springframework.stereotype.Service;
-        import org.springframework.beans.factory.annotation.Autowired;
-        
-        @Service
-        public class PlainService {
-            @Autowired
-            private UserRepository userRepository;
-            
-            public void doSomething() {
-                // 일반 메서드
-            }
-        }
-        `.trim();
+package com.example.service;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class PlainService {
+    private final UserRepository userRepository;
+    
+    public PlainService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+    
+    public void doSomething() {
+        // 구현
+    }
+}`.trim();
     }
 
     /**
      * 빈 필드를 가진 Lombok 클래스
+     * 필드가 없는 @RequiredArgsConstructor 클래스
      */
     public static lombokClassWithoutFields(): string {
         return `
-        package com.example.service;
-        
-        import lombok.RequiredArgsConstructor;
-        import org.springframework.stereotype.Service;
-        
-        @Service
-        @RequiredArgsConstructor
-        public class EmptyFieldsService {
-            // 필드가 없음
-        }
-        `.trim();
+package com.example.service;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class EmptyService {
+    // 필드가 없으므로 빈 생성자만 생성됨
+    
+    public void performAction() {
+        // 구현
+    }
+}`.trim();
+    }
+}
+
+/**
+ * Lombok 관련 Mock 객체 생성 헬퍼 (Phase 3)
+ */
+export class LombokMockHelper {
+    
+    /**
+     * Lombok 어노테이션 정보 Mock 생성
+     */
+    public static createLombokAnnotationInfo(
+        type: SpringAnnotationType, 
+        parameters?: Map<string, string>
+    ): LombokAnnotationInfo {
+        return {
+            name: type.toString(),
+            type: type,
+            line: 3,
+            column: 0,
+            parameters: parameters || new Map(),
+            lombokConfig: new Map([
+                ['access', 'public'],
+                ['staticName', '']
+            ])
+        };
     }
 
     /**
-     * Static final 필드를 가진 Lombok 클래스
+     * 가상 생성자 정보 Mock 생성
      */
-    public static lombokWithStaticFields(): string {
-        return `
-        package com.example.service;
-        
-        import lombok.AllArgsConstructor;
-        import org.springframework.stereotype.Service;
-        
-        @Service
-        @AllArgsConstructor
-        public class StaticFieldService {
-            private final UserRepository userRepository;
-            private EmailService emailService;
-            private static final String VERSION = "1.0";
-            private static int instanceCount = 0;
-        }
-        `.trim();
+    public static createVirtualConstructorInfo(
+        source: string, 
+        parameters: ParameterInfo[],
+        lombokType: SpringAnnotationType
+    ): VirtualConstructorInfo {
+        return {
+            parameters: parameters,
+            range: TestUtils.createRange(5, 4, 8, 5),
+            lombokAnnotationType: lombokType,
+            annotationSource: source,
+            visibility: 'public',
+            isVirtual: true,
+            position: TestUtils.createPosition(5, 4)
+        };
+    }
+
+    /**
+     * final 필드 Mock 생성
+     */
+    public static createFinalFieldInfo(name: string, type: string, line: number): FieldInfo {
+        return {
+            name: name,
+            type: type,
+            position: TestUtils.createPosition(line, 4),
+            range: TestUtils.createRange(line, 4, line, 50),
+            annotations: [],
+            visibility: 'private',
+            isFinal: true,
+            isStatic: false
+        };
+    }
+
+    /**
+     * @NonNull 필드 Mock 생성
+     */
+    public static createNonNullFieldInfo(name: string, type: string, line: number): FieldInfo {
+        return {
+            name: name,
+            type: type,
+            position: TestUtils.createPosition(line, 4),
+            range: TestUtils.createRange(line, 4, line, 50),
+            annotations: [{
+                name: 'NonNull',
+                type: SpringAnnotationType.LOMBOK_NON_NULL,
+                line: line - 1,
+                column: 4
+            }],
+            visibility: 'private',
+            isFinal: false,
+            isStatic: false
+        };
+    }
+
+    /**
+     * static final 필드 Mock 생성
+     */
+    public static createStaticFinalFieldInfo(name: string, type: string, line: number): FieldInfo {
+        return {
+            name: name,
+            type: type,
+            position: TestUtils.createPosition(line, 4),
+            range: TestUtils.createRange(line, 4, line, 50),
+            annotations: [],
+            visibility: 'private',
+            isFinal: true,
+            isStatic: true // static final 필드는 생성자에서 제외
+        };
+    }
+}
+
+/**
+ * Lombok Helper - 예상 결과 생성기 (Phase 3)
+ */
+export class LombokExpectedResultHelper {
+    
+    /**
+     * @RequiredArgsConstructor 예상 생성자 정보 생성
+     */
+    public static createExpectedRequiredArgsConstructor(
+        finalFields: FieldInfo[], 
+        nonNullFields: FieldInfo[]
+    ): VirtualConstructorInfo {
+        const allRequiredFields = [...finalFields, ...nonNullFields];
+        const parameters = allRequiredFields.map(field => 
+            TestUtils.createParameterInfo(field.name, field.type)
+        );
+
+        return LombokMockHelper.createVirtualConstructorInfo(
+            'RequiredArgsConstructor',
+            parameters,
+            SpringAnnotationType.LOMBOK_REQUIRED_ARGS_CONSTRUCTOR
+        );
+    }
+
+    /**
+     * @AllArgsConstructor 예상 생성자 정보 생성
+     */
+    public static createExpectedAllArgsConstructor(fields: FieldInfo[]): VirtualConstructorInfo {
+        // static 필드 제외
+        const nonStaticFields = fields.filter(field => !field.isStatic);
+        const parameters = nonStaticFields.map(field => 
+            TestUtils.createParameterInfo(field.name, field.type)
+        );
+
+        return LombokMockHelper.createVirtualConstructorInfo(
+            'AllArgsConstructor',
+            parameters,
+            SpringAnnotationType.LOMBOK_ALL_ARGS_CONSTRUCTOR
+        );
+    }
+
+    /**
+     * Lombok 시뮬레이션 결과 생성
+     */
+    public static createLombokSimulationResult(
+        annotations: LombokAnnotationInfo[],
+        virtualConstructors: VirtualConstructorInfo[],
+        fieldAnalysis: LombokFieldAnalysis
+    ): LombokSimulationResult {
+        return {
+            lombokAnnotations: annotations,
+            virtualConstructors: virtualConstructors,
+            fieldAnalysis: fieldAnalysis,
+            isSuccess: true,
+            errors: []
+        };
+    }
+
+    /**
+     * 실패한 Lombok 시뮬레이션 결과 생성
+     */
+    public static createFailedLombokSimulationResult(errors: string[]): LombokSimulationResult {
+        return {
+            lombokAnnotations: [],
+            virtualConstructors: [],
+            fieldAnalysis: {
+                requiredArgsFields: [],
+                allArgsFields: [],
+                classInfo: TestUtils.createClassInfo('EmptyClass', 'com.example', [], [])
+            },
+            isSuccess: false,
+            errors: errors
+        };
     }
 }
 

@@ -276,4 +276,64 @@ export interface BeanDisplayInfo {
     className: string;
     /** 패키지 이름 */
     packageName: string;
+}
+
+/**
+ * 가상 생성자 정보 (Phase 3: Lombok 시뮬레이션)
+ * Lombok 어노테이션이 컴파일 타임에 생성할 생성자를 시뮬레이션
+ */
+export interface VirtualConstructorInfo extends BasePositionInfo {
+    /** 가상 생성자 매개변수들 */
+    parameters: ParameterInfo[];
+    /** 생성자 범위 */
+    range: vscode.Range;
+    /** 생성자를 생성한 Lombok 어노테이션 타입 */
+    lombokAnnotationType: SpringAnnotationType;
+    /** 어노테이션 소스 (RequiredArgs, AllArgs, Data 등) */
+    annotationSource: string;
+    /** 접근 제어자 (public이 기본값) */
+    visibility: string;
+    /** 시뮬레이션 여부 표시 */
+    isVirtual: true;
+}
+
+/**
+ * Lombok 어노테이션 정보 (Phase 3)
+ * Lombok 특화 어노테이션 분석 결과
+ */
+export interface LombokAnnotationInfo extends AnnotationInfo {
+    /** Lombok 설정 매개변수 (access, staticName 등) */
+    lombokConfig?: Map<string, string>;
+    /** 생성할 가상 생성자 정보 */
+    virtualConstructor?: VirtualConstructorInfo;
+}
+
+/**
+ * Lombok 필드 분석 결과 (Phase 3)
+ * 가상 생성자 생성을 위한 필드 분석 정보
+ */
+export interface LombokFieldAnalysis {
+    /** @RequiredArgsConstructor에 포함될 필드들 (final + @NonNull) */
+    requiredArgsFields: FieldInfo[];
+    /** @AllArgsConstructor에 포함될 필드들 (static 제외) */
+    allArgsFields: FieldInfo[];
+    /** 분석된 클래스 정보 */
+    classInfo: ClassInfo;
+}
+
+/**
+ * Lombok 시뮬레이션 결과 (Phase 3)
+ * Lombok 어노테이션 분석 및 가상 생성자 생성 결과
+ */
+export interface LombokSimulationResult {
+    /** 감지된 Lombok 어노테이션들 */
+    lombokAnnotations: LombokAnnotationInfo[];
+    /** 생성된 가상 생성자들 */
+    virtualConstructors: VirtualConstructorInfo[];
+    /** 필드 분석 결과 */
+    fieldAnalysis: LombokFieldAnalysis;
+    /** 시뮬레이션 성공 여부 */
+    isSuccess: boolean;
+    /** 시뮬레이션 에러 메시지 */
+    errors?: string[];
 } 
