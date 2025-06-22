@@ -5,7 +5,17 @@ All notable changes to the "vscode-spring-bean-navigator" extension will be docu
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0]
+## [1.1.0] - 2024-12-19
+
+### Changed
+- Improved CodeLens behavior: CodeLens is no longer displayed when beans cannot be found
+- Enhanced user experience by reducing visual clutter from unresolvable dependencies
+
+### Fixed
+- Fixed test cases to properly validate CodeLens generation for existing beans
+- Improved Java file parsing with proper package and import declarations in tests
+
+## [1.0.0] - 2024-12-19
 
 ### Added
 - Spring Bean injection detection for `@Autowired`, constructor, setter, and Lombok annotations
