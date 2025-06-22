@@ -1,5 +1,12 @@
 import * as vscode from 'vscode';
-import { ClassInfo, AnnotationInfo } from '../../models/spring-types';
+import { 
+    ClassInfo, 
+    AnnotationInfo, 
+    CompilationUnitNode, 
+    ClassDeclarationNode, 
+    InterfaceTypeNode, 
+    CSTNode 
+} from '../../models/spring-types';
 import { JAVA_PARSER_CONFIG } from '../config/java-parser-config';
 import { ErrorHandler, ClassExtractionError } from '../core/parser-errors';
 import { CSTNavigator } from '../core/cst-navigator';
@@ -37,7 +44,7 @@ export class ClassExtractor {
      * @param content - 파일 내용
      * @returns 추출된 클래스 정보 배열
      */
-    public extractClasses(cst: any, fileUri: vscode.Uri, content: string): ClassInfo[] {
+    public extractClasses(cst: CompilationUnitNode, fileUri: vscode.Uri, content: string): ClassInfo[] {
         const classes: ClassInfo[] = [];
         const lines = content.split('\n');
         
@@ -90,7 +97,7 @@ export class ClassExtractor {
      * @returns 파싱된 클래스 정보 또는 undefined
      */
     public parseClassDeclaration(
-        classDecl: any, 
+        classDecl: ClassDeclarationNode, 
         fileUri: vscode.Uri, 
         content: string, 
         lines: string[], 
@@ -157,7 +164,7 @@ export class ClassExtractor {
      * @param lines - 파일 내용의 라인들
      * @returns 추출된 어노테이션 정보 배열
      */
-    public extractClassAnnotations(classDecl: any, lines: string[]): AnnotationInfo[] {
+    public extractClassAnnotations(classDecl: ClassDeclarationNode, lines: string[]): AnnotationInfo[] {
         const annotations: AnnotationInfo[] = [];
         
         try {
@@ -193,7 +200,7 @@ export class ClassExtractor {
      * @param classDecl - 클래스 선언 CST 노드
      * @returns 구현하는 인터페이스 이름들
      */
-    public extractImplementedInterfaces(classDecl: any): string[] {
+    public extractImplementedInterfaces(classDecl: ClassDeclarationNode): string[] {
         const interfaces: string[] = [];
         
         try {
@@ -243,7 +250,7 @@ export class ClassExtractor {
      * @param node - 탐색할 CST 노드
      * @returns 발견된 인터페이스 이름들
      */
-    public findInterfacesRecursively(node: any): string[] {
+    public findInterfacesRecursively(node: CSTNode): string[] {
         const interfaces: string[] = [];
         
         if (!node) {
@@ -287,7 +294,7 @@ export class ClassExtractor {
      * @param node - 탐색할 CST 노드
      * @returns 수집된 인터페이스 이름들
      */
-    public collectIdentifiersAfterImplements(node: any): string[] {
+    public collectIdentifiersAfterImplements(node: CSTNode): string[] {
         const identifiers: string[] = [];
         
         try {
@@ -326,7 +333,7 @@ export class ClassExtractor {
      * @param node - 탐색할 CST 노드
      * @param identifiers - 수집된 식별자들을 저장할 배열
      */
-    public collectAllIdentifiers(node: any, identifiers: string[]): void {
+    public collectAllIdentifiers(node: CSTNode, identifiers: string[]): void {
         if (!node) {
             return;
         }
@@ -364,7 +371,7 @@ export class ClassExtractor {
      * @param interfaceType - 인터페이스 타입 CST 노드
      * @returns 인터페이스 이름
      */
-    public extractInterfaceName(interfaceType: any): string | undefined {
+    public extractInterfaceName(interfaceType: InterfaceTypeNode): string | undefined {
         try {
             // interfaceType 구조: classType
             const classType = interfaceType.children?.classType?.[0];
@@ -379,19 +386,18 @@ export class ClassExtractor {
                     return interfaceName;
                 }
                 
-                // 단일 Identifier인 경우
-                if (classType.children?.Identifier?.image) {
-                    return classType.children.Identifier.image;
+                // 단일 Identifier인 경우 (배열의 첫 번째 요소)
+                if (classType.children?.Identifier && classType.children.Identifier.length > 0) {
+                    return classType.children.Identifier[0].image;
                 }
             }
             
             // 다른 구조일 경우 대안 시도
             if (interfaceType.children?.Identifier) {
                 const identifiers = interfaceType.children.Identifier;
-                if (Array.isArray(identifiers)) {
+                if (Array.isArray(identifiers) && identifiers.length > 0) {
                     return identifiers[identifiers.length - 1].image;
                 }
-                return identifiers.image;
             }
             
         } catch (error) {

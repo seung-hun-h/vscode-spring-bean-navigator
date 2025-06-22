@@ -282,7 +282,7 @@ suite('🔧 LombokInjectionDetector Test Suite', () => {
             // Assert
             assert.ok(result.isSuccess, 'Simulation should succeed');
             assert.strictEqual(result.virtualConstructors.length, 1, 'Should generate one virtual constructor');
-            assert.strictEqual(result.lombokAnnotations.length, 1, 'Should detect one Lombok annotation');
+            assert.strictEqual(result.fieldAnalysis.length, 1, 'Should have one field analysis result');
             
             const constructor = result.virtualConstructors[0];
             assert.strictEqual(constructor.parameters.length, 2, 'Constructor should have 2 parameters');
@@ -307,7 +307,7 @@ suite('🔧 LombokInjectionDetector Test Suite', () => {
             // Assert
             assert.ok(result.isSuccess, 'Should handle complex annotations');
             assert.strictEqual(result.virtualConstructors.length, 1, 'Should generate constructor from @RequiredArgsConstructor');
-            assert.ok(result.lombokAnnotations.length >= 1, 'Should detect Lombok annotations');
+            assert.ok(result.fieldAnalysis.length >= 1, 'Should have field analysis results');
         });
 
         test('should_respectLombokConfiguration_when_customParametersPresent', () => {
@@ -440,8 +440,8 @@ suite('🔧 LombokInjectionDetector Test Suite', () => {
             assert.strictEqual(constructor.parameters[0].name, 'userRepository');
             
             // @Autowired 필드는 별도 처리됨 (Phase 1 기능)
-            const fieldAnalysis = result.fieldAnalysis;
-            assert.ok(fieldAnalysis.requiredArgsFields.some(f => f.name === 'userRepository'), 'Should identify Lombok fields');
+            const fieldAnalysis = result.fieldAnalysis[0];
+            assert.ok(fieldAnalysis.requiredArgsFields.some((f: any) => f.name === 'userRepository'), 'Should identify Lombok fields');
         });
     });
 }); 

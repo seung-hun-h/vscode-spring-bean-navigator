@@ -326,14 +326,18 @@ export interface LombokFieldAnalysis {
 
 /**
  * Lombok 시뮬레이션 결과 (Phase 3)
+ * Lombok 어노테이션 분석 및 가상 생성자 생성 결과
+ * 
+ * 설계 원칙:
+ * - 정보 중복 제거: lombokAnnotations는 ClassInfo.annotations와 중복되므로 제거
+ * - 일관성: virtualConstructors와 fieldAnalysis 모두 배열로 통일
+ * - 확장성: 여러 클래스나 분석 타입을 지원할 수 있도록 배열 구조 사용
  */
 export interface LombokSimulationResult {
-    /** 감지된 Lombok 어노테이션들 */
-    lombokAnnotations: LombokAnnotationInfo[];
     /** 생성된 가상 생성자들 */
     virtualConstructors: VirtualConstructorInfo[];
-    /** 필드 분석 결과 */
-    fieldAnalysis: LombokFieldAnalysis;
+    /** 필드 분석 결과들 (클래스별 또는 분석 타입별) */
+    fieldAnalysis: LombokFieldAnalysis[];
     /** 시뮬레이션 성공 여부 */
     isSuccess: boolean;
     /** 시뮬레이션 에러 메시지 */
@@ -358,6 +362,8 @@ export interface CSTNode {
         endColumn: number;
     };
     image?: string;
+    name?: string;
+    type?: string;
 }
 
 /**
@@ -386,6 +392,10 @@ export interface OrdinaryCompilationUnitNode extends CSTNode {
 export interface PackageDeclarationNode extends CSTNode {
     children?: {
         packageOrTypeName?: PackageOrTypeNameNode[];
+        Identifier?: IdentifierNode[];
+        Package?: IdentifierNode[];
+        Dot?: IdentifierNode[];
+        Semicolon?: IdentifierNode[];
     };
 }
 
@@ -412,6 +422,9 @@ export interface ImportDeclarationNode extends CSTNode {
     children?: {
         packageOrTypeName?: PackageOrTypeNameNode[];
         Identifier?: IdentifierNode[];
+        Star?: IdentifierNode[];
+        Import?: IdentifierNode[];
+        Semicolon?: IdentifierNode[];
     };
 }
 
@@ -430,6 +443,7 @@ export interface TypeDeclarationNode extends CSTNode {
  */
 export interface ClassDeclarationNode extends CSTNode {
     children?: {
+        classModifier?: ClassModifierNode[];
         normalClassDeclaration?: NormalClassDeclarationNode[];
     };
 }
@@ -439,6 +453,7 @@ export interface ClassDeclarationNode extends CSTNode {
  */
 export interface NormalClassDeclarationNode extends CSTNode {
     children?: {
+        typeIdentifier?: TypeIdentifierNode[];
         classBody?: ClassBodyNode[];
         Identifier?: IdentifierNode[];
         superclass?: SuperclassNode[];
@@ -511,6 +526,9 @@ export interface AnnotationNode extends CSTNode {
         typeName?: TypeNameNode[];
         elementValuePairList?: ElementValuePairListNode[];
         StringLiteral?: IdentifierNode[];
+        At?: IdentifierNode[];
+        LParen?: IdentifierNode[];
+        RParen?: IdentifierNode[];
     };
 }
 
@@ -842,7 +860,61 @@ export interface SuperclassNode extends CSTNode {
  * 슈퍼인터페이스들 노드
  */
 export interface SuperinterfacesNode extends CSTNode {
-    children?: Record<string, CSTNode[]>;
+    children?: {
+        interfaceTypeList?: InterfaceTypeListNode[];
+    };
+}
+
+/**
+ * 인터페이스 타입 리스트 노드
+ */
+export interface InterfaceTypeListNode extends CSTNode {
+    children?: {
+        interfaceType?: InterfaceTypeNode[];
+    };
+}
+
+/**
+ * 인터페이스 타입 노드
+ */
+export interface InterfaceTypeNode extends CSTNode {
+    children?: {
+        classType?: ClassTypeNode[];
+        Identifier?: IdentifierNode[];
+    };
+}
+
+/**
+ * 클래스 타입 노드 (인터페이스에서 사용)
+ */
+export interface ClassTypeNode extends CSTNode {
+    children?: {
+        Identifier?: IdentifierNode[];
+    };
+}
+
+/**
+ * 클래스 수정자 노드
+ */
+export interface ClassModifierNode extends CSTNode {
+    children?: {
+        annotation?: AnnotationNode[];
+        Public?: IdentifierNode[];
+        Private?: IdentifierNode[];
+        Protected?: IdentifierNode[];
+        Abstract?: IdentifierNode[];
+        Final?: IdentifierNode[];
+        Static?: IdentifierNode[];
+    };
+}
+
+/**
+ * 타입 식별자 노드
+ */
+export interface TypeIdentifierNode extends CSTNode {
+    children?: {
+        Identifier?: IdentifierNode[];
+    };
 }
 
 /**

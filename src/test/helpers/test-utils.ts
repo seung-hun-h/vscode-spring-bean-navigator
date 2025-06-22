@@ -1314,14 +1314,16 @@ export class LombokExpectedResultHelper {
      * Lombok 시뮬레이션 결과 생성
      */
     public static createLombokSimulationResult(
-        annotations: LombokAnnotationInfo[],
         virtualConstructors: VirtualConstructorInfo[],
-        fieldAnalysis: LombokFieldAnalysis
+        fieldAnalysisList?: LombokFieldAnalysis[]
     ): LombokSimulationResult {
         return {
-            lombokAnnotations: annotations,
             virtualConstructors: virtualConstructors,
-            fieldAnalysis: fieldAnalysis,
+            fieldAnalysis: fieldAnalysisList || [{
+                requiredArgsFields: [],
+                allArgsFields: [],
+                classInfo: TestUtils.createClassInfo('EmptyClass', 'com.example', [], [])
+            }],
             isSuccess: true,
             errors: []
         };
@@ -1332,13 +1334,8 @@ export class LombokExpectedResultHelper {
      */
     public static createFailedLombokSimulationResult(errors: string[]): LombokSimulationResult {
         return {
-            lombokAnnotations: [],
             virtualConstructors: [],
-            fieldAnalysis: {
-                requiredArgsFields: [],
-                allArgsFields: [],
-                classInfo: TestUtils.createClassInfo('EmptyClass', 'com.example', [], [])
-            },
+            fieldAnalysis: [],
             isSuccess: false,
             errors: errors
         };

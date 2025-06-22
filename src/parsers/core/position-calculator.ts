@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { JAVA_PARSER_CONFIG } from '../config/java-parser-config';
 import { ErrorHandler, PositionCalculationError } from './parser-errors';
+import { CSTNode } from '../../models/spring-types';
 
 /**
  * AST 노드의 위치 및 범위 계산을 담당하는 클래스
@@ -8,13 +9,13 @@ import { ErrorHandler, PositionCalculationError } from './parser-errors';
 export class PositionCalculator {
     
     /**
-     * AST 노드의 위치 정보를 계산합니다.
+     * CST 노드의 위치 정보를 계산합니다.
      * 
-     * @param node - AST 노드
+     * @param node - CST 노드
      * @param lines - 파일 라인 배열
      * @returns VSCode Position
      */
-    public calculatePosition(node: any, lines: string[]): vscode.Position {
+    public calculatePosition(node: CSTNode, lines: string[]): vscode.Position {
         try {
             // CST에서 실제 위치 정보 추출 시도
             if (node?.location?.startLine !== undefined && node?.location?.startColumn !== undefined) {
@@ -53,13 +54,13 @@ export class PositionCalculator {
     }
 
     /**
-     * AST 노드의 범위 정보를 계산합니다.
+     * CST 노드의 범위 정보를 계산합니다.
      * 
-     * @param node - AST 노드
+     * @param node - CST 노드
      * @param lines - 파일 라인 배열
      * @returns VSCode Range
      */
-    public calculateRange(node: any, lines: string[]): vscode.Range {
+    public calculateRange(node: CSTNode, lines: string[]): vscode.Range {
         try {
             // CST에서 실제 범위 정보 추출 시도
             if (node?.location?.startLine !== undefined && 
@@ -142,7 +143,7 @@ export class PositionCalculator {
      * @param lines - 파일 라인 배열
      * @returns 위치 정보 또는 undefined
      */
-    private findPositionInChildren(node: any, lines: string[]): vscode.Position | undefined {
+    private findPositionInChildren(node: CSTNode, lines: string[]): vscode.Position | undefined {
         if (!node?.children) {
             return undefined;
         }
@@ -184,7 +185,7 @@ export class PositionCalculator {
      * @param lines - 파일 라인 배열
      * @returns 범위 정보 또는 undefined
      */
-    private calculateRangeFromChildren(node: any, lines: string[]): vscode.Range | undefined {
+    private calculateRangeFromChildren(node: CSTNode, lines: string[]): vscode.Range | undefined {
         if (!node?.children) {
             return undefined;
         }
@@ -252,7 +253,7 @@ export class PositionCalculator {
      * @param node - 노드
      * @returns 노드 이름 또는 'Unknown'
      */
-    private getNodeName(node: any): string {
+    private getNodeName(node: CSTNode): string {
         if (node?.image && typeof node.image === 'string') {
             return node.image;
         }

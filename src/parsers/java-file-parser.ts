@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import {
     JavaFileParseResult,
+    CompilationUnitNode
 } from '../models/spring-types';
 import { ErrorHandler } from './core/parser-errors';
 import { CSTNavigator } from './core/cst-navigator';
@@ -56,7 +57,7 @@ export class JavaFileParser {
             const { parse } = await import('java-parser');
 
             const cst = parse(content);
-            const classes = this.classExtractor.extractClasses(cst, fileUri, content);
+            const classes = this.classExtractor.extractClasses(cst as CompilationUnitNode, fileUri, content);
 
             // Phase 2: 생성자 주입 및 Setter 주입 정보 추가
             for (const classInfo of classes) {

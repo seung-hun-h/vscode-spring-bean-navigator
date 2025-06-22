@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { PositionCalculator } from '../../../parsers/core/position-calculator';
+import { CSTNode } from '../../../models/spring-types';
 
 suite('PositionCalculator', () => {
     let calculator: PositionCalculator;
@@ -12,10 +13,14 @@ suite('PositionCalculator', () => {
     suite('calculatePosition', () => {
         test('should_returnCorrectPosition_when_nodeHasLocationInfo', () => {
             // Arrange
-            const mockNode = {
+            const mockNode: CSTNode = {
                 location: {
+                    startOffset: 45,
+                    endOffset: 55,
                     startLine: 5,    // 1-based
-                    startColumn: 10  // 1-based
+                    endLine: 5,
+                    startColumn: 10, // 1-based
+                    endColumn: 20
                 }
             };
             const lines = ['line1', 'line2', 'line3', 'line4', 'line5'];
@@ -49,11 +54,11 @@ suite('PositionCalculator', () => {
 
         test('should_findPositionInChildren_when_nodeHasChildrenWithImage', () => {
             // Arrange
-            const mockNode = {
+            const mockNode: CSTNode = {
                 children: {
                     someKey: [
                         { image: 'childText' },
-                        { other: 'data' }
+                        { children: {}, type: 'other' }
                     ]
                 }
             };
@@ -73,8 +78,9 @@ suite('PositionCalculator', () => {
 
         test('should_returnFallbackPosition_when_noPositionInfoFound', () => {
             // Arrange
-            const mockNode = {
-                someProperty: 'value'
+            const mockNode: CSTNode = {
+                type: 'unknown',
+                children: {}
             };
             const lines = ['line1', 'line2'];
 
@@ -91,7 +97,7 @@ suite('PositionCalculator', () => {
             const lines = ['line1', 'line2'];
 
             // Act
-            const result = calculator.calculatePosition(null, lines);
+            const result = calculator.calculatePosition(null as any, lines);
 
             // Assert
             assert.strictEqual(result.line, 0);
@@ -121,8 +127,10 @@ suite('PositionCalculator', () => {
     suite('calculateRange', () => {
         test('should_returnCorrectRange_when_nodeHasCompleteLocationInfo', () => {
             // Arrange
-            const mockNode = {
+            const mockNode: CSTNode = {
                 location: {
+                    startOffset: 12,
+                    endOffset: 35,
                     startLine: 2,
                     startColumn: 5,
                     endLine: 3,
@@ -164,8 +172,9 @@ suite('PositionCalculator', () => {
 
         test('should_returnFallbackRange_when_noRangeInfoFound', () => {
             // Arrange
-            const mockNode = {
-                someProperty: 'value'
+            const mockNode: CSTNode = {
+                type: 'unknown',
+                children: {}
             };
             const lines = ['test line'];
 
@@ -377,12 +386,14 @@ suite('PositionCalculator', () => {
     suite('Error Handling', () => {
         test('should_logErrorButNotThrow_when_invalidNodeStructure', () => {
             // Arrange
-            const malformedNode = {
+            const malformedNode: CSTNode = {
                 children: {
-                    malformed: {
-                        // This should be an array but isn't
-                        badStructure: 'should be array'
-                    }
+                    malformed: [
+                        {
+                            type: 'invalid',
+                            children: {}
+                        }
+                    ]
                 }
             };
             const lines = ['test line'];

@@ -5,7 +5,7 @@ import { CSTNavigator } from '../../../parsers/core/cst-navigator';
 import { PositionCalculator } from '../../../parsers/core/position-calculator';
 import { AnnotationParser } from '../../../parsers/extractors/annotation-parser';
 import { FieldExtractor } from '../../../parsers/extractors/field-extractor';
-import { SpringAnnotationType } from '../../../models/spring-types';
+import { SpringAnnotationType, CompilationUnitNode } from '../../../models/spring-types';
 
 /**
  * ClassExtractor 테스트 스위트
@@ -30,7 +30,7 @@ suite('ClassExtractor', () => {
             // Arrange
             const mockCST = {
                 children: {
-                    compilationUnit: [{
+                    ordinaryCompilationUnit: [{
                         children: {
                             typeDeclaration: [{
                                 children: {
@@ -66,7 +66,7 @@ suite('ClassExtractor', () => {
             // Mock CST Navigator methods
             cstNavigator.extractPackageName = () => 'com.example';
             cstNavigator.extractImports = () => ['java.util.List'];
-            cstNavigator.findClassDeclarations = () => [mockCST.children.compilationUnit[0].children.typeDeclaration[0].children.classDeclaration[0]];
+            cstNavigator.findClassDeclarations = () => [mockCST.children.ordinaryCompilationUnit[0].children.typeDeclaration[0].children.classDeclaration[0]];
 
             // Act
             const result = classExtractor.extractClasses(mockCST, fileUri, content);
@@ -82,9 +82,9 @@ suite('ClassExtractor', () => {
             // Arrange
             const mockCST = {
                 children: {
-                    compilationUnit: []
+                    ordinaryCompilationUnit: []
                 }
-            };
+            } as CompilationUnitNode;
             const fileUri = vscode.Uri.file('/test/Empty.java');
             const content = '// Empty file';
 
@@ -383,7 +383,7 @@ suite('ClassExtractor', () => {
             const identifiers: string[] = [];
 
             // Act & Assert - Should not throw
-            classExtractor.collectAllIdentifiers(null, identifiers);
+            classExtractor.collectAllIdentifiers(null as any, identifiers);
             assert.strictEqual(identifiers.length, 0);
         });
     });
@@ -416,7 +416,7 @@ suite('ClassExtractor', () => {
                 children: {
                     invalidStructure: {}
                 }
-            };
+            } as any;
 
             // Act
             const result = classExtractor.extractInterfaceName(mockInterfaceType);
@@ -568,7 +568,7 @@ suite('ClassExtractor', () => {
             const lines = content.split('\n');
 
             // Act
-            const result = classExtractor.parseClassDeclaration(null, fileUri, content, lines, undefined, []);
+            const result = classExtractor.parseClassDeclaration(null as any, fileUri, content, lines, undefined, []);
 
             // Assert
             assert.strictEqual(result, undefined);
@@ -580,7 +580,7 @@ suite('ClassExtractor', () => {
                 children: {
                     invalidStructure: 'malformed'
                 }
-            };
+            } as any;
             const fileUri = vscode.Uri.file('/test/Invalid.java');
             const content = 'invalid content';
 

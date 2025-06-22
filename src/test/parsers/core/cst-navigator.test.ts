@@ -1,5 +1,6 @@
 import * as assert from 'assert';
 import { CSTNavigator } from '../../../parsers/core/cst-navigator';
+import { CompilationUnitNode } from '../../../models/spring-types';
 
 suite('CSTNavigator', () => {
     let navigator: CSTNavigator;
@@ -7,6 +8,25 @@ suite('CSTNavigator', () => {
     setup(() => {
         navigator = new CSTNavigator();
     });
+
+    // 타입 안전한 mock CST 생성 헬퍼
+    function createMockCST(content?: any): CompilationUnitNode {
+        return {
+            children: {
+                ordinaryCompilationUnit: [content || {}]
+            }
+        } as CompilationUnitNode;
+    }
+
+    function createEmptyCST(): CompilationUnitNode {
+        return {
+            children: {
+                ordinaryCompilationUnit: [{
+                    children: {}
+                }]
+            }
+        } as CompilationUnitNode;
+    }
 
     suite('extractPackageName', () => {
         test('should_extractPackageName_when_validPackageDeclarationProvided', () => {
@@ -38,13 +58,7 @@ suite('CSTNavigator', () => {
 
         test('should_returnUndefined_when_noPackageDeclaration', () => {
             // Arrange
-            const mockCST = {
-                children: {
-                    ordinaryCompilationUnit: [{
-                        children: {}
-                    }]
-                }
-            };
+            const mockCST = createEmptyCST();
 
             // Act
             const result = navigator.extractPackageName(mockCST);
@@ -55,7 +69,7 @@ suite('CSTNavigator', () => {
 
         test('should_returnUndefined_when_invalidCSTStructure', () => {
             // Arrange
-            const mockCST = {};
+            const mockCST = createMockCST();
 
             // Act
             const result = navigator.extractPackageName(mockCST);
@@ -317,9 +331,9 @@ suite('CSTNavigator', () => {
         test('should_handleNullCST_when_nullProvided', () => {
             // Act & Assert
             assert.doesNotThrow(() => {
-                const packageName = navigator.extractPackageName(null);
-                const imports = navigator.extractImports(null);
-                const classDeclarations = navigator.findClassDeclarations(null);
+                const packageName = navigator.extractPackageName(null as any);
+                const imports = navigator.extractImports(null as any);
+                const classDeclarations = navigator.findClassDeclarations(null as any);
                 
                 assert.strictEqual(packageName, undefined);
                 assert.strictEqual(imports.length, 0);
@@ -330,9 +344,9 @@ suite('CSTNavigator', () => {
         test('should_handleUndefinedCST_when_undefinedProvided', () => {
             // Act & Assert
             assert.doesNotThrow(() => {
-                const packageName = navigator.extractPackageName(undefined);
-                const imports = navigator.extractImports(undefined);
-                const classDeclarations = navigator.findClassDeclarations(undefined);
+                const packageName = navigator.extractPackageName(undefined as any);
+                const imports = navigator.extractImports(undefined as any);
+                const classDeclarations = navigator.findClassDeclarations(undefined as any);
                 
                 assert.strictEqual(packageName, undefined);
                 assert.strictEqual(imports.length, 0);
@@ -341,7 +355,7 @@ suite('CSTNavigator', () => {
         });
 
         test('should_logErrorsButNotThrow_when_unexpectedErrorOccurs', () => {
-            // Arrange
+            // Arrange - 타입 캐스팅으로 malformed 구조 허용
             const malformedCST = {
                 children: {
                     ordinaryCompilationUnit: [{
@@ -357,7 +371,7 @@ suite('CSTNavigator', () => {
                         }
                     }]
                 }
-            };
+            } as any;
 
             // Act & Assert
             assert.doesNotThrow(() => {

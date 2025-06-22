@@ -1,4 +1,11 @@
-import { AnnotationInfo, SpringAnnotationType } from '../../models/spring-types';
+import { 
+    AnnotationInfo, 
+    SpringAnnotationType, 
+    AnnotationNode,
+    ElementValuePairListNode,
+    ElementValuePairNode,
+    CSTNode
+} from '../../models/spring-types';
 import { JAVA_PARSER_CONFIG, SPRING_ANNOTATION_NAMES, SPRING_ANNOTATION_PACKAGES, PARSING_CONSTANTS } from '../config/java-parser-config';
 import { ErrorHandler, AnnotationParsingError } from '../core/parser-errors';
 import { PositionCalculator } from '../core/position-calculator';
@@ -20,7 +27,7 @@ export class AnnotationParser {
      * @param lines - 파일 라인 배열
      * @returns 어노테이션 정보 또는 undefined
      */
-    public parseAnnotation(annotation: any, lines: string[]): AnnotationInfo | undefined {
+    public parseAnnotation(annotation: AnnotationNode, lines: string[]): AnnotationInfo | undefined {
         let annotationName: string | undefined;
         
         try {
@@ -80,7 +87,7 @@ export class AnnotationParser {
      * @param annotation - 어노테이션 노드
      * @returns 매개변수 맵
      */
-    public extractAnnotationParameters(annotation: any): Map<string, string> {
+    public extractAnnotationParameters(annotation: AnnotationNode): Map<string, string> {
         const parameters = new Map<string, string>();
         
         try {
@@ -157,7 +164,7 @@ export class AnnotationParser {
      * @param pairList - elementValuePairList 노드
      * @returns 매개변수 맵
      */
-    private extractElementValuePairList(pairList: any): Map<string, string> {
+    private extractElementValuePairList(pairList: ElementValuePairListNode): Map<string, string> {
         const parameters = new Map<string, string>();
         
         try {
@@ -191,7 +198,7 @@ export class AnnotationParser {
      * @param pair - elementValuePair 노드
      * @returns 키 문자열 또는 undefined
      */
-    private extractElementKey(pair: any): string | undefined {
+    private extractElementKey(pair: ElementValuePairNode): string | undefined {
         try {
             if (pair.children?.Identifier?.[0]?.image) {
                 return pair.children.Identifier[0].image;
@@ -213,7 +220,7 @@ export class AnnotationParser {
      * @param pair - elementValuePair 노드
      * @returns 값 문자열 또는 undefined
      */
-    private extractElementValue(pair: any): string | undefined {
+    private extractElementValue(pair: ElementValuePairNode): string | undefined {
         try {
             if (pair.children?.elementValue?.[0]) {
                 const elementValue = pair.children.elementValue[0];
@@ -247,7 +254,7 @@ export class AnnotationParser {
      * @param node - 탐색할 노드
      * @returns 문자열 리터럴 배열
      */
-    private findStringLiterals(node: any): string[] {
+    private findStringLiterals(node: CSTNode): string[] {
         const literals: string[] = [];
         
         try {
@@ -281,7 +288,7 @@ export class AnnotationParser {
      * @param annotation - 어노테이션 노드
      * @returns 어노테이션 이름 또는 'Unknown'
      */
-    private getAnnotationName(annotation: any): string {
+    private getAnnotationName(annotation: AnnotationNode): string {
         try {
             if (annotation?.children?.typeName?.[0]?.children?.Identifier?.[0]?.image) {
                 return annotation.children.typeName[0].children.Identifier[0].image;
@@ -300,7 +307,7 @@ export class AnnotationParser {
      * @param targetType - 확인할 타입
      * @returns 해당 타입이면 true
      */
-    public isAnnotationType(annotation: any, targetType: SpringAnnotationType): boolean {
+    public isAnnotationType(annotation: AnnotationNode, targetType: SpringAnnotationType): boolean {
         try {
             const annotationInfo = this.parseAnnotation(annotation, []);
             return annotationInfo?.type === targetType;

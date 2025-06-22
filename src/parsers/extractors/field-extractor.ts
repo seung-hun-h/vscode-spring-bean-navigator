@@ -1,4 +1,10 @@
-import { FieldInfo, AnnotationInfo } from '../../models/spring-types';
+import { 
+    FieldInfo, 
+    AnnotationInfo, 
+    ClassDeclarationNode, 
+    FieldDeclarationNode, 
+    CSTNode 
+} from '../../models/spring-types';
 import { ErrorHandler, FieldExtractionError } from '../core/parser-errors';
 import { PositionCalculator } from '../core/position-calculator';
 import { AnnotationParser } from './annotation-parser';
@@ -11,7 +17,7 @@ export class FieldExtractor {
     private readonly positionCalculator: PositionCalculator;
     private readonly annotationParser: AnnotationParser;
     // 성능 최적화: 탐색 캐시
-    private exploredNodes = new Set<any>();
+    private exploredNodes = new Set<CSTNode>();
 
     constructor(
         positionCalculator: PositionCalculator,
@@ -28,7 +34,7 @@ export class FieldExtractor {
      * @param lines - 파일 내용의 라인들
      * @returns 추출된 필드 정보 배열
      */
-    public extractFields(classDecl: any, lines: string[]): FieldInfo[] {
+    public extractFields(classDecl: ClassDeclarationNode, lines: string[]): FieldInfo[] {
         // 성능 최적화: 캐시 초기화
         this.exploredNodes.clear();
         
@@ -63,7 +69,7 @@ export class FieldExtractor {
      * @param lines - 파일 내용의 라인들
      * @param fieldMap - 필드를 저장할 Map (중복 제거용)
      */
-    private extractFieldsFromStandardStructure(classDecl: any, lines: string[], fieldMap: Map<string, FieldInfo>): void {
+    private extractFieldsFromStandardStructure(classDecl: ClassDeclarationNode, lines: string[], fieldMap: Map<string, FieldInfo>): void {
         try {
             const classBody = classDecl.children?.normalClassDeclaration?.[0]?.children?.classBody?.[0];
             const classMemberDeclarations = classBody?.children?.classBodyDeclaration;
@@ -102,7 +108,7 @@ export class FieldExtractor {
      * @param lines - 파일 내용의 라인들
      * @param fieldMap - 필드를 저장할 Map (중복 제거용)
      */
-    private extractFieldsRecursively(node: any, lines: string[], fieldMap: Map<string, FieldInfo>): void {
+    private extractFieldsRecursively(node: CSTNode, lines: string[], fieldMap: Map<string, FieldInfo>): void {
         if (!node || this.exploredNodes.has(node)) {
             return; // 이미 탐색한 노드는 건너뛰기
         }
@@ -145,7 +151,7 @@ export class FieldExtractor {
      * @param lines - 파일 내용의 라인들
      * @param fieldMap - 필드를 저장할 Map
      */
-    private processFieldDeclaration(fieldDecl: any, lines: string[], fieldMap: Map<string, FieldInfo>): void {
+    private processFieldDeclaration(fieldDecl: FieldDeclarationNode, lines: string[], fieldMap: Map<string, FieldInfo>): void {
         try {
             const fieldInfo = this.parseFieldDeclaration(fieldDecl, lines);
             if (fieldInfo && !fieldMap.has(fieldInfo.name)) {
@@ -168,7 +174,7 @@ export class FieldExtractor {
      * @param node - 확인할 노드
      * @returns fieldDeclaration 노드이면 true
      */
-    private isFieldDeclarationNode(node: any): boolean {
+    private isFieldDeclarationNode(node: CSTNode): boolean {
         try {
             // fieldDeclaration 노드의 특징적인 구조 확인
             return !!(
@@ -187,7 +193,7 @@ export class FieldExtractor {
      * @param lines - 파일 내용의 라인들
      * @returns 파싱된 필드 정보 또는 undefined
      */
-    public parseFieldDeclaration(fieldDecl: any, lines: string[]): FieldInfo | undefined {
+    public parseFieldDeclaration(fieldDecl: FieldDeclarationNode, lines: string[]): FieldInfo | undefined {
         try {
             // 필드 타입 추출
             const fieldType = this.extractFieldType(fieldDecl);
@@ -240,7 +246,7 @@ export class FieldExtractor {
      * @param fieldDecl - 필드 선언 CST 노드
      * @returns 필드 타입 문자열 또는 undefined
      */
-    public extractFieldType(fieldDecl: any): string | undefined {
+    public extractFieldType(fieldDecl: FieldDeclarationNode): string | undefined {
         try {
             const unannType = fieldDecl.children?.unannType?.[0];
             
@@ -276,9 +282,11 @@ export class FieldExtractor {
             }
             
             // 대안적인 방법: 전체 노드에서 타입 식별자 찾기
-            const typeFromRecursive = this.findTypeRecursively(unannType);
-            if (typeFromRecursive) {
-                return typeFromRecursive;
+            if (unannType) {
+                const typeFromRecursive = this.findTypeRecursively(unannType);
+                if (typeFromRecursive) {
+                    return typeFromRecursive;
+                }
             }
             
         } catch (error) {
@@ -300,7 +308,7 @@ export class FieldExtractor {
      * @param node - 탐색할 노드
      * @returns 발견된 타입 또는 undefined
      */
-    private findTypeRecursively(node: any): string | undefined {
+    private findTypeRecursively(node: CSTNode): string | undefined {
         if (!node) {
             return undefined;
         }
@@ -351,7 +359,7 @@ export class FieldExtractor {
      * @param fieldDecl - 필드 선언 CST 노드
      * @returns 필드 이름 문자열 또는 undefined
      */
-    public extractFieldName(fieldDecl: any): string | undefined {
+    public extractFieldName(fieldDecl: FieldDeclarationNode): string | undefined {
         try {
             const variableDeclarators = fieldDecl.children?.variableDeclaratorList?.[0]?.children?.variableDeclarator;
             if (variableDeclarators && variableDeclarators.length > 0) {
@@ -376,7 +384,7 @@ export class FieldExtractor {
      * @param lines - 파일 내용의 라인들
      * @returns 추출된 어노테이션 정보 배열
      */
-    public extractFieldAnnotations(fieldDecl: any, lines: string[]): AnnotationInfo[] {
+    public extractFieldAnnotations(fieldDecl: FieldDeclarationNode, lines: string[]): AnnotationInfo[] {
         const annotations: AnnotationInfo[] = [];
         
         try {
@@ -412,7 +420,7 @@ export class FieldExtractor {
      * @param fieldDecl - 필드 선언 CST 노드
      * @returns 접근 제한자 및 키워드 정보
      */
-    public extractFieldModifiers(fieldDecl: any): { visibility?: string; isFinal: boolean; isStatic: boolean } {
+    public extractFieldModifiers(fieldDecl: FieldDeclarationNode): { visibility?: string; isFinal: boolean; isStatic: boolean } {
         const result = { visibility: undefined as string | undefined, isFinal: false, isStatic: false };
         
         try {

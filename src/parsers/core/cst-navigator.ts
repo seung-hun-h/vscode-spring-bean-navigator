@@ -1,4 +1,11 @@
 import { ErrorHandler, CSTParsingError } from './parser-errors';
+import { 
+    CSTNode, 
+    CompilationUnitNode, 
+    ImportDeclarationNode,
+    ClassDeclarationNode,
+    IdentifierNode
+} from '../../models/spring-types';
 
 /**
  * CST(Concrete Syntax Tree) 탐색을 담당하는 클래스
@@ -11,7 +18,7 @@ export class CSTNavigator {
      * @param cst - CST 루트 노드
      * @returns 패키지 이름 또는 undefined
      */
-    public extractPackageName(cst: any): string | undefined {
+    public extractPackageName(cst: CompilationUnitNode): string | undefined {
         try {
             const ordinaryCompUnit = cst.children?.ordinaryCompilationUnit?.[0];
             if (ordinaryCompUnit?.children?.packageDeclaration) {
@@ -19,7 +26,7 @@ export class CSTNavigator {
                 if (packageDecl.children?.Identifier) {
                     // 실제 구조: packageDeclaration.children = ['Package', 'Identifier', 'Dot', 'Semicolon']
                     const identifiers = packageDecl.children.Identifier;
-                    return identifiers.map((id: any) => id.image).join('.');
+                    return identifiers.map((id: IdentifierNode) => id.image).join('.');
                 }
             }
         } catch (error) {
@@ -41,7 +48,7 @@ export class CSTNavigator {
      * @param cst - CST 루트 노드
      * @returns 임포트 문 배열
      */
-    public extractImports(cst: any): string[] {
+    public extractImports(cst: CompilationUnitNode): string[] {
         const imports: string[] = [];
         
         try {
@@ -76,8 +83,8 @@ export class CSTNavigator {
      * @param cst - CST 루트 노드
      * @returns 클래스 선언 노드 배열
      */
-    public findClassDeclarations(cst: any): any[] {
-        const classDeclarations: any[] = [];
+    public findClassDeclarations(cst: CompilationUnitNode): ClassDeclarationNode[] {
+        const classDeclarations: ClassDeclarationNode[] = [];
         
         try {
             const ordinaryCompUnit = cst.children?.ordinaryCompilationUnit?.[0];
@@ -110,12 +117,12 @@ export class CSTNavigator {
      * @param importDecl - 임포트 선언 노드
      * @returns 임포트 이름 또는 undefined
      */
-    private extractImportName(importDecl: any): string | undefined {
+    private extractImportName(importDecl: ImportDeclarationNode): string | undefined {
         try {
             // 일반적인 import 구조 처리
             if (importDecl.children?.packageOrTypeName?.[0]?.children?.Identifier) {
                 const identifiers = importDecl.children.packageOrTypeName[0].children.Identifier;
-                let importName = identifiers.map((id: any) => id.image).join('.');
+                let importName = identifiers.map((id: IdentifierNode) => id.image).join('.');
                 
                 // wildcard import 처리 (import lombok.*;)
                 if (importDecl.children?.Star) {
@@ -174,7 +181,7 @@ export class CSTNavigator {
      * @param importDecl - 임포트 선언 노드
      * @returns 추출된 토큰 배열
      */
-    private extractAllTokensFromImport(importDecl: any): string[] {
+    private extractAllTokensFromImport(importDecl: ImportDeclarationNode): string[] {
         const tokens: string[] = [];
         
         try {
@@ -199,7 +206,7 @@ export class CSTNavigator {
      * @param node - 탐색할 노드
      * @param tokens - 수집된 토큰을 저장할 배열
      */
-    private collectTokensRecursively(node: any, tokens: string[]): void {
+    private collectTokensRecursively(node: CSTNode, tokens: string[]): void {
         if (!node) {
             return;
         }

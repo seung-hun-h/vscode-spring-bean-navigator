@@ -4,11 +4,11 @@ import {
     ParameterInfo,
     SpringAnnotationType, 
     VirtualConstructorInfo,
-    LombokAnnotationInfo,
     LombokSimulationResult,
     LombokFieldAnalysis,
     InjectionInfo,
-    InjectionType
+    InjectionType,
+    AnnotationInfo
 } from '../models/spring-types';
 import { AbstractInjectionDetector } from './abstract-injection-detector';
 
@@ -222,24 +222,13 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
                 return this.createFailedResult(['ClassInfo가 제공되지 않았습니다']);
             }
 
-            const lombokAnnotations: LombokAnnotationInfo[] = [];
             const virtualConstructors: VirtualConstructorInfo[] = [];
+            const fieldAnalysisList: LombokFieldAnalysis[] = [];
             const errors: string[] = [];
 
-            // Lombok 어노테이션들 추출
+            // 잘못된 어노테이션 타입 검증
             for (const annotation of classInfo.annotations) {
-                if (this.isLombokAnnotation(annotation.type)) {
-                    try {
-                        const lombokAnnotation: LombokAnnotationInfo = {
-                            ...annotation,
-                            lombokConfig: this.extractLombokConfig(annotation)
-                        };
-                        lombokAnnotations.push(lombokAnnotation);
-                    } catch (error) {
-                        errors.push(`어노테이션 처리 실패: ${annotation.name}`);
-                    }
-                } else if (annotation.type && annotation.type.toString().includes('INVALID')) {
-                    // 잘못된 어노테이션 타입 감지
+                if (annotation.type && annotation.type.toString().includes('INVALID')) {
                     errors.push(`잘못된 어노테이션 타입: ${annotation.type}`);
                 }
             }
@@ -256,17 +245,17 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
                 virtualConstructors.push(allArgsConstructor);
             }
 
-            // 필드 분석 결과 생성
+            // 필드 분석 결과 생성 (단일 클래스이므로 하나의 분석 결과)
             const fieldAnalysis: LombokFieldAnalysis = {
                 requiredArgsFields: this.extractRequiredArgsFields(classInfo),
                 allArgsFields: this.extractAllArgsFields(classInfo),
                 classInfo: classInfo
             };
+            fieldAnalysisList.push(fieldAnalysis);
 
             return {
-                lombokAnnotations: lombokAnnotations,
                 virtualConstructors: virtualConstructors,
-                fieldAnalysis: fieldAnalysis,
+                fieldAnalysis: fieldAnalysisList,
                 isSuccess: errors.length === 0,
                 errors: errors.length > 0 ? errors : undefined
             };
@@ -282,7 +271,7 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
      * @param annotation - Lombok 어노테이션 정보
      * @returns access level 문자열 또는 undefined
      */
-    private extractLombokAccessLevel(annotation: any): string | undefined {
+    private extractLombokAccessLevel(annotation: AnnotationInfo): string | undefined {
         if (annotation.parameters && annotation.parameters.has('access')) {
             const accessValue = annotation.parameters.get('access');
             // AccessLevel.PROTECTED → protected 변환
@@ -325,18 +314,24 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
      * @param annotation - 어노테이션 정보
      * @returns Lombok 설정 맵
      */
-    private extractLombokConfig(annotation: any): Map<string, string> {
+    private extractLombokConfig(annotation: AnnotationInfo): Map<string, string> {
         const config = new Map<string, string>();
         
         if (annotation.parameters) {
             // access level 설정
             if (annotation.parameters.has('access')) {
-                config.set('access', annotation.parameters.get('access'));
+                const accessValue = annotation.parameters.get('access');
+                if (accessValue) {
+                    config.set('access', accessValue);
+                }
             }
             
             // staticName 설정
             if (annotation.parameters.has('staticName')) {
-                config.set('staticName', annotation.parameters.get('staticName'));
+                const staticNameValue = annotation.parameters.get('staticName');
+                if (staticNameValue) {
+                    config.set('staticName', staticNameValue);
+                }
             }
         }
         
@@ -387,13 +382,8 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
      */
     private createFailedResult(errors: string[]): LombokSimulationResult {
         return {
-            lombokAnnotations: [],
             virtualConstructors: [],
-            fieldAnalysis: {
-                requiredArgsFields: [],
-                allArgsFields: [],
-                classInfo: {} as ClassInfo
-            },
+            fieldAnalysis: [],
             isSuccess: false,
             errors: errors
         };

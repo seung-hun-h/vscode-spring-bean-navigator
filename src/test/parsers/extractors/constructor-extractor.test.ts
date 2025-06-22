@@ -16,13 +16,13 @@ suite('🔧 ConstructorExtractor Test Suite', () => {
         test('should_extractSingleConstructor_when_classHasOneConstructor', () => {
             // Arrange
             const javaCode = `
-public class UserService {
-    private final UserRepository userRepository;
-    
-    public UserService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-}`;
+                public class UserService {
+                    private final UserRepository userRepository;
+                    
+                    public UserService(UserRepository userRepository) {
+                        this.userRepository = userRepository;
+                    }
+                }`;
             
             // Act
             const constructors = constructorExtractor.extractConstructors(javaCode, vscode.Uri.file('/test/UserService.java'));
@@ -42,20 +42,20 @@ public class UserService {
         test('should_extractMultipleConstructors_when_classHasMultipleConstructors', () => {
             // Arrange
             const javaCode = `
-public class PaymentService {
-    private UserRepository userRepository;
-    private PaymentGateway paymentGateway;
-    
-    public PaymentService() {
-        // 기본 생성자
-    }
-    
-    @Autowired
-    public PaymentService(UserRepository userRepository, PaymentGateway paymentGateway) {
-        this.userRepository = userRepository;
-        this.paymentGateway = paymentGateway;
-    }
-}`;
+                public class PaymentService {
+                    private UserRepository userRepository;
+                    private PaymentGateway paymentGateway;
+                    
+                    public PaymentService() {
+                        // 기본 생성자
+                    }
+                    
+                    @Autowired
+                    public PaymentService(UserRepository userRepository, PaymentGateway paymentGateway) {
+                        this.userRepository = userRepository;
+                        this.paymentGateway = paymentGateway;
+                    }
+                }`;
             
             // Act
             const constructors = constructorExtractor.extractConstructors(javaCode, vscode.Uri.file('/test/PaymentService.java'));
@@ -79,11 +79,11 @@ public class PaymentService {
         test('should_extractParameterInfo_when_constructorHasParameters', () => {
             // Arrange
             const javaCode = `
-public class OrderService {
-    public OrderService(UserRepository userRepo, EmailService emailSvc, SmsService smsSvc) {
-        // 생성자 구현
-    }
-}`;
+                public class OrderService {
+                    public OrderService(UserRepository userRepo, EmailService emailSvc, SmsService smsSvc) {
+                        // 생성자 구현
+                    }
+                }`;
             
             // Act
             const constructors = constructorExtractor.extractConstructors(javaCode, vscode.Uri.file('/test/OrderService.java'));
@@ -110,11 +110,11 @@ public class OrderService {
         test('should_handleGenericTypes_when_constructorHasGenericParameters', () => {
             // Arrange
             const javaCode = `
-public class GenericService {
-    public GenericService(List<User> users, Optional<EmailService> emailService, Map<String, Repository> repos) {
-        // 제네릭 타입 생성자
-    }
-}`;
+                public class GenericService {
+                    public GenericService(List<User> users, Optional<EmailService> emailService, Map<String, Repository> repos) {
+                        // 제네릭 타입 생성자
+                    }
+                }`;
             
             // Act
             const constructors = constructorExtractor.extractConstructors(javaCode, vscode.Uri.file('/test/GenericService.java'));
@@ -133,9 +133,9 @@ public class GenericService {
         test('should_returnEmptyArray_when_noConstructorsFound', () => {
             // Arrange
             const javaCode = `
-public interface UserRepository {
-    void save(User user);
-}`;
+                public interface UserRepository {
+                    void save(User user);
+                }`;
             
             // Act
             const constructors = constructorExtractor.extractConstructors(javaCode, vscode.Uri.file('/test/UserRepository.java'));
@@ -147,16 +147,16 @@ public interface UserRepository {
         test('should_handleComplexConstructor_when_annotationsAndModifiersPresent', () => {
             // Arrange
             const javaCode = `
-public class ComplexService {
-    @Autowired
-    public ComplexService(
-        @Qualifier("primary") UserRepository userRepository,
-        @Value("\${app.name}") String appName,
-        Optional<EmailService> emailService
-    ) {
-        // 복잡한 생성자
-    }
-}`;
+                public class ComplexService {
+                    @Autowired
+                    public ComplexService(
+                        @Qualifier("primary") UserRepository userRepository,
+                        @Value("\${app.name}") String appName,
+                        Optional<EmailService> emailService
+                    ) {
+                        // 복잡한 생성자
+                    }
+                }`;
             
             // Act
             const constructors = constructorExtractor.extractConstructors(javaCode, vscode.Uri.file('/test/ComplexService.java'));
@@ -335,28 +335,28 @@ public class ComplexService {
         test('should_handleRealWorldExample_when_completeSpringServiceProvided', () => {
             // Arrange - 실제 Spring Service 예시
             const realWorldJava = `
-package com.example.service;
+                package com.example.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import com.example.repository.UserRepository;
-import com.example.service.EmailService;
+                import org.springframework.beans.factory.annotation.Autowired;
+                import org.springframework.stereotype.Service;
+                import com.example.repository.UserRepository;
+                import com.example.service.EmailService;
 
-@Service
-public class UserService {
-    private final UserRepository userRepository;
-    private final EmailService emailService;
-    
-    @Autowired
-    public UserService(UserRepository userRepository, EmailService emailService) {
-        this.userRepository = userRepository;
-        this.emailService = emailService;
-    }
-    
-    public void createUser(String name) {
-        // 메소드 구현
-    }
-}`;
+                @Service
+                public class UserService {
+                    private final UserRepository userRepository;
+                    private final EmailService emailService;
+                    
+                    @Autowired
+                    public UserService(UserRepository userRepository, EmailService emailService) {
+                        this.userRepository = userRepository;
+                        this.emailService = emailService;
+                    }
+                    
+                    public void createUser(String name) {
+                        // 메소드 구현
+                    }
+                }`;
             
             // Act
             const constructors = constructorExtractor.extractConstructors(realWorldJava, vscode.Uri.file('/test/UserService.java'));

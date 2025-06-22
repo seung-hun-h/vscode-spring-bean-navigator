@@ -1,6 +1,5 @@
 import { 
     ClassInfo, 
-    ConstructorInfo, 
     InjectionInfo, 
     InjectionType 
 } from '../models/spring-types';

@@ -634,7 +634,7 @@ suite('FieldExtractor', () => {
                 children: {
                     invalidType: [{}]
                 }
-            };
+            } as any;
 
             // Act
             const result = fieldExtractor.extractFieldType(mockFieldDecl);
@@ -680,7 +680,7 @@ suite('FieldExtractor', () => {
                 children: {
                     invalidName: [{}]
                 }
-            };
+            } as any;
 
             // Act
             const result = fieldExtractor.extractFieldName(mockFieldDecl);
@@ -1026,7 +1026,7 @@ suite('FieldExtractor', () => {
             const lines = ['class TestClass {', '}'];
 
             // Act
-            const result = fieldExtractor.parseFieldDeclaration(null, lines);
+            const result = fieldExtractor.parseFieldDeclaration(null as any, lines);
 
             // Assert
             assert.strictEqual(result, undefined);
@@ -1037,7 +1037,7 @@ suite('FieldExtractor', () => {
             const lines = ['class TestClass {', '}'];
 
             // Act
-            const result = fieldExtractor.parseFieldDeclaration(undefined, lines);
+            const result = fieldExtractor.parseFieldDeclaration(undefined as any, lines);
 
             // Assert
             assert.strictEqual(result, undefined);
@@ -1049,7 +1049,7 @@ suite('FieldExtractor', () => {
                 children: {
                     invalidStructure: 'malformed'
                 }
-            };
+            } as any;
             const lines = ['class TestClass {', '}'];
 
             // Act
