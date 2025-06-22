@@ -126,10 +126,13 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
         // Bean 해결 시도
         const resolutionResult = this.beanResolver.resolveBeanForInjection(injection.targetType);
 
-
         let title: string;
         let command: string;
         let args: any[] = [];
+
+        // 컬렉션 타입인지 확인
+        const isCollection = this.beanResolver.isCollectionType(injection.targetType);
+        const displayType = isCollection ? this.beanResolver.extractGenericType(injection.targetType) || injection.targetType : injection.targetType;
 
         if (resolutionResult.resolved) {
             // 단일 Bean이 해결된 경우
@@ -140,16 +143,37 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
             args = [resolutionResult.resolved];
             
         } else if (resolutionResult.candidates.length > 1) {
-            // 다중 후보가 있는 경우
+            // 다중 후보가 있는 경우 (컬렉션 포함)
             const injectionTypeText = this.getInjectionTypeText(injection.injectionType);
-            title = `→ Multiple candidates (${resolutionResult.candidates.length})${injectionTypeText}`;
+            if (isCollection) {
+                title = `→ Collection beans (${resolutionResult.candidates.length} items)${injectionTypeText}`;
+            } else {
+                title = `→ Multiple candidates (${resolutionResult.candidates.length})${injectionTypeText}`;
+            }
             command = 'spring-bean-navigator.selectBean';
             args = [resolutionResult.candidates];
+            
+        } else if (resolutionResult.candidates.length === 1) {
+            // 컬렉션에서 단일 Bean이 있는 경우
+            const injectionTypeText = this.getInjectionTypeText(injection.injectionType);
+            if (isCollection) {
+                const beanName = this.getBeanDisplayName(resolutionResult.candidates[0].type);
+                title = `→ Collection bean: ${beanName}${injectionTypeText}`;
+            } else {
+                const beanName = this.getBeanDisplayName(resolutionResult.candidates[0].type);
+                title = `→ Go to Bean: ${beanName}${injectionTypeText}`;
+            }
+            command = 'spring-bean-navigator.goToBean';
+            args = [resolutionResult.candidates[0]];
             
         } else {
             // Bean을 찾을 수 없는 경우
             const injectionTypeText = this.getInjectionTypeText(injection.injectionType);
-            title = `→ Bean not found: ${injection.targetType}${injectionTypeText}`;
+            if (isCollection) {
+                title = `→ Collection beans not found: ${displayType}${injectionTypeText}`;
+            } else {
+                title = `→ Bean not found: ${injection.targetType}${injectionTypeText}`;
+            }
             command = 'spring-bean-navigator.beanNotFound';
             args = [injection.targetType];
         }

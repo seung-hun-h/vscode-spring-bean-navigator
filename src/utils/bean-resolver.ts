@@ -96,37 +96,43 @@ export class BeanResolver {
      * 주입을 위한 Bean을 해결합니다.
      * 
      * Spring의 Bean 해결 규칙을 따름:
-     * 1. 정확한 타입 매치 우선
-     * 2. 단일 후보면 자동 해결
-     * 3. 다중 후보면 사용자 선택 필요
+     * 1. 정확한 타입 매치 우선 (컬렉션 타입도 직접 매칭 시도)
+     * 2. 컬렉션 타입이면서 직접 매칭되지 않는 경우 제네릭 타입의 모든 Bean들을 반환
+     * 3. 단일 후보면 자동 해결
+     * 4. 다중 후보면 사용자 선택 필요
      * 
      * @param targetType - 주입할 타입
      * @returns Bean 해결 결과
      */
     public resolveBeanForInjection(targetType: string): BeanResolutionResult {
-        const candidates = this.findBeansByType(targetType);
+        // 먼저 정확한 타입 매칭 시도 (컬렉션 타입 포함)
+        const directCandidates = this.findBeansByType(targetType);
+        
+        // 직접 매칭된 Bean이 있으면 그것을 우선 사용
+        if (directCandidates.length > 0) {
+            if (directCandidates.length === 1) {
+                return {
+                    resolved: directCandidates[0],
+                    candidates: directCandidates
+                };
+            } else {
+                // 다중 후보가 있는 경우 자동 해결하지 않음
+                return {
+                    resolved: undefined,
+                    candidates: directCandidates
+                };
+            }
+        }
 
-        console.log(this.beansByType.get('AskUgcService'));
-        console.log(this.beansByType.get('AskUgcServiceImpl'));
-        
-        if (candidates.length === 0) {
-            return {
-                resolved: undefined,
-                candidates: []
-            };
+        // 직접 매칭되지 않고 컬렉션 타입인 경우 제네릭 타입의 Bean들 찾기
+        if (this.isCollectionType(targetType)) {
+            return this.resolveCollectionBeans(targetType);
         }
         
-        if (candidates.length === 1) {
-            return {
-                resolved: candidates[0],
-                candidates: candidates
-            };
-        }
-        
-        // 다중 후보가 있는 경우 자동 해결하지 않음
+        // 매칭되는 Bean이 없는 경우
         return {
             resolved: undefined,
-            candidates: candidates
+            candidates: []
         };
     }
 
@@ -242,5 +248,123 @@ export class BeanResolver {
         return method.parameters.map(parameter => 
             this.resolveBeanForParameter(parameter)
         );
+    }
+
+    /**
+     * 타입이 컬렉션 타입인지 확인합니다.
+     * 
+     * @param type - 확인할 타입
+     * @returns 컬렉션 타입 여부
+     */
+    public isCollectionType(type: string): boolean {
+        if (!type) {
+            return false;
+        }
+        
+        // Spring에서 지원하는 컬렉션 타입들
+        const collectionPatterns = [
+            /^List<.*>$/,
+            /^Set<.*>$/,
+            /^Collection<.*>$/,
+            /^Map<.*,.*>$/
+        ];
+        
+        const trimmedType = type.trim();
+        return collectionPatterns.some(pattern => pattern.test(trimmedType));
+    }
+
+    /**
+     * 컬렉션 타입에서 제네릭 타입을 추출합니다.
+     * 
+     * @param collectionType - 컬렉션 타입 (예: List<MessageService>)
+     * @returns 추출된 제네릭 타입 (예: MessageService)
+     */
+    public extractGenericType(collectionType: string): string | undefined {
+        if (!collectionType) return undefined;
+        
+        const trimmed = collectionType.trim();
+        
+        // <와 > 사이의 내용을 찾기 위해 괄호 카운팅 사용
+        const openIndex = trimmed.indexOf('<');
+        if (openIndex === -1) return undefined;
+        
+        let bracketCount = 0;
+        let closeIndex = -1;
+        
+        for (let i = openIndex; i < trimmed.length; i++) {
+            if (trimmed[i] === '<') {
+                bracketCount++;
+            } else if (trimmed[i] === '>') {
+                bracketCount--;
+                if (bracketCount === 0) {
+                    closeIndex = i;
+                    break;
+                }
+            }
+        }
+        
+        if (closeIndex === -1) return undefined;
+        
+        const genericContent = trimmed.substring(openIndex + 1, closeIndex).trim();
+        
+        // Map<String, MessageService> 형태에서 두 번째 타입 추출
+        if (trimmed.startsWith('Map<')) {
+            const commaIndex = this.findTopLevelComma(genericContent);
+            if (commaIndex !== -1) {
+                return genericContent.substring(commaIndex + 1).trim();
+            }
+        }
+        
+        // List<MessageService>, Set<UserService> 등에서 제네릭 타입 추출
+        return genericContent;
+    }
+    
+    /**
+     * 최상위 레벨의 콤마를 찾습니다 (중첩된 제네릭 내부의 콤마는 무시)
+     * 
+     * @param content - 검색할 내용
+     * @returns 최상위 콤마의 인덱스, 없으면 -1
+     */
+    private findTopLevelComma(content: string): number {
+        let bracketCount = 0;
+        
+        for (let i = 0; i < content.length; i++) {
+            if (content[i] === '<') {
+                bracketCount++;
+            } else if (content[i] === '>') {
+                bracketCount--;
+            } else if (content[i] === ',' && bracketCount === 0) {
+                return i;
+            }
+        }
+        
+        return -1;
+    }
+
+    /**
+     * 컬렉션 타입에 대한 Bean들을 해결합니다.
+     * 
+     * @param collectionType - 컬렉션 타입
+     * @returns Bean 해결 결과
+     */
+    private resolveCollectionBeans(collectionType: string): BeanResolutionResult {
+        const genericType = this.extractGenericType(collectionType);
+        
+        if (!genericType) {
+            return {
+                resolved: undefined,
+                candidates: []
+            };
+        }
+        
+        // 제네릭 타입의 모든 Bean들을 찾음
+        const candidates = this.findBeansByType(genericType);
+        
+        // 컬렉션의 경우 여러 개의 Bean이 있는 것이 정상이므로
+        // 단일 Bean이어도 candidates로 처리
+        return {
+            resolved: undefined, // 컬렉션은 단일 resolved로 처리하지 않음
+            candidates: candidates
+        };
     }
 } 

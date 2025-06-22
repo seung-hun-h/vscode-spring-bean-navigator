@@ -250,9 +250,22 @@ export class FieldExtractor {
         try {
             const unannType = fieldDecl.children?.unannType?.[0];
             
+            // 먼저 전체 타입 텍스트를 추출 시도 (제네릭 포함)
+            const fullType = this.extractFullTypeText(fieldDecl);
+            if (fullType) {
+                return fullType;
+            }
+            
             // 참조 타입 (클래스, 인터페이스) 처리
             if (unannType?.children?.unannReferenceType?.[0]?.children?.unannClassOrInterfaceType?.[0]?.children?.unannClassType?.[0]?.children?.Identifier?.[0]?.image) {
                 const typeName = unannType.children.unannReferenceType[0].children.unannClassOrInterfaceType[0].children.unannClassType[0].children.Identifier[0].image;
+                
+                // 제네릭 타입 매개변수 추출 시도
+                const genericPart = this.extractGenericTypeArguments(unannType);
+                if (genericPart) {
+                    return `${typeName}<${genericPart}>`;
+                }
+                
                 return typeName;
             }
             
@@ -297,6 +310,117 @@ export class FieldExtractor {
                 error instanceof Error ? error : undefined
             );
             ErrorHandler.logError(fieldError);
+        }
+        
+        return undefined;
+    }
+
+    /**
+     * 필드 선언에서 전체 타입 텍스트를 추출합니다 (제네릭 포함).
+     * 
+     * @param fieldDecl - 필드 선언 CST 노드
+     * @returns 전체 타입 문자열 또는 undefined
+     */
+    private extractFullTypeText(fieldDecl: FieldDeclarationNode): string | undefined {
+        try {
+            // location 정보가 있는 경우 원본 텍스트에서 추출
+            const unannType = fieldDecl.children?.unannType?.[0];
+            if (unannType?.location) {
+                // CST 노드의 모든 토큰들을 수집하여 완전한 타입 구성
+                const typeTokens = this.collectAllTokensFromNode(unannType);
+                if (typeTokens.length > 0) {
+                    return typeTokens.join('');
+                }
+            }
+        } catch (error) {
+            // 에러 무시하고 대안 방법 시도
+        }
+        
+        return undefined;
+    }
+
+    /**
+     * CST 노드에서 모든 토큰들을 수집합니다.
+     * 
+     * @param node - CST 노드
+     * @returns 토큰 배열
+     */
+    private collectAllTokensFromNode(node: CSTNode): string[] {
+        const tokens: string[] = [];
+        
+        if (!node) return tokens;
+        
+        try {
+            // 현재 노드에 image가 있으면 추가
+            if (node.image && typeof node.image === 'string') {
+                tokens.push(node.image);
+            }
+            
+            // 자식 노드들을 재귀적으로 탐색
+            if (node.children) {
+                for (const key of Object.keys(node.children)) {
+                    if (Array.isArray(node.children[key])) {
+                        for (const child of node.children[key]) {
+                            tokens.push(...this.collectAllTokensFromNode(child));
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            // 에러 무시
+        }
+        
+        return tokens;
+    }
+
+    /**
+     * 제네릭 타입 매개변수를 추출합니다.
+     * 
+     * @param unannType - unannType CST 노드
+     * @returns 제네릭 매개변수 문자열 또는 undefined
+     */
+    private extractGenericTypeArguments(unannType: CSTNode): string | undefined {
+        try {
+            // typeArguments 찾기
+            const typeArgs = this.findNodeRecursively(unannType, 'typeArguments');
+            if (typeArgs && typeArgs.children) {
+                const argumentTokens = this.collectAllTokensFromNode(typeArgs);
+                if (argumentTokens.length > 0) {
+                    // <와 > 제거
+                    const joined = argumentTokens.join('');
+                    return joined.replace(/^</, '').replace(/>$/, '');
+                }
+            }
+        } catch (error) {
+            // 에러 무시
+        }
+        
+        return undefined;
+    }
+
+    /**
+     * 특정 이름의 노드를 재귀적으로 찾습니다.
+     * 
+     * @param node - 탐색할 노드
+     * @param targetName - 찾을 노드 이름
+     * @returns 발견된 노드 또는 undefined
+     */
+    private findNodeRecursively(node: CSTNode, targetName: string): CSTNode | undefined {
+        if (!node) return undefined;
+        
+        if (node.name === targetName) {
+            return node;
+        }
+        
+        if (node.children) {
+            for (const key of Object.keys(node.children)) {
+                if (Array.isArray(node.children[key])) {
+                    for (const child of node.children[key]) {
+                        const result = this.findNodeRecursively(child, targetName);
+                        if (result) return result;
+                    }
+                }
+            }
         }
         
         return undefined;
