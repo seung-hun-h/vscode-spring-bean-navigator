@@ -136,14 +136,8 @@ export class SpringCodeLensProvider implements vscode.CodeLensProvider {
             args = [resolutionResult.candidates[0]];
             
         } else {
-            // Bean을 찾을 수 없는 경우
-            if (isCollection) {
-                title = `→ Collection beans not found: ${displayType}`;
-            } else {
-                title = `→ Bean not found: ${injection.targetType}`;
-            }
-            command = 'spring-bean-navigator.beanNotFound';
-            args = [injection.targetType];
+            // Bean을 찾을 수 없는 경우 CodeLens를 노출하지 않음
+            return undefined;
         }
 
         return new vscode.CodeLens(injection.range, {

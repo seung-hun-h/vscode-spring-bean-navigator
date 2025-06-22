@@ -252,8 +252,8 @@ suite('🚀 Extension Integration Test Suite', () => {
 			assert.strictEqual(codeLenses.length, 2, '2개의 CodeLens가 생성되어야 함');
 
 			// 4. Bean 해결 확인
-			const userRepoCodeLens = codeLenses.find(cl => cl.command?.title.includes('UserRepository'));
-			const emailServiceCodeLens = codeLenses.find(cl => cl.command?.title.includes('EmailService'));
+			const userRepoCodeLens = codeLenses.find(cl => cl.command?.title.includes('userRepository'));
+			const emailServiceCodeLens = codeLenses.find(cl => cl.command?.title.includes('emailService'));
 
 			assert.ok(userRepoCodeLens, 'UserRepository CodeLens가 생성되어야 함');
 			assert.strictEqual(userRepoCodeLens.command?.command, 'spring-bean-navigator.goToBean');
@@ -513,9 +513,9 @@ suite('🚀 Extension Integration Test Suite', () => {
 			assert.strictEqual(codeLenses.length, 3, '3개의 CodeLens가 생성되어야 함');
 
 			// 각 CodeLens가 올바른 Bean을 가리키는지 확인
-			const userRepoCodeLens = codeLenses.find(cl => cl.command?.title.includes('UserRepository'));
-			const emailServiceCodeLens = codeLenses.find(cl => cl.command?.title.includes('EmailService'));
-			const paymentGatewayCodeLens = codeLenses.find(cl => cl.command?.title.includes('PaymentGateway'));
+			const userRepoCodeLens = codeLenses.find(cl => cl.command?.title.includes('userRepository'));
+			const emailServiceCodeLens = codeLenses.find(cl => cl.command?.title.includes('emailService'));
+			const paymentGatewayCodeLens = codeLenses.find(cl => cl.command?.title.includes('paymentGateway'));
 
 			assert.ok(userRepoCodeLens, 'UserRepository CodeLens가 생성되어야 함');
 			assert.ok(emailServiceCodeLens, 'EmailService CodeLens가 생성되어야 함');
@@ -626,14 +626,9 @@ public class UserService {
 			const unknownInjection = injections[0];
 			assert.strictEqual(unknownInjection.targetType, 'UnknownService');
 
-			// CodeLens 생성 시 Bean 미발견 처리 확인
+			// CodeLens 생성 시 Bean 미발견 처리 확인 (Bean을 찾을 수 없는 경우 CodeLens 노출하지 않음)
 			const codeLenses = await codeLensProvider.provideCodeLenses(mockDocument);
-			assert.strictEqual(codeLenses.length, 1, '1개의 CodeLens가 생성되어야 함');
-
-			const codeLens = codeLenses[0];
-			assert.ok(codeLens.command?.title.includes('Bean not found'), 'Bean 미발견 메시지를 표시해야 함');
-			assert.strictEqual(codeLens.command?.command, 'spring-bean-navigator.beanNotFound');
-			assert.strictEqual(codeLens.command?.arguments?.[0], 'UnknownService', 'Bean 타입이 전달되어야 함');
+			assert.strictEqual(codeLenses.length, 0, 'Bean을 찾을 수 없는 경우 CodeLens를 노출하지 않아야 함');
 
 		});
 	});
