@@ -45,6 +45,75 @@ export const SPRING_ANNOTATION_PACKAGES = {
 } as const;
 
 /**
+ * 코드 분석 시 사용되는 상수들 (Phase 4: 매직 넘버 제거)
+ */
+export const PARSING_CONSTANTS = {
+    /**
+     * 어노테이션 탐색 시 최대 라인 수
+     */
+    ANNOTATION_LOOKUP_MAX_LINES: 5,
+    
+    /**
+     * Setter 메서드 검색 시 다음 라인까지의 최대 범위
+     */
+    SETTER_METHOD_SEARCH_RANGE: 3,
+    
+    /**
+     * 에러 로깅 시 문자열 자르기 최대 길이
+     */
+    ERROR_MESSAGE_MAX_LENGTH: 100,
+    
+    /**
+     * 매개변수 문자열 자르기 최대 길이  
+     */
+    PARAMETER_STRING_MAX_LENGTH: 50,
+    
+    /**
+     * 배열/리스트 최소 인덱스
+     */
+    MIN_ARRAY_INDEX: 0,
+    
+    /**
+     * 단일 요소 배열 길이
+     */
+    SINGLE_ELEMENT_LENGTH: 1,
+    
+    /**
+     * 클래스명 최소 길이 (단일 문자)
+     */
+    MIN_CLASS_NAME_LENGTH: 1,
+    
+    /**
+     * Setter 메서드명 최소 길이 ("set" + 1글자)
+     */
+    MIN_SETTER_NAME_LENGTH: 4, // "setX"
+    
+    /**
+     * Setter 메서드명 접두사 길이
+     */
+    SETTER_PREFIX_LENGTH: 3, // "set".length
+    
+    /**
+     * 기본 위치값 (0-based)
+     */
+    DEFAULT_POSITION: {
+        LINE: 0,
+        COLUMN: 0,
+        CHARACTER: 0
+    },
+    
+    /**
+     * 배열 인덱스 오프셋
+     */
+    ARRAY_OFFSET: {
+        FIRST: 0,
+        SECOND: 1,
+        PREV: -1,
+        NEXT: 1
+    }
+} as const;
+
+/**
  * Java 파서 설정
  */
 export const JAVA_PARSER_CONFIG = {
@@ -65,7 +134,7 @@ export const JAVA_PARSER_CONFIG = {
         SPRING_ANNOTATION_NAMES.QUALIFIER,
         SPRING_ANNOTATION_NAMES.VALUE,
         
-        // Phase 3: Lombok 어노테이션들
+        // Lombok 어노테이션들
         SPRING_ANNOTATION_NAMES.REQUIRED_ARGS_CONSTRUCTOR,
         SPRING_ANNOTATION_NAMES.ALL_ARGS_CONSTRUCTOR,
         SPRING_ANNOTATION_NAMES.NO_ARGS_CONSTRUCTOR,
@@ -85,22 +154,28 @@ export const JAVA_PARSER_CONFIG = {
      * 위치 정보 계산 실패 시 fallback 값
      */
     POSITION_FALLBACK: {
-        line: 0,
-        character: 0
+        line: PARSING_CONSTANTS.DEFAULT_POSITION.LINE,
+        character: PARSING_CONSTANTS.DEFAULT_POSITION.CHARACTER
     },
 
     /**
      * 범위 정보 계산 실패 시 fallback 값
      */
     RANGE_FALLBACK: {
-        start: { line: 0, character: 0 },
-        end: { line: 0, character: 0 }
+        start: { 
+            line: PARSING_CONSTANTS.DEFAULT_POSITION.LINE, 
+            character: PARSING_CONSTANTS.DEFAULT_POSITION.CHARACTER 
+        },
+        end: { 
+            line: PARSING_CONSTANTS.DEFAULT_POSITION.LINE, 
+            character: PARSING_CONSTANTS.DEFAULT_POSITION.CHARACTER 
+        }
     },
 
     /**
      * 필드 위치 검색 시 최대 라인 수
      */
-    MAX_FIELD_SEARCH_LINES: 5,
+    MAX_FIELD_SEARCH_LINES: PARSING_CONSTANTS.ANNOTATION_LOOKUP_MAX_LINES,
 
     /**
      * Java 키워드 및 구문 기호 (인터페이스 필터링용)

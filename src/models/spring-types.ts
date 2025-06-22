@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { JavaParsingError, CSTParsingError, AnnotationParsingError, FieldExtractionError, ClassExtractionError, PositionCalculationError } from '../parsers/core/parser-errors';
 
 /**
  * Spring 어노테이션 타입
@@ -325,7 +326,6 @@ export interface LombokFieldAnalysis {
 
 /**
  * Lombok 시뮬레이션 결과 (Phase 3)
- * Lombok 어노테이션 분석 및 가상 생성자 생성 결과
  */
 export interface LombokSimulationResult {
     /** 감지된 Lombok 어노테이션들 */
@@ -338,4 +338,524 @@ export interface LombokSimulationResult {
     isSuccess: boolean;
     /** 시뮬레이션 에러 메시지 */
     errors?: string[];
-} 
+}
+
+/**
+ * CST 노드 타입 정의 (Phase 4: 타입 안전성 개선)
+ */
+
+/**
+ * 기본 CST 노드 인터페이스
+ */
+export interface CSTNode {
+    children?: Record<string, CSTNode[]>;
+    location?: {
+        startOffset: number;
+        endOffset: number;
+        startLine: number;
+        endLine: number;
+        startColumn: number;
+        endColumn: number;
+    };
+    image?: string;
+}
+
+/**
+ * 컴파일 단위 CST 노드
+ */
+export interface CompilationUnitNode extends CSTNode {
+    children?: {
+        ordinaryCompilationUnit?: OrdinaryCompilationUnitNode[];
+    };
+}
+
+/**
+ * 일반 컴파일 단위 노드
+ */
+export interface OrdinaryCompilationUnitNode extends CSTNode {
+    children?: {
+        packageDeclaration?: PackageDeclarationNode[];
+        importDeclaration?: ImportDeclarationNode[];
+        typeDeclaration?: TypeDeclarationNode[];
+    };
+}
+
+/**
+ * 패키지 선언 노드
+ */
+export interface PackageDeclarationNode extends CSTNode {
+    children?: {
+        packageOrTypeName?: PackageOrTypeNameNode[];
+    };
+}
+
+/**
+ * 패키지 또는 타입 이름 노드
+ */
+export interface PackageOrTypeNameNode extends CSTNode {
+    children?: {
+        Identifier?: IdentifierNode[];
+    };
+}
+
+/**
+ * 식별자 노드
+ */
+export interface IdentifierNode extends CSTNode {
+    image: string;
+}
+
+/**
+ * Import 선언 노드
+ */
+export interface ImportDeclarationNode extends CSTNode {
+    children?: {
+        packageOrTypeName?: PackageOrTypeNameNode[];
+        Identifier?: IdentifierNode[];
+    };
+}
+
+/**
+ * 타입 선언 노드
+ */
+export interface TypeDeclarationNode extends CSTNode {
+    children?: {
+        classDeclaration?: ClassDeclarationNode[];
+        interfaceDeclaration?: InterfaceDeclarationNode[];
+    };
+}
+
+/**
+ * 클래스 선언 노드
+ */
+export interface ClassDeclarationNode extends CSTNode {
+    children?: {
+        normalClassDeclaration?: NormalClassDeclarationNode[];
+    };
+}
+
+/**
+ * 일반 클래스 선언 노드
+ */
+export interface NormalClassDeclarationNode extends CSTNode {
+    children?: {
+        classBody?: ClassBodyNode[];
+        Identifier?: IdentifierNode[];
+        superclass?: SuperclassNode[];
+        superinterfaces?: SuperinterfacesNode[];
+    };
+}
+
+/**
+ * 클래스 바디 노드
+ */
+export interface ClassBodyNode extends CSTNode {
+    children?: {
+        classBodyDeclaration?: ClassBodyDeclarationNode[];
+    };
+}
+
+/**
+ * 클래스 바디 선언 노드
+ */
+export interface ClassBodyDeclarationNode extends CSTNode {
+    children?: {
+        classMemberDeclaration?: ClassMemberDeclarationNode[];
+        fieldDeclaration?: FieldDeclarationNode[];
+        methodDeclaration?: MethodDeclarationNode[];
+        constructorDeclaration?: ConstructorDeclarationNode[];
+    };
+}
+
+/**
+ * 클래스 멤버 선언 노드
+ */
+export interface ClassMemberDeclarationNode extends CSTNode {
+    children?: {
+        fieldDeclaration?: FieldDeclarationNode[];
+        methodDeclaration?: MethodDeclarationNode[];
+        constructorDeclaration?: ConstructorDeclarationNode[];
+    };
+}
+
+/**
+ * 필드 선언 노드
+ */
+export interface FieldDeclarationNode extends CSTNode {
+    children?: {
+        fieldModifier?: FieldModifierNode[];
+        unannType?: UnannTypeNode[];
+        variableDeclaratorList?: VariableDeclaratorListNode[];
+    };
+}
+
+/**
+ * 필드 수정자 노드
+ */
+export interface FieldModifierNode extends CSTNode {
+    children?: {
+        annotation?: AnnotationNode[];
+        Public?: IdentifierNode[];
+        Private?: IdentifierNode[];
+        Protected?: IdentifierNode[];
+        Static?: IdentifierNode[];
+        Final?: IdentifierNode[];
+    };
+}
+
+/**
+ * 어노테이션 노드
+ */
+export interface AnnotationNode extends CSTNode {
+    children?: {
+        typeName?: TypeNameNode[];
+        elementValuePairList?: ElementValuePairListNode[];
+        StringLiteral?: IdentifierNode[];
+    };
+}
+
+/**
+ * 타입 이름 노드
+ */
+export interface TypeNameNode extends CSTNode {
+    children?: {
+        Identifier?: IdentifierNode[];
+    };
+}
+
+/**
+ * 요소 값 쌍 리스트 노드
+ */
+export interface ElementValuePairListNode extends CSTNode {
+    children?: {
+        elementValuePair?: ElementValuePairNode[];
+    };
+}
+
+/**
+ * 요소 값 쌍 노드
+ */
+export interface ElementValuePairNode extends CSTNode {
+    children?: {
+        Identifier?: IdentifierNode[];
+        elementValue?: ElementValueNode[];
+    };
+}
+
+/**
+ * 요소 값 노드
+ */
+export interface ElementValueNode extends CSTNode {
+    children?: {
+        conditionalExpression?: ConditionalExpressionNode[];
+    };
+}
+
+/**
+ * 조건 표현식 노드
+ */
+export interface ConditionalExpressionNode extends CSTNode {
+    children?: {
+        StringLiteral?: IdentifierNode[];
+    };
+}
+
+/**
+ * 타입 노드 (UnannType)
+ */
+export interface UnannTypeNode extends CSTNode {
+    children?: {
+        unannReferenceType?: UnannReferenceTypeNode[];
+        unannPrimitiveType?: UnannPrimitiveTypeNode[];
+    };
+}
+
+/**
+ * 참조 타입 노드
+ */
+export interface UnannReferenceTypeNode extends CSTNode {
+    children?: {
+        unannClassOrInterfaceType?: UnannClassOrInterfaceTypeNode[];
+    };
+}
+
+/**
+ * 클래스 또는 인터페이스 타입 노드
+ */
+export interface UnannClassOrInterfaceTypeNode extends CSTNode {
+    children?: {
+        unannClassType?: UnannClassTypeNode[];
+    };
+}
+
+/**
+ * 클래스 타입 노드
+ */
+export interface UnannClassTypeNode extends CSTNode {
+    children?: {
+        Identifier?: IdentifierNode[];
+    };
+}
+
+/**
+ * 원시 타입 노드
+ */
+export interface UnannPrimitiveTypeNode extends CSTNode {
+    children?: {
+        IntegralType?: IntegralTypeNode[];
+        FloatingPointType?: FloatingPointTypeNode[];
+        Boolean?: IdentifierNode[];
+    };
+}
+
+/**
+ * 정수 타입 노드
+ */
+export interface IntegralTypeNode extends CSTNode {
+    children?: {
+        Byte?: IdentifierNode[];
+        Short?: IdentifierNode[];
+        Int?: IdentifierNode[];
+        Long?: IdentifierNode[];
+        Char?: IdentifierNode[];
+    };
+}
+
+/**
+ * 부동소수점 타입 노드
+ */
+export interface FloatingPointTypeNode extends CSTNode {
+    children?: {
+        Float?: IdentifierNode[];
+        Double?: IdentifierNode[];
+    };
+}
+
+/**
+ * 변수 선언자 리스트 노드
+ */
+export interface VariableDeclaratorListNode extends CSTNode {
+    children?: {
+        variableDeclarator?: VariableDeclaratorNode[];
+    };
+}
+
+/**
+ * 변수 선언자 노드
+ */
+export interface VariableDeclaratorNode extends CSTNode {
+    children?: {
+        variableDeclaratorId?: VariableDeclaratorIdNode[];
+    };
+}
+
+/**
+ * 변수 선언자 ID 노드
+ */
+export interface VariableDeclaratorIdNode extends CSTNode {
+    children?: {
+        Identifier?: IdentifierNode[];
+    };
+}
+
+/**
+ * 메서드 선언 노드
+ */
+export interface MethodDeclarationNode extends CSTNode {
+    children?: {
+        methodModifier?: MethodModifierNode[];
+        methodHeader?: MethodHeaderNode[];
+        methodBody?: MethodBodyNode[];
+    };
+}
+
+/**
+ * 메서드 수정자 노드
+ */
+export interface MethodModifierNode extends CSTNode {
+    children?: {
+        annotation?: AnnotationNode[];
+        Public?: IdentifierNode[];
+        Private?: IdentifierNode[];
+        Protected?: IdentifierNode[];
+        Static?: IdentifierNode[];
+    };
+}
+
+/**
+ * 메서드 헤더 노드
+ */
+export interface MethodHeaderNode extends CSTNode {
+    children?: {
+        result?: ResultNode[];
+        methodDeclarator?: MethodDeclaratorNode[];
+    };
+}
+
+/**
+ * 메서드 결과 노드
+ */
+export interface ResultNode extends CSTNode {
+    children?: {
+        unannType?: UnannTypeNode[];
+        Void?: IdentifierNode[];
+    };
+}
+
+/**
+ * 메서드 선언자 노드
+ */
+export interface MethodDeclaratorNode extends CSTNode {
+    children?: {
+        Identifier?: IdentifierNode[];
+        formalParameterList?: FormalParameterListNode[];
+    };
+}
+
+/**
+ * 형식 매개변수 리스트 노드
+ */
+export interface FormalParameterListNode extends CSTNode {
+    children?: {
+        formalParameter?: FormalParameterNode[];
+    };
+}
+
+/**
+ * 형식 매개변수 노드
+ */
+export interface FormalParameterNode extends CSTNode {
+    children?: {
+        unannType?: UnannTypeNode[];
+        variableDeclaratorId?: VariableDeclaratorIdNode[];
+    };
+}
+
+/**
+ * 메서드 바디 노드
+ */
+export interface MethodBodyNode extends CSTNode {
+    children?: {
+        block?: BlockNode[];
+    };
+}
+
+/**
+ * 블록 노드
+ */
+export interface BlockNode extends CSTNode {
+    children?: {
+        blockStatements?: BlockStatementsNode[];
+    };
+}
+
+/**
+ * 블록 문장들 노드
+ */
+export interface BlockStatementsNode extends CSTNode {
+    children?: {
+        blockStatement?: BlockStatementNode[];
+    };
+}
+
+/**
+ * 블록 문장 노드
+ */
+export interface BlockStatementNode extends CSTNode {
+    children?: Record<string, CSTNode[]>;
+}
+
+/**
+ * 생성자 선언 노드
+ */
+export interface ConstructorDeclarationNode extends CSTNode {
+    children?: {
+        constructorModifier?: ConstructorModifierNode[];
+        constructorDeclarator?: ConstructorDeclaratorNode[];
+        constructorBody?: ConstructorBodyNode[];
+    };
+}
+
+/**
+ * 생성자 수정자 노드
+ */
+export interface ConstructorModifierNode extends CSTNode {
+    children?: {
+        annotation?: AnnotationNode[];
+        Public?: IdentifierNode[];
+        Private?: IdentifierNode[];
+        Protected?: IdentifierNode[];
+    };
+}
+
+/**
+ * 생성자 선언자 노드
+ */
+export interface ConstructorDeclaratorNode extends CSTNode {
+    children?: {
+        simpleTypeName?: SimpleTypeNameNode[];
+        formalParameterList?: FormalParameterListNode[];
+    };
+}
+
+/**
+ * 단순 타입 이름 노드
+ */
+export interface SimpleTypeNameNode extends CSTNode {
+    children?: {
+        Identifier?: IdentifierNode[];
+    };
+}
+
+/**
+ * 생성자 바디 노드
+ */
+export interface ConstructorBodyNode extends CSTNode {
+    children?: {
+        explicitConstructorInvocation?: ExplicitConstructorInvocationNode[];
+        blockStatements?: BlockStatementsNode[];
+    };
+}
+
+/**
+ * 명시적 생성자 호출 노드
+ */
+export interface ExplicitConstructorInvocationNode extends CSTNode {
+    children?: Record<string, CSTNode[]>;
+}
+
+/**
+ * 인터페이스 선언 노드
+ */
+export interface InterfaceDeclarationNode extends CSTNode {
+    children?: Record<string, CSTNode[]>;
+}
+
+/**
+ * 슈퍼클래스 노드
+ */
+export interface SuperclassNode extends CSTNode {
+    children?: Record<string, CSTNode[]>;
+}
+
+/**
+ * 슈퍼인터페이스들 노드
+ */
+export interface SuperinterfacesNode extends CSTNode {
+    children?: Record<string, CSTNode[]>;
+}
+
+/**
+ * 에러 처리용 타입 유니온 (Phase 4: 타입 안전성)
+ */
+export type ParseError = Error | JavaParsingError | CSTParsingError | AnnotationParsingError | FieldExtractionError | ClassExtractionError | PositionCalculationError;
+
+/**
+ * 문자열 또는 undefined 타입
+ */
+export type StringOrUndefined = string | undefined;
+
+/**
+ * 숫자 또는 undefined 타입
+ */
+export type NumberOrUndefined = number | undefined; 

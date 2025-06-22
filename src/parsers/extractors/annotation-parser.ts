@@ -1,5 +1,5 @@
 import { AnnotationInfo, SpringAnnotationType } from '../../models/spring-types';
-import { JAVA_PARSER_CONFIG, SPRING_ANNOTATION_NAMES, SPRING_ANNOTATION_PACKAGES } from '../config/java-parser-config';
+import { JAVA_PARSER_CONFIG, SPRING_ANNOTATION_NAMES, SPRING_ANNOTATION_PACKAGES, PARSING_CONSTANTS } from '../config/java-parser-config';
 import { ErrorHandler, AnnotationParsingError } from '../core/parser-errors';
 import { PositionCalculator } from '../core/position-calculator';
 
@@ -337,14 +337,14 @@ export class AnnotationParser {
      * @param lines - Java 파일 라인들
      * @param startLineIndex - 탐지를 시작할 라인 인덱스
      * @param annotationType - 찾을 어노테이션 타입
-     * @param maxLookupLines - 최대 탐색 라인 수 (기본값: 5)
+     * @param maxLookupLines - 최대 탐색 라인 수 (기본값: ANNOTATION_LOOKUP_MAX_LINES)
      * @returns 어노테이션을 찾았으면 true
      */
     public detectAnnotationInLines(
         lines: string[], 
         startLineIndex: number, 
         annotationType: SpringAnnotationType,
-        maxLookupLines: number = 5
+        maxLookupLines: number = PARSING_CONSTANTS.ANNOTATION_LOOKUP_MAX_LINES
     ): boolean {
         try {
             // 시작 라인부터 역순으로 탐색
@@ -411,13 +411,13 @@ export class AnnotationParser {
      * 
      * @param lines - Java 파일 라인들
      * @param methodLineIndex - 메서드 라인 인덱스
-     * @param maxLookupLines - 최대 탐색 라인 수 (기본값: 5)
+     * @param maxLookupLines - 최대 탐색 라인 수 (기본값: ANNOTATION_LOOKUP_MAX_LINES)
      * @returns 추출된 어노테이션 정보 배열
      */
     public extractMethodAnnotationsFromLines(
         lines: string[], 
         methodLineIndex: number,
-        maxLookupLines: number = 5
+        maxLookupLines: number = PARSING_CONSTANTS.ANNOTATION_LOOKUP_MAX_LINES
     ): AnnotationInfo[] {
         const annotations: AnnotationInfo[] = [];
         

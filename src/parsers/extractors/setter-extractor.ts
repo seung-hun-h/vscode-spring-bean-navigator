@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { MethodInfo, ParameterInfo, AnnotationInfo, SpringAnnotationType } from '../../models/spring-types';
 import { AnnotationParser } from './annotation-parser';
 import { ErrorHandler } from '../core/parser-errors';
+import { PARSING_CONSTANTS } from '../config/java-parser-config';
 
 /**
  * Java 클래스에서 setter 메서드를 추출하는 클래스
@@ -40,7 +41,7 @@ export class SetterExtractor {
                 let isMethodDeclaration = false;
                 if (methodStartRegex.test(line)) {
                     // 다음 줄에 여는 괄호가 있는지 확인
-                    for (let j = i + 1; j < Math.min(i + 3, lines.length); j++) {
+                    for (let j = i + PARSING_CONSTANTS.ARRAY_OFFSET.NEXT; j < Math.min(i + PARSING_CONSTANTS.SETTER_METHOD_SEARCH_RANGE, lines.length); j++) {
                         const nextLine = lines[j].trim();
                         if (nextLine.includes('(')) {
                             isMethodDeclaration = true;
@@ -112,8 +113,8 @@ export class SetterExtractor {
         } catch (error) {
             const parsingError = ErrorHandler.handleParsingError(error, '매개변수와 함께 메서드 선언 파싱');
             ErrorHandler.logError(parsingError, { 
-                methodDeclaration: methodDeclaration?.substring(0, 100) || 'Unknown',
-                parametersString: parametersString?.substring(0, 50) || 'Unknown'
+                methodDeclaration: methodDeclaration?.substring(PARSING_CONSTANTS.MIN_ARRAY_INDEX, PARSING_CONSTANTS.ERROR_MESSAGE_MAX_LENGTH) || 'Unknown',
+                parametersString: parametersString?.substring(PARSING_CONSTANTS.MIN_ARRAY_INDEX, PARSING_CONSTANTS.PARAMETER_STRING_MAX_LENGTH) || 'Unknown'
             });
             return undefined;
         }
@@ -151,7 +152,7 @@ export class SetterExtractor {
         } catch (error) {
             const parsingError = ErrorHandler.handleParsingError(error, '메서드 선언 파싱');
             ErrorHandler.logError(parsingError, { 
-                methodDeclaration: methodDeclaration?.substring(0, 100) || 'Unknown'
+                methodDeclaration: methodDeclaration?.substring(PARSING_CONSTANTS.MIN_ARRAY_INDEX, PARSING_CONSTANTS.ERROR_MESSAGE_MAX_LENGTH) || 'Unknown'
             });
             return undefined;
         }
@@ -181,13 +182,13 @@ export class SetterExtractor {
         try {
             // setXxx 패턴이고 매개변수가 1개 이상이어야 함
             return methodName.startsWith('set') && 
-                   methodName.length > 3 && 
-                   parameterCount > 0;
+                   methodName.length > PARSING_CONSTANTS.SETTER_PREFIX_LENGTH && 
+                   parameterCount > PARSING_CONSTANTS.MIN_ARRAY_INDEX;
         } catch (error) {
             const parsingError = ErrorHandler.handleParsingError(error, 'Setter 메서드 판별');
             ErrorHandler.logError(parsingError, { 
                 methodName: methodName || 'Unknown',
-                parameterCount: parameterCount || 0
+                parameterCount: parameterCount || PARSING_CONSTANTS.MIN_ARRAY_INDEX
             });
             return false;
         }
@@ -211,9 +212,9 @@ export class SetterExtractor {
                 // 괄호 카운팅 (문자열 리터럴 내부의 괄호는 제외)
                 let inString = false;
                 let stringChar = '';
-                for (let j = 0; j < line.length; j++) {
+                for (let j = PARSING_CONSTANTS.MIN_ARRAY_INDEX; j < line.length; j++) {
                     const char = line[j];
-                    const prevChar = j > 0 ? line[j-1] : '';
+                    const prevChar = j > PARSING_CONSTANTS.MIN_ARRAY_INDEX ? line[j + PARSING_CONSTANTS.ARRAY_OFFSET.PREV] : '';
                     
                     // 문자열 시작/종료 처리
                     if ((char === '"' || char === "'") && prevChar !== '\\') {
@@ -247,9 +248,9 @@ export class SetterExtractor {
                 let foundBodyStart = false;
                 inString = false;
                 stringChar = '';
-                for (let k = 0; k < line.length; k++) {
+                for (let k = PARSING_CONSTANTS.MIN_ARRAY_INDEX; k < line.length; k++) {
                     const char = line[k];
-                    const prevChar = k > 0 ? line[k-1] : '';
+                    const prevChar = k > PARSING_CONSTANTS.MIN_ARRAY_INDEX ? line[k + PARSING_CONSTANTS.ARRAY_OFFSET.PREV] : '';
                     
                     if ((char === '"' || char === "'") && prevChar !== '\\') {
                         if (!inString) {
@@ -273,7 +274,7 @@ export class SetterExtractor {
                 }
                 
                 // 다음 줄이 있으면 공백 추가
-                if (i < lines.length - 1) {
+                if (i < lines.length + PARSING_CONSTANTS.ARRAY_OFFSET.PREV) {
                     methodDeclaration += ' ';
                 }
             }
@@ -294,7 +295,7 @@ export class SetterExtractor {
             const isSetterMethod = this.isSetterMethod(parsedMethod.name, parsedMethod.parameters.length);
             
             // 위치 정보 생성
-            const position = new vscode.Position(startIndex, 0);
+            const position = new vscode.Position(startIndex, PARSING_CONSTANTS.DEFAULT_POSITION.CHARACTER);
             const range = new vscode.Range(position, new vscode.Position(endIndex, lines[endIndex].length));
             
             return {
@@ -350,7 +351,7 @@ export class SetterExtractor {
         } catch (error) {
             const parsingError = ErrorHandler.handleParsingError(error, 'Setter 매개변수 추출');
             ErrorHandler.logError(parsingError, { 
-                parametersDeclaration: parametersDeclaration?.substring(0, 100) || 'Unknown'
+                parametersDeclaration: parametersDeclaration?.substring(PARSING_CONSTANTS.MIN_ARRAY_INDEX, PARSING_CONSTANTS.ERROR_MESSAGE_MAX_LENGTH) || 'Unknown'
             });
             return [];
         }
@@ -440,7 +441,7 @@ export class SetterExtractor {
         } catch (error) {
             const parsingError = ErrorHandler.handleParsingError(error, 'Setter 매개변수 문자열 추출');
             ErrorHandler.logError(parsingError, { 
-                declaration: declaration?.substring(0, 100) || 'Unknown'
+                declaration: declaration?.substring(PARSING_CONSTANTS.MIN_ARRAY_INDEX, PARSING_CONSTANTS.ERROR_MESSAGE_MAX_LENGTH) || 'Unknown'
             });
             return '';
         }
@@ -468,7 +469,7 @@ export class SetterExtractor {
         } catch (error) {
             const parsingError = ErrorHandler.handleParsingError(error, 'Setter 매개변수 파싱');
             ErrorHandler.logError(parsingError, { 
-                parameterString: parameterString?.substring(0, 50) || 'Unknown'
+                parameterString: parameterString?.substring(PARSING_CONSTANTS.MIN_ARRAY_INDEX, PARSING_CONSTANTS.PARAMETER_STRING_MAX_LENGTH) || 'Unknown'
             });
             return null;
         }
