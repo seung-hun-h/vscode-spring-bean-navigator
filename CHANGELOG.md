@@ -1,9 +1,22 @@
-# Change Log
+# Changelog
 
 All notable changes to the "vscode-spring-bean-navigator" extension will be documented in this file.
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0]
 
-- Initial release
+### Added
+- Spring Bean injection detection for `@Autowired`, constructor, setter, and Lombok annotations
+- CodeLens icons at Spring Bean injection points in Java files
+- Navigation to bean implementation classes
+- Bean resolution and matching system with caching
+- Java file parser for syntax analysis and annotation parsing
+- Commands for refreshing bean definitions and showing bean count
+- Real-time updates on file save and workspace changes
+
+### Technical Features
+- Modular architecture with Detector, Provider, and Parser patterns
+- Error handling and logging system
+- Performance optimization through selective re-analysis
