@@ -1,18 +1,19 @@
 import * as assert from 'assert';
+import { TestUtils } from '../helpers/core-test-utils';
 import { BeanResolver } from '../../utils/bean-resolver';
-import { TestUtils } from '../helpers/test-utils';
+import { BeanDefinition, SpringAnnotationType } from '../../models/spring-types';
 
 /**
- * Bean 이름 기반 매칭 테스트
- * 같은 타입의 Bean이 여러 개 있을 때 매개변수 이름으로 매칭하는 기능 테스트
+ * Bean name-based matching tests
+ * Tests the functionality of matching by parameter name when multiple beans of the same type exist
  */
-suite('🔧 Bean Name Matching', () => {
+suite('Bean Name Matching', () => {
     let resolver: BeanResolver;
     
     setup(() => {
         resolver = new BeanResolver();
         
-        // 같은 타입의 Bean들을 여러 개 추가
+        // Add multiple beans of the same type
         const stepBean1 = TestUtils.createBeanDefinition(
             'saveContentMasterByAddUgcStep', 
             'Step<AddUgcContext>', 
@@ -55,7 +56,7 @@ suite('🔧 Bean Name Matching', () => {
     });
 
     test('should_returnAllCandidates_when_typeOnlyMatching', () => {
-        // Act - 이름 없이 타입만으로 검색
+        // Act - Search by type only without name
         const result = resolver.resolveBeanForInjection('Step<AddUgcContext>');
 
         // Assert
@@ -64,7 +65,7 @@ suite('🔧 Bean Name Matching', () => {
     });
 
     test('should_handleCamelCaseMatching', () => {
-        // 다른 케이스의 Bean 추가
+        // Add bean with different casing
         const camelCaseBean = TestUtils.createBeanDefinition(
             'MySpecialStep', 
             'Step<AddUgcContext>', 
@@ -72,7 +73,7 @@ suite('🔧 Bean Name Matching', () => {
         );
         resolver.addBeanDefinition(camelCaseBean);
 
-        // Act - camelCase로 매칭 시도
+        // Act - Try matching with camelCase
         const result1 = resolver.resolveBeanForInjectionWithName('Step<AddUgcContext>', 'mySpecialStep');
         const result2 = resolver.resolveBeanForInjectionWithName('Step<AddUgcContext>', 'MySpecialStep');
 
@@ -95,7 +96,7 @@ suite('🔧 Bean Name Matching', () => {
         assert.ok(!result2.resolved, 'Should not resolve with undefined name');
         assert.ok(!result3.resolved, 'Should not resolve with whitespace name');
         
-        // 모두 3개의 후보를 가져야 함
+        // All should have 3 candidates
         assert.strictEqual(result1.candidates.length, 3);
         assert.strictEqual(result2.candidates.length, 3);
         assert.strictEqual(result3.candidates.length, 3);

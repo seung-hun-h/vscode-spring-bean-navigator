@@ -2,22 +2,15 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { LombokInjectionDetector } from '../../detectors/lombok-injection-detector';
 import { 
-    ClassInfo,
-    FieldInfo,
     SpringAnnotationType,
-    VirtualConstructorInfo,
-    LombokAnnotationInfo,
-    LombokSimulationResult,
     InjectionType
 } from '../../models/spring-types';
+import { TestUtils } from '../helpers/core-test-utils';
 import { 
-    TestUtils, 
-    LombokJavaSampleGenerator,
-    LombokMockHelper,
-    LombokExpectedResultHelper
-} from '../helpers/test-utils';
+    LombokMockHelper
+} from '../helpers/lombok-test-helpers';
 
-suite('🔧 LombokInjectionDetector Test Suite', () => {
+suite('LombokInjectionDetector Test Suite', () => {
     let detector: LombokInjectionDetector;
     let mockUri: vscode.Uri;
 
@@ -26,7 +19,7 @@ suite('🔧 LombokInjectionDetector Test Suite', () => {
         mockUri = TestUtils.createMockUri('/test/LombokService.java');
     });
 
-    suite('detectAllInjections (IInjectionDetector 인터페이스)', () => {
+    suite('detectAllInjections (IInjectionDetector interface)', () => {
         test('should_detectLombokInjections_when_requiredArgsConstructorPresent', () => {
             // Arrange
             const finalField1 = LombokMockHelper.createFinalFieldInfo('userRepository', 'UserRepository', 5);
@@ -79,7 +72,7 @@ suite('🔧 LombokInjectionDetector Test Suite', () => {
             // Arrange
             const classInfo = TestUtils.createClassInfo('PlainService', 'com.example.service',
                 [TestUtils.createFieldInfo('someField', 'SomeType', [], 5)],
-                [] // Lombok 어노테이션 없음
+                [] // No Lombok annotations
             );
 
             // Act
@@ -156,7 +149,7 @@ suite('🔧 LombokInjectionDetector Test Suite', () => {
             assert.ok(result, 'Should generate virtual constructor');
             assert.strictEqual(result.parameters.length, 3, 'Should include all final fields');
             
-            // 필드 순서 확인
+            // Verify field order
             assert.strictEqual(result.parameters[0].name, 'firstService', 'First parameter order');
             assert.strictEqual(result.parameters[1].name, 'secondService', 'Second parameter order');
             assert.strictEqual(result.parameters[2].name, 'thirdService', 'Third parameter order');
@@ -168,7 +161,7 @@ suite('🔧 LombokInjectionDetector Test Suite', () => {
             
             const classInfo = TestUtils.createClassInfo('PlainService', 'com.example.service',
                 [finalField],
-                [] // Lombok 어노테이션 없음
+                [] // No Lombok annotations
             );
 
             // Act
@@ -348,7 +341,7 @@ suite('🔧 LombokInjectionDetector Test Suite', () => {
         test('should_handleEmptyFields_when_noFieldsInClass', () => {
             // Arrange
             const classInfo = TestUtils.createClassInfo('EmptyService', 'com.example.service',
-                [], // 필드 없음
+                [], // No fields
                 [LombokMockHelper.createLombokAnnotationInfo(SpringAnnotationType.LOMBOK_REQUIRED_ARGS_CONSTRUCTOR)]
             );
 
@@ -417,7 +410,7 @@ suite('🔧 LombokInjectionDetector Test Suite', () => {
             assert.ok(!paramNames.includes('tempData'), 'Should exclude regular field');
         });
 
-        test('should_integratePreviousPhases_when_mixedInjectionTypesPresent', () => {
+        test('should_integrateAllInjectionTypes_when_mixedInjectionTypesPresent', () => {
             // Arrange
             const finalField = LombokMockHelper.createFinalFieldInfo('userRepository', 'UserRepository', 5);
             const autowiredField = TestUtils.createFieldInfo('emailService', 'EmailService', 
@@ -434,12 +427,12 @@ suite('🔧 LombokInjectionDetector Test Suite', () => {
             // Assert
             assert.ok(result.isSuccess, 'Should integrate with previous phases');
             
-            // Lombok 생성자는 final 필드만 포함
+            // Lombok constructor includes only final fields
             const constructor = result.virtualConstructors[0];
             assert.strictEqual(constructor.parameters.length, 1, 'Lombok constructor should include only final field');
             assert.strictEqual(constructor.parameters[0].name, 'userRepository');
             
-            // @Autowired 필드는 별도 처리됨 (Phase 1 기능)
+            // @Autowired fields are processed separately
             const fieldAnalysis = result.fieldAnalysis[0];
             assert.ok(fieldAnalysis.requiredArgsFields.some((f: any) => f.name === 'userRepository'), 'Should identify Lombok fields');
         });

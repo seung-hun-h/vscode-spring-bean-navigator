@@ -8,11 +8,9 @@ import {
     InjectionType,
     ClassInfo
 } from '../../models/spring-types';
-import { 
-    TestUtils, 
-} from '../helpers/test-utils';
+import { TestUtils } from '../helpers/core-test-utils';
 
-suite('🔧 ConstructorInjectionDetector Test Suite', () => {
+suite('ConstructorInjectionDetector Test Suite', () => {
     let detector: ConstructorInjectionDetector;
     let mockUri: vscode.Uri;
 
@@ -31,7 +29,7 @@ suite('🔧 ConstructorInjectionDetector Test Suite', () => {
                 parameters: [userRepoParam, productRepoParam],
                 position: TestUtils.createPosition(5, 4),
                 range: TestUtils.createRange(5, 4, 5, 50),
-                hasAutowiredAnnotation: false // Spring 5.0+ 단일 생성자는 @Autowired 생략 가능
+                hasAutowiredAnnotation: false // Spring 5.0+ single constructor can omit @Autowired
             };
 
             const classInfo = TestUtils.createClassInfo('OrderService', 'com.example.service', [], []);
@@ -66,7 +64,7 @@ suite('🔧 ConstructorInjectionDetector Test Suite', () => {
                 parameters: [TestUtils.createParameterInfo('userService', 'UserService')],
                 position: TestUtils.createPosition(6, 4),
                 range: TestUtils.createRange(6, 4, 6, 40),
-                hasAutowiredAnnotation: false // @Autowired 없는 다중 생성자
+                hasAutowiredAnnotation: false // Multiple constructors without @Autowired
             };
 
             const classInfo = TestUtils.createClassInfo('PaymentService', 'com.example.service', [], []);
@@ -82,7 +80,7 @@ suite('🔧 ConstructorInjectionDetector Test Suite', () => {
         test('should_handleEmptyParameterList_when_singleConstructorHasNoParameters', () => {
             // Arrange
             const constructor: ConstructorInfo = {
-                parameters: [], // 매개변수 없는 생성자
+                parameters: [], // Constructor without parameters
                 position: TestUtils.createPosition(3, 4),
                 range: TestUtils.createRange(3, 4, 3, 20),
                 hasAutowiredAnnotation: false
@@ -101,7 +99,7 @@ suite('🔧 ConstructorInjectionDetector Test Suite', () => {
         test('should_handleNoConstructors_when_constructorsUndefined', () => {
             // Arrange
             const classInfo = TestUtils.createClassInfo('PlainService', 'com.example.service', [], []);
-            // constructors undefined (기본 생성자만 있는 경우)
+            // constructors undefined (only default constructor exists)
 
             // Act
             const result = detector.detectSingleConstructorInjection(classInfo);
@@ -165,7 +163,7 @@ suite('🔧 ConstructorInjectionDetector Test Suite', () => {
                 ],
                 position: TestUtils.createPosition(7, 4),
                 range: TestUtils.createRange(7, 4, 9, 5),
-                hasAutowiredAnnotation: true // @Autowired 생성자
+                hasAutowiredAnnotation: true // @Autowired constructor
             };
 
             const classInfo = TestUtils.createClassInfo('PaymentService', 'com.example.service', [], []);
@@ -199,7 +197,7 @@ suite('🔧 ConstructorInjectionDetector Test Suite', () => {
                 parameters: [TestUtils.createParameterInfo('service', 'SomeService')],
                 position: TestUtils.createPosition(6, 4),
                 range: TestUtils.createRange(6, 4, 6, 30),
-                hasAutowiredAnnotation: false // @Autowired 없음
+                hasAutowiredAnnotation: false // No @Autowired
             };
 
             const classInfo = TestUtils.createClassInfo('AmbiguousService', 'com.example.service', [], []);
@@ -213,7 +211,7 @@ suite('🔧 ConstructorInjectionDetector Test Suite', () => {
         });
 
         test('should_selectFirstAutowired_when_multipleAutowiredConstructorsExist', () => {
-            // Arrange - 이론상 여러 @Autowired 생성자는 컴파일 에러지만 테스트를 위해
+            // Arrange - In theory multiple @Autowired constructors cause compile error but for testing
             const autowiredConstructor1: ConstructorInfo = {
                 parameters: [TestUtils.createParameterInfo('service1', 'Service1')],
                 position: TestUtils.createPosition(3, 4),
@@ -261,7 +259,7 @@ suite('🔧 ConstructorInjectionDetector Test Suite', () => {
             // Assert
             assert.strictEqual(result.length, 3, 'Should detect all complex parameters');
             
-            // 제네릭 타입 처리 확인
+            // Verify generic type handling
             const repoInjection = result.find((i: InjectionInfo) => i.targetType === 'Repository<User>');
             assert.ok(repoInjection, 'Should handle generic Repository type');
             
@@ -369,7 +367,7 @@ suite('🔧 ConstructorInjectionDetector Test Suite', () => {
         test('should_handleUndefinedConstructors_when_constructorsUndefined', () => {
             // Arrange
             const classInfo = TestUtils.createClassInfo('TestService', 'com.example', [], []);
-            // constructors는 undefined
+            // constructors is undefined
 
             // Act
             const singleResult = detector.detectSingleConstructorInjection(classInfo);
@@ -383,8 +381,8 @@ suite('🔧 ConstructorInjectionDetector Test Suite', () => {
         test('should_handleMalformedParameters_when_parameterInfoInvalid', () => {
             // Arrange
             const malformedParam = {
-                name: '', // 빈 이름
-                type: '', // 빈 타입
+                name: '', // Empty name
+                type: '', // Empty type
                 position: TestUtils.createPosition(0, 0)
             } as ParameterInfo;
 
@@ -402,7 +400,7 @@ suite('🔧 ConstructorInjectionDetector Test Suite', () => {
             const result = detector.detectSingleConstructorInjection(classInfo);
 
             // Assert
-            // 빈 이름/타입이어도 처리해야 함 (실제 파싱에서 발생할 수 있음)
+            // Should handle empty names/types (can occur in actual parsing)
             assert.strictEqual(result.length, 1, 'Should handle malformed parameters gracefully');
             assert.strictEqual(result[0].targetType, '', 'Should preserve empty type');
             assert.strictEqual(result[0].targetName, '', 'Should preserve empty name');
@@ -411,7 +409,7 @@ suite('🔧 ConstructorInjectionDetector Test Suite', () => {
 
     suite('Integration Tests', () => {
         test('should_processRealWorldExample_when_completeSpringServiceProvided', () => {
-            // Arrange - 실제 Spring 서비스와 유사한 구조
+            // Arrange - Structure similar to real Spring service
             const userRepoParam = TestUtils.createParameterInfo('userRepository', 'UserRepository');
             const emailServiceParam = TestUtils.createParameterInfo('emailService', 'EmailService');
             const configParam = TestUtils.createParameterInfo('appConfig', 'ApplicationProperties');
@@ -432,7 +430,7 @@ suite('🔧 ConstructorInjectionDetector Test Suite', () => {
             // Assert
             assert.strictEqual(result.length, 3, 'Should detect all 3 injections');
             
-            // 각 주입 정보 상세 검증
+            // Verify each injection in detail
             result.forEach((injection: InjectionInfo) => {
                 assert.strictEqual(injection.injectionType, InjectionType.CONSTRUCTOR, 'All should be constructor injections');
                 assert.ok(injection.targetType, 'Should have valid target type');
@@ -441,7 +439,7 @@ suite('🔧 ConstructorInjectionDetector Test Suite', () => {
                 assert.ok(injection.range, 'Should have valid range');
             });
 
-            // 특정 타입 존재 확인
+            // Verify specific types exist
             const typeNames = result.map((i: InjectionInfo) => i.targetType);
             assert.ok(typeNames.includes('UserRepository'), 'Should include UserRepository');
             assert.ok(typeNames.includes('EmailService'), 'Should include EmailService');

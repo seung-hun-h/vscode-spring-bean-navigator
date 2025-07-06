@@ -8,12 +8,10 @@ import {
     InjectionType,
     ClassInfo
 } from '../../models/spring-types';
-import { 
-    TestUtils, 
-    JavaSampleGenerator, 
-} from '../helpers/test-utils';
+import { TestUtils } from '../helpers/core-test-utils';
+import { JavaSampleGenerator } from '../helpers/java-sample-generator';
 
-suite('🔧 SetterInjectionDetector Test Suite', () => {
+suite('SetterInjectionDetector Test Suite', () => {
     let detector: SetterInjectionDetector;
     let mockUri: vscode.Uri;
 
@@ -100,7 +98,7 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
                 parameters: [TestUtils.createParameterInfo('dataService', 'DataService')],
                 position: TestUtils.createPosition(5, 4),
                 range: TestUtils.createRange(5, 4, 7, 5),
-                annotations: [], // @Autowired 없음
+                annotations: [], // No @Autowired
                 isSetterMethod: true
             };
 
@@ -128,12 +126,12 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
             };
 
             const invalidNaming: MethodInfo = {
-                name: 'configureUserService', // setXxx 패턴 아님
+                name: 'configureUserService', // Not setXxx pattern
                 parameters: [TestUtils.createParameterInfo('userService', 'UserService')],
                 position: TestUtils.createPosition(9, 4),
                 range: TestUtils.createRange(9, 4, 11, 5),
                 annotations: [autowiredAnnotation],
-                isSetterMethod: false // isSetterMethod가 false
+                isSetterMethod: false // isSetterMethod is false
             };
 
             const classInfo = TestUtils.createClassInfo('TestService', 'com.example.service', [], []);
@@ -157,7 +155,7 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
                 position: TestUtils.createPosition(5, 4),
                 range: TestUtils.createRange(5, 4, 7, 5),
                 annotations: [autowiredAnnotation],
-                isSetterMethod: false // @Autowired이지만 setter가 아님
+                isSetterMethod: false // @Autowired but not a setter
             };
 
             const validSetter: MethodInfo = {
@@ -183,7 +181,7 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
         test('should_handleComplexSetterMethod_when_annotationsAndModifiersPresent', () => {
             // Arrange
             const autowiredAnnotation = TestUtils.createAnnotationInfo('Autowired', SpringAnnotationType.AUTOWIRED);
-            const qualifierAnnotation = TestUtils.createAnnotationInfo('Qualifier', SpringAnnotationType.AUTOWIRED); // 임시로 AUTOWIRED 사용
+            const qualifierAnnotation = TestUtils.createAnnotationInfo('Qualifier', SpringAnnotationType.AUTOWIRED); // Temporarily using AUTOWIRED
             
             const complexParam = TestUtils.createParameterInfo('userRepository', 'Repository<User>');
             
@@ -248,7 +246,7 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
             // Arrange
             const autowiredAnnotation = TestUtils.createAnnotationInfo('Autowired', SpringAnnotationType.AUTOWIRED);
             
-            // 첫 번째 클래스
+            // First class
             const class1Setter: MethodInfo = {
                 name: 'setUserService',
                 parameters: [TestUtils.createParameterInfo('userService', 'UserService')],
@@ -261,7 +259,7 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
             const class1 = TestUtils.createClassInfo('NotificationService', 'com.example.service', [], []);
             class1.methods = [class1Setter];
 
-            // 두 번째 클래스
+            // Second class
             const class2Setter: MethodInfo = {
                 name: 'setEmailService',
                 parameters: [TestUtils.createParameterInfo('emailService', 'EmailService')],
@@ -299,7 +297,7 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
                 parameters: [TestUtils.createParameterInfo('userService', 'UserService')],
                 position: TestUtils.createPosition(5, 4),
                 range: TestUtils.createRange(5, 4, 7, 5),
-                annotations: [], // @Autowired 없음
+                annotations: [], // No @Autowired
                 isSetterMethod: true
             };
             classWithNonAutowiredSetters.methods = [nonAutowiredSetter];
@@ -340,7 +338,7 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
         test('should_handleUndefinedMethods_when_methodsUndefined', () => {
             // Arrange
             const classInfo = TestUtils.createClassInfo('TestService', 'com.example', [], []);
-            // methods는 undefined
+            // methods is undefined
 
             // Act
             const result = detector.detectSetterInjection(classInfo);
@@ -352,7 +350,7 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
         test('should_handleMalformedMethodInfo_when_invalidMethodProvided', () => {
             // Arrange
             const malformedMethod = {
-                name: '', // 빈 이름
+                name: '', // Empty name
                 parameters: [],
                 position: TestUtils.createPosition(0, 0),
                 range: TestUtils.createRange(0, 0, 0, 0),
@@ -367,7 +365,7 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
             const result = detector.detectSetterInjection(classInfo);
 
             // Assert
-            // 빈 이름이어도 처리해야 함 (실제 파싱에서 발생할 수 있음)
+            // Should handle empty names (can occur in actual parsing)
             assert.strictEqual(result.length, 0, 'Should handle methods without parameters gracefully');
         });
 
@@ -377,7 +375,7 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
             
             const parameterlessSetter: MethodInfo = {
                 name: 'setDefaultConfiguration',
-                parameters: [], // 매개변수 없음
+                parameters: [], // No parameters
                 position: TestUtils.createPosition(5, 4),
                 range: TestUtils.createRange(5, 4, 7, 5),
                 annotations: [autowiredAnnotation],
@@ -397,7 +395,7 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
 
     suite('Integration Tests', () => {
         test('should_processRealWorldExample_when_completeSpringServiceProvided', () => {
-            // Arrange - 실제 Spring 서비스와 유사한 구조
+            // Arrange - Structure similar to real Spring service
             const autowiredAnnotation = TestUtils.createAnnotationInfo('Autowired', SpringAnnotationType.AUTOWIRED);
             
             const setUserRepository: MethodInfo = {
@@ -442,7 +440,7 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
             // Assert
             assert.strictEqual(result.length, 3, 'Should detect all 3 setter injections');
             
-            // 각 주입 정보 상세 검증
+            // Verify each injection in detail
             result.forEach((injection: InjectionInfo) => {
                 assert.strictEqual(injection.injectionType, InjectionType.SETTER, 'All should be setter injections');
                 assert.ok(injection.targetType, 'Should have valid target type');
@@ -451,7 +449,7 @@ suite('🔧 SetterInjectionDetector Test Suite', () => {
                 assert.ok(injection.range, 'Should have valid range');
             });
 
-            // 특정 타입 존재 확인
+            // Verify specific types exist
             const typeNames = result.map((i: InjectionInfo) => i.targetType);
             assert.ok(typeNames.includes('UserRepository'), 'Should include UserRepository');
             assert.ok(typeNames.includes('EmailService'), 'Should include EmailService');

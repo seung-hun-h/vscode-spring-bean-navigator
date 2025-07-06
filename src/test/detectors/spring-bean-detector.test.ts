@@ -9,7 +9,8 @@ import {
     InjectionType,
     ClassInfo,
 } from '../../models/spring-types';
-import { JavaSampleGenerator, TestUtils } from '../helpers/test-utils';
+import { TestUtils } from '../helpers/core-test-utils';
+import { JavaSampleGenerator } from '../helpers/java-sample-generator';
 
 suite('SpringBeanDetector', () => {
     let detector: SpringBeanDetector;
@@ -129,14 +130,14 @@ suite('SpringBeanDetector', () => {
             const beans = await detectBeansFromContent(configWithBeansContent, mockUri);
             
             // Assert
-            assert.strictEqual(beans.length, 3); // Configuration 클래스 + 2개 Bean 메소드
+            assert.strictEqual(beans.length, 3); // Configuration class + 2 Bean methods
             
-            // Configuration 클래스 검증
+            // Verify Configuration class
             const configBean = beans.find((b: BeanDefinition) => b.className === 'DatabaseConfig');
             assert.ok(configBean);
             assert.strictEqual(configBean.annotationType, SpringAnnotationType.CONFIGURATION);
             
-            // Bean 메소드들 검증
+            // Verify Bean methods
             const dataSourceBean = beans.find((b: BeanDefinition) => b.beanName === 'dataSource');
             assert.ok(dataSourceBean);
             assert.strictEqual(dataSourceBean.className, 'DataSource');
@@ -249,7 +250,7 @@ suite('SpringBeanDetector', () => {
                 @Service
                 public class MessageServiceImpl implements MessageService {
                     public void sendMessage(String message) {
-                        // 구현
+                        // implementation
                     }
                 }
             `.trim();
@@ -265,7 +266,7 @@ suite('SpringBeanDetector', () => {
             assert.strictEqual(bean.name, 'messageServiceImpl', 'Should generate correct bean name');
             assert.strictEqual(bean.type, 'MessageServiceImpl', 'Should have correct type');
             
-            // 핵심: 인터페이스 정보가 포함되어 있는지 확인
+            // Key: Check if interface information is included
             const interfaces = (bean as any).interfaces as string[] | undefined;
             assert.ok(interfaces, 'Bean should include interface information');
             assert.ok(interfaces.includes('MessageService'), 'Should include MessageService interface');
@@ -324,26 +325,26 @@ suite('SpringBeanDetector', () => {
         });
     });
 
-    // ===== Phase 2: 생성자 주입 및 Setter 주입 탐지 =====
+    // Constructor and Setter Injection Detection
 
     suite('detectAllInjectionTypes', () => {
         test('should_detectMixedInjections_when_fieldConstructorSetterCombined', () => {
             // Arrange
             const autowiredAnnotation = TestUtils.createAnnotationInfo('Autowired', SpringAnnotationType.AUTOWIRED);
             
-            // 필드 주입
+            // Field injection
             const autowiredField = TestUtils.createFieldInfo('userRepository', 'UserRepository', [autowiredAnnotation]);
             
-            // 생성자 주입
+            // Constructor injection
             const constructorParam = TestUtils.createParameterInfo('emailService', 'EmailService');
             const constructor = {
                 parameters: [constructorParam],
                 position: TestUtils.createPosition(8, 4),
                 range: TestUtils.createRange(8, 4, 10, 5),
-                hasAutowiredAnnotation: false // 단일 생성자는 @Autowired 생략
+                hasAutowiredAnnotation: false // Single constructor omits @Autowired
             };
 
-            // Setter 주입
+            // Setter injection
             const setterParam = TestUtils.createParameterInfo('smsService', 'SmsService');
             const setterMethod = {
                 name: 'setSmsService',
@@ -364,17 +365,17 @@ suite('SpringBeanDetector', () => {
             // Assert
             assert.strictEqual(result.length, 3, 'Should detect all 3 injection types');
             
-            // 필드 주입 확인
+            // Verify field injection
             const fieldInjection = result.find((i: InjectionInfo) => i.injectionType === InjectionType.FIELD);
             assert.ok(fieldInjection, 'Should find field injection');
             assert.strictEqual(fieldInjection.targetType, 'UserRepository', 'Should detect UserRepository field injection');
             
-            // 생성자 주입 확인
+            // Verify constructor injection
             const constructorInjection = result.find((i: InjectionInfo) => i.injectionType === InjectionType.CONSTRUCTOR);
             assert.ok(constructorInjection, 'Should find constructor injection');
             assert.strictEqual(constructorInjection.targetType, 'EmailService', 'Should detect EmailService constructor injection');
             
-            // Setter 주입 확인
+            // Verify setter injection
             const setterInjection = result.find((i: InjectionInfo) => i.injectionType === InjectionType.SETTER);
             assert.ok(setterInjection, 'Should find setter injection');
             assert.strictEqual(setterInjection.targetType, 'SmsService', 'Should detect SmsService setter injection');
@@ -389,7 +390,7 @@ suite('SpringBeanDetector', () => {
                 parameters: [param1, param2],
                 position: TestUtils.createPosition(5, 4),
                 range: TestUtils.createRange(5, 4, 7, 5),
-                hasAutowiredAnnotation: false // 단일 생성자
+                hasAutowiredAnnotation: false // Single constructor
             };
 
             const classInfo = TestUtils.createClassInfo('OrderService', 'com.example.service', [], []);
@@ -442,7 +443,7 @@ suite('SpringBeanDetector', () => {
 
         test('should_returnEmptyArray_when_noInjectionsExist', () => {
             // Arrange
-            const regularField = TestUtils.createFieldInfo('regularField', 'String', []); // @Autowired 없음
+            const regularField = TestUtils.createFieldInfo('regularField', 'String', []); // No @Autowired
             const classInfo = TestUtils.createClassInfo('PlainService', 'com.example.service', [regularField], []);
 
             // Act
@@ -469,11 +470,11 @@ suite('SpringBeanDetector', () => {
             // Arrange
             const autowiredAnnotation = TestUtils.createAnnotationInfo('Autowired', SpringAnnotationType.AUTOWIRED);
             
-            // 첫 번째 클래스: 필드 주입
+            // First class: field injection
             const class1Field = TestUtils.createFieldInfo('userRepository', 'UserRepository', [autowiredAnnotation]);
             const class1 = TestUtils.createClassInfo('UserService', 'com.example.service', [class1Field], []);
             
-            // 두 번째 클래스: 생성자 주입
+            // Second class: constructor injection
             const class2Constructor = {
                 parameters: [TestUtils.createParameterInfo('emailService', 'EmailService')],
                 position: TestUtils.createPosition(5, 4),
@@ -483,7 +484,7 @@ suite('SpringBeanDetector', () => {
             const class2 = TestUtils.createClassInfo('NotificationService', 'com.example.service', [], []);
             class2.constructors = [class2Constructor];
 
-            // 세 번째 클래스: Setter 주입
+            // Third class: setter injection
             const class3Setter = {
                 name: 'setSmsService',
                 parameters: [TestUtils.createParameterInfo('smsService', 'SmsService')],
@@ -538,25 +539,25 @@ suite('SpringBeanDetector', () => {
         });
     });
 
-    suite('Integration Tests for Phase 2', () => {
+    suite('Integration Tests', () => {
         test('should_processRealWorldMixedInjectionScenario_when_completeSpringServiceProvided', () => {
-            // Arrange - 실제 Spring 서비스와 유사한 복잡한 구조
+            // Arrange - Complex structure similar to real Spring service
             const autowiredAnnotation = TestUtils.createAnnotationInfo('Autowired', SpringAnnotationType.AUTOWIRED);
             
-            // 필드 주입: Repository
+            // Field injection: Repository
             const repositoryField = TestUtils.createFieldInfo('userRepository', 'UserRepository', [autowiredAnnotation]);
             
-            // 생성자 주입: 필수 의존성들
+            // Constructor injection: required dependencies
             const emailServiceParam = TestUtils.createParameterInfo('emailService', 'EmailService');
             const configParam = TestUtils.createParameterInfo('appConfig', 'ApplicationProperties');
             const constructor = {
                 parameters: [emailServiceParam, configParam],
                 position: TestUtils.createPosition(12, 4),
                 range: TestUtils.createRange(12, 4, 15, 5),
-                hasAutowiredAnnotation: false // 단일 생성자
+                hasAutowiredAnnotation: false // Single constructor
             };
 
-            // Setter 주입: 선택적 의존성들
+            // Setter injection: optional dependencies
             const smsServiceSetter = {
                 name: 'setSmsService',
                 parameters: [TestUtils.createParameterInfo('smsService', 'SmsService')],
@@ -585,7 +586,7 @@ suite('SpringBeanDetector', () => {
             // Assert
             assert.strictEqual(result.length, 5, 'Should detect all 5 injections');
             
-            // 주입 타입별 검증
+            // Verify by injection type
             const fieldInjections = result.filter((i: InjectionInfo) => i.injectionType === InjectionType.FIELD);
             assert.strictEqual(fieldInjections.length, 1, 'Should have 1 field injection');
             
@@ -595,7 +596,7 @@ suite('SpringBeanDetector', () => {
             const setterInjections = result.filter((i: InjectionInfo) => i.injectionType === InjectionType.SETTER);
             assert.strictEqual(setterInjections.length, 2, 'Should have 2 setter injections');
 
-            // 특정 타입 존재 확인
+            // Verify specific types exist
             const typeNames = result.map((i: InjectionInfo) => i.targetType);
             assert.ok(typeNames.includes('UserRepository'), 'Should include UserRepository');
             assert.ok(typeNames.includes('EmailService'), 'Should include EmailService');

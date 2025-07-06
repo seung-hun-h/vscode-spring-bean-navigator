@@ -489,7 +489,7 @@ suite('AnnotationParser', () => {
         });
 
         test('should_handleMalformedAnnotation_when_invalidStructureProvided', () => {
-            // Arrange - 실제로 malformed 구조 (as any로 타입 체크 우회)
+            // Arrange - Actually malformed structure (bypass type check with as any)
             const malformedAnnotation = {
                 children: {
                     // typeName이 없어서 실제로 malformed

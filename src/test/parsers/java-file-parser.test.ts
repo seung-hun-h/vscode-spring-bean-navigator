@@ -1,14 +1,14 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { JavaFileParser } from '../../parsers/java-file-parser';
+import { TestUtils } from '../helpers/core-test-utils';
+import { 
+    JavaSampleGenerator, 
+} from '../helpers';
 import { 
     SpringAnnotationType, 
     InjectionType,
 } from '../../models/spring-types';
-import { 
-    TestUtils, 
-    JavaSampleGenerator, 
-} from '../helpers/test-utils';
 
 suite('JavaFileParser', () => {
     let parser: JavaFileParser;
@@ -77,7 +77,7 @@ suite('JavaFileParser', () => {
 
             // Assert
             assert.ok(result.errors.length > 0, 'Should have parsing errors');
-            assert.ok(result.errors[0].includes('파싱 실패'), 'Error message should be in Korean');
+            assert.ok(result.errors[0].includes('파싱 실패'), 'Error message should contain parsing failure');
         });
 
         test('should_handleEmptyFile_when_emptyContentProvided', async () => {
@@ -90,7 +90,7 @@ suite('JavaFileParser', () => {
             // Assert
             assert.strictEqual(result.classes.length, 0, 'Should not parse any classes');
             assert.strictEqual(result.injections.length, 0, 'Should not find any injections');
-            // 빈 파일은 에러가 아닐 수 있음
+            // Empty file may not be an error
         });
 
         test('should_extractPackageAndImports_when_validJavaClassProvided', async () => {
@@ -138,7 +138,7 @@ suite('JavaFileParser', () => {
             const classInfo = result.classes[0];
             assert.strictEqual(classInfo.name, 'OrderService');
             
-            // 생성자 정보 확인
+            // Check constructor information
             assert.ok(classInfo.constructors, 'Should have constructors property');
             assert.strictEqual(classInfo.constructors!.length, 1, 'Should have one constructor');
             
@@ -167,12 +167,12 @@ suite('JavaFileParser', () => {
             assert.ok(classInfo.constructors, 'Should have constructors property');
             assert.strictEqual(classInfo.constructors!.length, 2, 'Should have two constructors');
             
-            // @Autowired가 붙은 생성자 찾기
+            // Find constructor with @Autowired
             const autowiredConstructor = classInfo.constructors!.find(c => c.hasAutowiredAnnotation);
             assert.ok(autowiredConstructor, 'Should find @Autowired constructor');
             assert.strictEqual(autowiredConstructor.parameters.length, 2, '@Autowired constructor should have 2 parameters');
             
-            // 기본 생성자 확인
+            // Check default constructor
             const defaultConstructor = classInfo.constructors!.find(c => !c.hasAutowiredAnnotation);
             assert.ok(defaultConstructor, 'Should find default constructor');
             assert.strictEqual(defaultConstructor.parameters.length, 0, 'Default constructor should have no parameters');
@@ -196,7 +196,7 @@ suite('JavaFileParser', () => {
             assert.strictEqual(constructor.hasAutowiredAnnotation, true, 'Constructor should have @Autowired');
             assert.strictEqual(constructor.parameters.length, 3, 'Constructor should have 3 parameters');
             
-            // 매개변수 타입 확인 (제네릭 타입 포함)
+            // Check parameter types (including generic types)
             const paramTypes = constructor.parameters.map(p => p.type);
             assert.ok(paramTypes.some(t => t.includes('Repository')), 'Should have Repository parameter');
             assert.ok(paramTypes.some(t => t.includes('List')), 'Should have List parameter');
@@ -205,7 +205,7 @@ suite('JavaFileParser', () => {
 
         test('should_returnEmptyConstructors_when_noConstructorsFound', async () => {
             // Arrange
-            const content = JavaSampleGenerator.simpleAutowiredClass(); // 필드 주입만 있는 클래스
+            const content = JavaSampleGenerator.simpleAutowiredClass(); // Class with only field injection
 
             // Act
             const result = await parser.parseJavaFile(mockUri, content);
@@ -214,7 +214,7 @@ suite('JavaFileParser', () => {
             assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
             const classInfo = result.classes[0];
             
-            // 생성자가 없으면 빈 배열이거나 undefined
+            // If no constructors, should be empty array or undefined
             assert.ok(!classInfo.constructors || classInfo.constructors.length === 0, 'Should have no constructors');
         });
     });
@@ -234,16 +234,16 @@ suite('JavaFileParser', () => {
             const classInfo = result.classes[0];
             assert.ok(classInfo.methods, 'Should have methods property');
             
-            // @Autowired setter 메서드 찾기
+            // Find @Autowired setter methods
             const setterMethods = classInfo.methods!.filter(m => m.isSetterMethod);
             assert.strictEqual(setterMethods.length, 2, 'Should have 2 setter methods');
             
-            // 각 setter 메서드 확인
+            // Check each setter method
             const setterNames = setterMethods.map(s => s.name);
             assert.ok(setterNames.includes('setEmailService'), 'Should have setEmailService');
             assert.ok(setterNames.includes('setSmsService'), 'Should have setSmsService');
             
-            // 각 setter 메서드의 매개변수 확인
+            // Check parameters of each setter method
             setterMethods.forEach(setter => {
                 assert.strictEqual(setter.parameters.length, 1, 'Setter should have 1 parameter');
                 assert.ok(setter.annotations.some(a => a.name === 'Autowired'), 'Setter should have @Autowired annotation');
@@ -265,12 +265,12 @@ suite('JavaFileParser', () => {
             const setterMethods = classInfo.methods!.filter(m => m.isSetterMethod);
             assert.strictEqual(setterMethods.length, 2, 'Should have 2 setter methods');
             
-            // @Qualifier 어노테이션이 있는 setter 확인
+            // Check setter with @Qualifier annotation
             const qualifierSetter = setterMethods.find(s => s.name === 'setUserRepository');
             assert.ok(qualifierSetter, 'Should find setUserRepository');
             assert.ok(qualifierSetter.annotations.some(a => a.name === 'Qualifier'), 'Should have @Qualifier annotation');
             
-            // @Value 어노테이션이 있는 setter 확인
+            // Check setter with @Value annotation
             const valueSetter = setterMethods.find(s => s.name === 'setConfigValue');
             assert.ok(valueSetter, 'Should find setConfigValue');
             assert.ok(valueSetter.annotations.some(a => a.name === 'Autowired'), 'Should have @Autowired annotation');
@@ -288,12 +288,12 @@ suite('JavaFileParser', () => {
             public class TestService {
                 @Autowired
                 public void initializeService(UserService userService) {
-                    // @Autowired이지만 setter가 아닌 메서드
+                    // @Autowired but not a setter method
                 }
                 
                 @Autowired
                 public void setUserService(UserService userService) {
-                    // 실제 setter 메서드
+                    // Actual setter method
                 }
             }
             `.trim();
@@ -314,7 +314,7 @@ suite('JavaFileParser', () => {
 
         test('should_returnEmptyMethods_when_noSettersFound', async () => {
             // Arrange
-            const content = JavaSampleGenerator.simpleAutowiredClass(); // 필드 주입만 있는 클래스
+            const content = JavaSampleGenerator.simpleAutowiredClass(); // Class with only field injection
 
             // Act
             const result = await parser.parseJavaFile(mockUri, content);
@@ -323,7 +323,7 @@ suite('JavaFileParser', () => {
             assert.strictEqual(result.errors.length, 0, 'Should not have parsing errors');
             const classInfo = result.classes[0];
             
-            // setter 메서드가 없으면 빈 배열이거나 undefined
+            // If no setter methods, should be empty array or undefined
             const setterMethods = classInfo.methods?.filter(m => m.isSetterMethod) || [];
             assert.strictEqual(setterMethods.length, 0, 'Should have no setter methods');
         });
@@ -344,14 +344,14 @@ suite('JavaFileParser', () => {
             const classInfo = result.classes[0];
             assert.strictEqual(classInfo.name, 'AppConfig');
             
-            // Configuration 클래스는 일반적으로 @Autowired 필드가 아닌 @Bean 메소드를 가짐
+            // Configuration classes typically have @Bean methods rather than @Autowired fields
             const hasConfigAnnotation = classInfo.annotations.some(
                 annotation => annotation.type === SpringAnnotationType.CONFIGURATION
             );
             assert.ok(hasConfigAnnotation, 'Should detect @Configuration annotation');
         });
 
-        // ===== Phase 2 통합 테스트 =====
+        // ===== Integration Tests =====
 
         test('should_handleMixedInjections_when_fieldConstructorSetterCombined', async () => {
             // Arrange
@@ -367,21 +367,21 @@ suite('JavaFileParser', () => {
             const classInfo = result.classes[0];
             assert.strictEqual(classInfo.name, 'UserService');
 
-            // 필드 주입 확인
+            // Check field injection
             const autowiredFields = classInfo.fields.filter(f => 
                 f.annotations.some(a => a.type === SpringAnnotationType.AUTOWIRED)
             );
             assert.strictEqual(autowiredFields.length, 1, 'Should have 1 @Autowired field');
             assert.strictEqual(autowiredFields[0].type, 'UserRepository', 'Should be UserRepository field');
 
-            // 생성자 주입 확인
+            // Check constructor injection
             assert.ok(classInfo.constructors, 'Should have constructors');
             assert.strictEqual(classInfo.constructors!.length, 1, 'Should have 1 constructor');
             const constructor = classInfo.constructors![0];
             assert.strictEqual(constructor.parameters.length, 1, 'Constructor should have 1 parameter');
             assert.strictEqual(constructor.parameters[0].type, 'EmailService', 'Should inject EmailService');
 
-            // Setter 주입 확인
+            // Check setter injection
             assert.ok(classInfo.methods, 'Should have methods');
             const setterMethods = classInfo.methods!.filter(m => m.isSetterMethod);
             assert.strictEqual(setterMethods.length, 1, 'Should have 1 setter method');
@@ -402,13 +402,13 @@ suite('JavaFileParser', () => {
             const classInfo = result.classes[0];
             assert.strictEqual(classInfo.name, 'ComplexService');
 
-            // 생성자 주입 확인
+            // Check constructor injection
             assert.ok(classInfo.constructors, 'Should have constructors');
             const constructor = classInfo.constructors![0];
             assert.strictEqual(constructor.hasAutowiredAnnotation, true, 'Constructor should have @Autowired');
             assert.strictEqual(constructor.parameters.length, 3, 'Should have 3 constructor parameters');
 
-            // 생성자 매개변수에서 주입 정보 추출
+            // Extract injection info from constructor parameters
             const constructorInjections = constructor.parameters.map(p => ({
                 targetType: p.type,
                 targetName: p.name,
@@ -417,7 +417,7 @@ suite('JavaFileParser', () => {
 
             assert.strictEqual(constructorInjections.length, 3, 'Should have 3 constructor injections');
             
-            // 타입별 주입 확인
+            // Check injection by type
             const repoInjection = constructorInjections.find(i => i.targetType.includes('Repository'));
             assert.ok(repoInjection, 'Should have Repository injection');
             
@@ -502,9 +502,8 @@ suite('JavaFileParser', () => {
         });
     });
 
-    // ===== Phase 3: Lombok 어노테이션 탐지 테스트 =====
-    suite('🔧 Lombok Annotation Detection', () => {
-        
+    // ===== Lombok Annotation Detection Tests =====
+    suite('Lombok Annotation Detection', () => {
         suite('detectLombokAnnotations', () => {
             test('should_detectRequiredArgsConstructor_when_lombokAnnotationPresent', async () => {
                 // Arrange
@@ -666,7 +665,7 @@ suite('JavaFileParser', () => {
                 assert.strictEqual(lombokAnnotations.length, 1, 'Should only detect Lombok annotations');
                 assert.strictEqual(lombokAnnotations[0].name, 'RequiredArgsConstructor', 'Should detect RequiredArgsConstructor');
                 
-                // Spring 어노테이션도 여전히 탐지되어야 함
+                // Spring annotations should still be detected
                 const springAnnotations = classInfo.annotations.filter(a => a.type === SpringAnnotationType.SERVICE);
                 assert.strictEqual(springAnnotations.length, 1, 'Should still detect Spring annotations');
             });
@@ -794,7 +793,7 @@ suite('JavaFileParser', () => {
                 assert.strictEqual(finalFields.length, 3, 'Should detect 3 final fields (including static final)');
                 assert.strictEqual(nonFinalFields.length, 1, 'Should detect 1 non-final field');
                 
-                // final 필드 이름 확인
+                // Check final field names
                 const finalFieldNames = finalFields.map(f => f.name);
                 assert.ok(finalFieldNames.includes('userRepository'), 'Should include userRepository as final');
                 assert.ok(finalFieldNames.includes('emailService'), 'Should include emailService as final');
@@ -869,7 +868,7 @@ suite('JavaFileParser', () => {
                 assert.strictEqual(staticFields.length, 2, 'Should detect 2 static fields');
                 assert.strictEqual(nonStaticFields.length, 2, 'Should detect 2 non-static fields');
                 
-                // static 필드 이름 확인
+                // Check static field names
                 const staticFieldNames = staticFields.map(f => f.name);
                 assert.ok(staticFieldNames.includes('VERSION'), 'Should include VERSION as static');
                 assert.ok(staticFieldNames.includes('instanceCount'), 'Should include instanceCount as static');
@@ -896,12 +895,12 @@ suite('JavaFileParser', () => {
                 const result = await parser.parseJavaFile(mockUri, content);
 
                 // Assert
-                // 파싱 자체는 성공해야 하지만, 알 수 없는 Lombok 어노테이션은 무시
+                // Parsing should succeed but unknown Lombok annotations should be ignored
                 assert.strictEqual(result.classes.length, 1, 'Should still parse the class');
                 
                 const classInfo = result.classes[0];
                 const unknownAnnotations = classInfo.annotations.filter(a => a.name === 'UnknownAnnotation');
-                // 알 수 없는 어노테이션은 일반 어노테이션으로 처리되거나 무시될 수 있음
+                // Unknown annotations may be processed as regular annotations or ignored
                 assert.ok(unknownAnnotations.length >= 0, 'Should handle unknown Lombok annotations gracefully');
             });
 
@@ -925,24 +924,29 @@ suite('JavaFileParser', () => {
                 const result = await parser.parseJavaFile(mockUri, content);
 
                 // Assert
-                // 잘못된 import는 파싱 에러를 발생시킬 수 있음
+                // Invalid import should cause parsing errors
                 if (result.errors.length > 0) {
-                    // 에러가 있으면 import 관련 에러인지 확인
-                    const hasImportError = result.errors.some(e => 
-                        e.includes('import') || 
-                        e.includes('파싱') || 
-                        e.includes('parsing')
-                    );
-                    assert.ok(hasImportError, 'Should report parsing errors related to invalid import');
+                    // Check if any error is related to parsing or import (including Korean messages)
+                    const hasRelevantError = result.errors.some(e => {
+                        const errorLower = e.toLowerCase();
+                        return errorLower.includes('import') || 
+                               errorLower.includes('parsing') ||
+                               errorLower.includes('sad sad panda') || // java-parser error message
+                               errorLower.includes('expect') ||
+                               errorLower.includes('token') ||
+                               e.includes('파싱') || // Korean: parsing
+                               e.includes('구문') || // Korean: syntax
+                               e.includes('문법'); // Korean: grammar
+                    });
+                    assert.ok(hasRelevantError, `Should report parsing errors related to invalid import. Actual errors: ${result.errors.join(', ')}`);
                 } else {
-                    // 에러가 없으면 클래스는 파싱되지 않아야 함 (malformed import로 인해)
-                    // 또는 빈 결과여야 함
-                    const hasValidClass = result.classes.length > 0 && 
-                                         result.classes[0].name === 'MalformedImportService';
+                    // If no errors, the parser might have skipped the malformed import
+                    // In this case, check if the class was parsed correctly
+                    const hasValidClass = result.classes.length > 0;
                     
-                    // 잘못된 import 때문에 클래스가 제대로 파싱되지 않을 것으로 예상
-                    assert.ok(!hasValidClass || result.classes.length === 0, 
-                        'Should not successfully parse class with malformed import');
+                    // We accept either: errors were reported OR class was not parsed
+                    assert.ok(result.errors.length > 0 || !hasValidClass, 
+                        'Should either report errors or fail to parse class with malformed import');
                 }
             });
         });

@@ -4,9 +4,6 @@ import { AutowiredInjectionDetector } from '../../detectors/autowired-injection-
 import { PositionCalculator } from '../../parsers/core/position-calculator';
 import { ClassInfo, SpringAnnotationType, InjectionType } from '../../models/spring-types';
 
-/**
- * AutowiredDetector 테스트 스위트
- */
 suite('AutowiredDetector', () => {
     let autowiredDetector: AutowiredInjectionDetector;
     let positionCalculator: PositionCalculator;

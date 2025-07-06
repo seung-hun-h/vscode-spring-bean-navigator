@@ -1,8 +1,8 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { BeanResolver } from '../../utils/bean-resolver';
-import { BeanDefinition } from '../../models/spring-types';
-import { TestUtils } from '../helpers/test-utils';
+import { BeanDefinition, ParameterInfo, MethodInfo, ConstructorInfo } from '../../models/spring-types';
+import { TestUtils } from '../helpers/core-test-utils';
 
 suite('BeanResolver', () => {
     let resolver: BeanResolver;
@@ -268,10 +268,10 @@ suite('BeanResolver', () => {
             
             resolver.addBeanDefinition(messageServiceImpl);
             
-            // Act: 인터페이스 타입으로 Bean 검색
+            // Act: Search bean by interface type
             const result = resolver.resolveBeanForInjection('MessageService');
             
-            // Assert: 구현체를 찾아야 함
+            // Assert: Should find implementation
             assert.ok(result.resolved, 'Should find implementation when searching by interface type');
             assert.strictEqual(result.resolved.type, 'MessageServiceImpl');
             assert.strictEqual(result.resolved.name, 'messageService');
@@ -279,7 +279,7 @@ suite('BeanResolver', () => {
         });
 
         test('should_findImplementationByInterfaceType_when_multipleImplementationsExist', () => {
-            // Arrange: 두 개의 서로 다른 인터페이스 구현체
+            // Arrange: Two different interface implementations
             const messageServiceImpl = createImplementationBean(
                 'messageService', 
                 'MessageServiceImpl', 
@@ -297,11 +297,11 @@ suite('BeanResolver', () => {
             resolver.addBeanDefinition(messageServiceImpl);
             resolver.addBeanDefinition(notificationServiceImpl);
             
-            // Act: 각각의 인터페이스 타입으로 검색
+            // Act: Search by each interface type
             const messageResult = resolver.resolveBeanForInjection('MessageService');
             const notificationResult = resolver.resolveBeanForInjection('NotificationService');
             
-            // Assert: 각각 올바른 구현체를 찾아야 함
+            // Assert: Should find correct implementation for each
             assert.ok(messageResult.resolved, 'Should find MessageService implementation');
             assert.strictEqual(messageResult.resolved.type, 'MessageServiceImpl');
             
@@ -310,7 +310,7 @@ suite('BeanResolver', () => {
         });
 
         test('should_handleMultipleImplementationsOfSameInterface_when_ambiguousInjection', () => {
-            // Arrange: 같은 인터페이스의 여러 구현체
+            // Arrange: Multiple implementations of same interface
             const impl1 = createImplementationBean(
                 'messageServiceImpl1', 
                 'MessageServiceImpl1', 
@@ -328,10 +328,10 @@ suite('BeanResolver', () => {
             resolver.addBeanDefinition(impl1);
             resolver.addBeanDefinition(impl2);
             
-            // Act: 인터페이스 타입으로 검색
+            // Act: Search by interface type
             const result = resolver.resolveBeanForInjection('MessageService');
             
-            // Assert: 다중 후보가 있어야 하고 자동 해결되지 않아야 함
+            // Assert: Should have multiple candidates and not auto-resolve
             assert.strictEqual(result.resolved, undefined, 'Should not auto-resolve when multiple implementations exist');
             assert.strictEqual(result.candidates.length, 2, 'Should return both candidates');
             
@@ -341,7 +341,7 @@ suite('BeanResolver', () => {
         });
 
         test('should_findImplementationByDirectType_when_usingImplementationClassName', () => {
-            // Arrange: 구현체 Bean 등록
+            // Arrange: Register implementation bean
             const messageServiceImpl = createImplementationBean(
                 'messageService', 
                 'MessageServiceImpl', 
@@ -351,28 +351,28 @@ suite('BeanResolver', () => {
             
             resolver.addBeanDefinition(messageServiceImpl);
             
-            // Act: 구현체 클래스명으로 직접 검색
+            // Act: Search directly by implementation class name
             const result = resolver.resolveBeanForInjection('MessageServiceImpl');
             
-            // Assert: 구현체를 직접 찾을 수 있어야 함
+            // Assert: Should find implementation directly
             assert.ok(result.resolved, 'Should find implementation by direct class name');
             assert.strictEqual(result.resolved.type, 'MessageServiceImpl');
         });
 
         test('should_notFindBean_when_interfaceHasNoImplementation', () => {
-            // Arrange: 구현체가 없는 인터페이스
-            resolver.addBeanDefinition(createSampleBeans()[0]); // UserService (인터페이스가 아님)
+            // Arrange: Interface with no implementation
+            resolver.addBeanDefinition(createSampleBeans()[0]); // UserService (not an interface)
             
-            // Act: 존재하지 않는 인터페이스로 검색
+            // Act: Search by non-existent interface
             const result = resolver.resolveBeanForInjection('NonExistentInterface');
             
-            // Assert: 찾을 수 없어야 함
+            // Assert: Should not find any bean
             assert.strictEqual(result.resolved, undefined);
             assert.strictEqual(result.candidates.length, 0);
         });
 
         test('should_findByTypeAndInterface_when_typeMatchingEnabled', () => {
-            // Arrange: 인터페이스와 구현체
+            // Arrange: Interface and implementation
             const messageServiceImpl = createImplementationBean(
                 'messageService', 
                 'MessageServiceImpl', 
@@ -382,23 +382,23 @@ suite('BeanResolver', () => {
             
             resolver.addBeanDefinition(messageServiceImpl);
             
-            // Act: findBeansByType 메소드로 인터페이스 타입 검색
+            // Act: Search interface type using findBeansByType method
             const results = resolver.findBeansByType('MessageService');
             
-            // Assert: 인터페이스 타입으로도 구현체를 찾을 수 있어야 함
+            // Assert: Should find implementation by interface type
             assert.strictEqual(results.length, 1, 'Should find implementation by interface type');
             assert.strictEqual(results[0].type, 'MessageServiceImpl');
         });
     });
 });
 
-// Phase 2: 매개변수 타입 기반 Bean 검색 테스트
-suite('Phase 2: Parameter-based Bean Resolution', () => {
+// Parameter type based Bean search tests
+suite('Parameter-based Bean Resolution', () => {
     let resolver: BeanResolver;
     
     setup(() => {
         resolver = new BeanResolver();
-        // 테스트용 Bean들 추가
+                    // Add test Beans
         const userRepository = TestUtils.createBeanDefinition('userRepository', 'UserRepository', 'com.example.repository.UserRepository');
         const emailService = TestUtils.createBeanDefinition('emailService', 'EmailService', 'com.example.service.EmailService');
         const paymentGateway = TestUtils.createBeanDefinition('paymentGateway', 'PaymentGateway', 'com.example.gateway.PaymentGateway');
@@ -424,7 +424,7 @@ suite('Phase 2: Parameter-based Bean Resolution', () => {
         });
 
         test('should_resolveInterfaceImplementation_when_parameterIsInterface', () => {
-            // Arrange: 인터페이스를 구현하는 Bean 등록
+            // Arrange: Register bean implementing interface
             const messageServiceImpl = createImplementationBean(
                 'messageService', 
                 'MessageServiceImpl', 
@@ -445,7 +445,7 @@ suite('Phase 2: Parameter-based Bean Resolution', () => {
         });
 
         test('should_returnCandidates_when_multipleImplementationsExist', () => {
-            // Arrange: 같은 인터페이스의 여러 구현체
+            // Arrange: Multiple implementations of same interface
             const impl1 = createImplementationBean(
                 'notificationService1', 
                 'EmailNotificationService', 
@@ -488,7 +488,7 @@ suite('Phase 2: Parameter-based Bean Resolution', () => {
         });
 
         test('should_handleGenericTypes_when_parameterHasGenericType', () => {
-            // Arrange: 제네릭 타입을 포함한 Bean
+            // Arrange: Bean with generic type
             const listService = TestUtils.createBeanDefinition('listService', 'List<String>', 'java.util.List');
             resolver.addBeanDefinition(listService);
             
@@ -525,7 +525,7 @@ suite('Phase 2: Parameter-based Bean Resolution', () => {
         });
 
         test('should_handleMixedResolution_when_someParametersCannotBeResolved', () => {
-            // Arrange: 일부 매개변수만 해결 가능
+            // Arrange: Only some parameters can be resolved
             const constructor = createConstructorInfo([
                 createParameterInfo('userRepository', 'UserRepository', 0),
                 createParameterInfo('unknownService', 'UnknownService', 1)
@@ -556,7 +556,7 @@ suite('Phase 2: Parameter-based Bean Resolution', () => {
         });
 
         test('should_maintainParameterOrder_when_resolvingConstructorParameters', () => {
-            // Arrange: 매개변수 순서가 중요한 생성자
+            // Arrange: Constructor where parameter order is important
             const constructor = createConstructorInfo([
                 createParameterInfo('emailService', 'EmailService', 0),
                 createParameterInfo('userRepository', 'UserRepository', 1),
@@ -576,7 +576,7 @@ suite('Phase 2: Parameter-based Bean Resolution', () => {
 
     suite('resolveBeanForMethod', () => {
         test('should_resolveSetterParameter_when_setterHasSingleParameter', () => {
-            // Arrange: Setter 메서드 (매개변수 1개)
+            // Arrange: Setter method (single parameter)
             const setterMethod = createMethodInfo('setEmailService', [
                 createParameterInfo('emailService', 'EmailService', 0)
             ], true);
@@ -591,7 +591,7 @@ suite('Phase 2: Parameter-based Bean Resolution', () => {
         });
 
         test('should_resolveMultipleParameters_when_methodHasMultipleParameters', () => {
-            // Arrange: 다중 매개변수 메서드
+            // Arrange: Method with multiple parameters
             const method = createMethodInfo('initServices', [
                 createParameterInfo('userRepository', 'UserRepository', 0),
                 createParameterInfo('emailService', 'EmailService', 1)
@@ -607,7 +607,7 @@ suite('Phase 2: Parameter-based Bean Resolution', () => {
         });
 
         test('should_returnEmpty_when_methodHasNoParameters', () => {
-            // Arrange: 매개변수가 없는 메서드
+            // Arrange: Method without parameters
             const method = createMethodInfo('initialize', [], false);
             
             // Act
@@ -620,7 +620,7 @@ suite('Phase 2: Parameter-based Bean Resolution', () => {
 
     suite('Performance and Edge Cases', () => {
         test('should_handleLargeParameterList_when_constructorHasManyParameters', () => {
-            // Arrange: 많은 매개변수를 가진 생성자
+            // Arrange: Constructor with many parameters
             const parameters = [];
             for (let i = 0; i < 10; i++) {
                 parameters.push(createParameterInfo(`service${i}`, 'EmailService', i));
@@ -642,11 +642,11 @@ suite('Phase 2: Parameter-based Bean Resolution', () => {
             // Arrange
             const parameter = createParameterInfo('userRepository', 'UserRepository', 0);
             
-            // Act: 같은 매개변수를 여러 번 해결
+            // Act: Resolve same parameter multiple times
             const result1 = resolver.resolveBeanForParameter(parameter);
             const result2 = resolver.resolveBeanForParameter(parameter);
             
-            // Assert: 결과가 일관되어야 함
+            // Assert: Results should be consistent
             assert.deepStrictEqual(result1, result2, 'Results should be consistent');
             assert.strictEqual(result1.resolved?.name, result2.resolved?.name);
         });
@@ -664,7 +664,7 @@ function createSampleBeans(): BeanDefinition[] {
 
 function createNotificationBean(name: string, type: string): BeanDefinition {
     const bean = TestUtils.createBeanDefinition(name, type, `com.example.service.${type}`);
-    // 인터페이스 정보 추가를 위해 커스텀 필드 사용
+    // Use custom field to add interface information
     (bean as any).interfaces = ['NotificationService'];
     return bean;
 }
@@ -682,13 +682,13 @@ function createRepositoryBean(name: string, type: string): BeanDefinition {
 }
 
 /**
- * 인터페이스를 구현하는 Bean 정의를 생성합니다.
+ * Creates a Bean definition that implements interfaces.
  * 
- * @param name Bean 이름
- * @param type Bean 타입 (구현체 클래스명)
- * @param fullyQualifiedName 완전한 클래스명
- * @param interfaces 구현하는 인터페이스들
- * @returns Bean 정의
+ * @param name Bean name
+ * @param type Bean type (implementation class name)
+ * @param fullyQualifiedName Fully qualified class name
+ * @param interfaces Interfaces being implemented
+ * @returns Bean definition
  */
 function createImplementationBean(name: string, type: string, fullyQualifiedName: string, interfaces: string[]): BeanDefinition {
     const bean = TestUtils.createBeanDefinition(name, type, fullyQualifiedName);
@@ -696,8 +696,8 @@ function createImplementationBean(name: string, type: string, fullyQualifiedName
     return bean;
 }
 
-// Helper functions for Phase 2 parameter testing
-function createParameterInfo(name: string, type: string, index: number): import('../../models/spring-types').ParameterInfo {
+// Helper functions for parameter testing
+function createParameterInfo(name: string, type: string, index: number): ParameterInfo {
     return {
         name,
         type,
@@ -707,7 +707,7 @@ function createParameterInfo(name: string, type: string, index: number): import(
     };
 }
 
-function createConstructorInfo(parameters: import('../../models/spring-types').ParameterInfo[]): import('../../models/spring-types').ConstructorInfo {
+function createConstructorInfo(parameters: ParameterInfo[]): ConstructorInfo {
     return {
         parameters,
         position: new vscode.Position(5, 4),
@@ -717,7 +717,7 @@ function createConstructorInfo(parameters: import('../../models/spring-types').P
     };
 }
 
-function createMethodInfo(name: string, parameters: import('../../models/spring-types').ParameterInfo[], isSetterMethod: boolean): import('../../models/spring-types').MethodInfo {
+function createMethodInfo(name: string, parameters: ParameterInfo[], isSetterMethod: boolean): MethodInfo {
     return {
         name,
         parameters,

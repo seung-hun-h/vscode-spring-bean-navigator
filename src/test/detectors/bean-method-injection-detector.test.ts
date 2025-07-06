@@ -4,10 +4,10 @@ import { JavaFileParser } from '../../parsers/java-file-parser';
 import { InjectionType } from '../../models/spring-types';
 
 /**
- * @Bean 메서드 매개변수 주입 테스트
- * @Configuration 클래스의 @Bean 메서드에서 매개변수로 받는 Bean들을 감지하는 기능
+ * @Bean method parameter injection tests
+ * Tests the functionality of detecting beans received as parameters in @Bean methods of @Configuration classes
  */
-suite('🔧 Bean Method Parameter Injection Detection', () => {
+suite('Bean Method Parameter Injection Detection', () => {
     let parser: JavaFileParser;
 
     setup(() => {
@@ -15,7 +15,7 @@ suite('🔧 Bean Method Parameter Injection Detection', () => {
     });
 
     test('should_detectBeanMethodParameters_when_configurationClassPresent', async () => {
-        // Arrange - 사용자 제공 코드를 수정하여 사용
+        // Arrange - Using modified user-provided code
         const javaContent = `
             @Configuration
             public class OrderProcessingConfiguration {
@@ -58,11 +58,9 @@ suite('🔧 Bean Method Parameter Injection Detection', () => {
                 assert.ok(beanMethodInjections.length >= 6, 'Should detect at least 6 bean method parameter injections');
             }
 
-            // 최소한 @Configuration 클래스는 감지되어야 함
             const configurationAnnotation = classInfo.annotations.find(a => a.name === 'Configuration');
             assert.ok(configurationAnnotation, 'Should detect @Configuration annotation');
 
-            // @Bean 메서드도 감지되어야 함
             if (classInfo.methods && classInfo.methods.length > 0) {
                 const beanMethod = classInfo.methods.find(m => 
                     m.annotations?.some(a => a.name === 'Bean')
@@ -104,7 +102,6 @@ suite('🔧 Bean Method Parameter Injection Detection', () => {
         if (parseResult.classes.length > 0) {
             const classInfo = parseResult.classes[0];
 
-            // 최소한 2개의 메서드가 감지되어야 함
             assert.ok(classInfo.methods && classInfo.methods.length >= 2, 'Should detect at least 2 methods');
         }
     });

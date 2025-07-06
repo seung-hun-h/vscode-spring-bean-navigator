@@ -9,7 +9,7 @@ suite('CSTNavigator', () => {
         navigator = new CSTNavigator();
     });
 
-    // 타입 안전한 mock CST 생성 헬퍼
+    // Type-safe mock CST creation helper
     function createMockCST(content?: any): CompilationUnitNode {
         return {
             children: {
@@ -191,7 +191,7 @@ suite('CSTNavigator', () => {
                                     }
                                 },
                                 {
-                                    // 잘못된 구조
+                                    // Invalid structure
                                     children: {}
                                 }
                             ]
@@ -254,7 +254,7 @@ suite('CSTNavigator', () => {
                             typeDeclaration: [
                                 {
                                     children: {
-                                        // 인터페이스나 다른 타입
+                                        // Interface or other type
                                         interfaceDeclaration: [{}]
                                     }
                                 }
@@ -355,7 +355,7 @@ suite('CSTNavigator', () => {
         });
 
         test('should_logErrorsButNotThrow_when_unexpectedErrorOccurs', () => {
-            // Arrange - 타입 캐스팅으로 malformed 구조 허용
+            // Arrange - Allow malformed structure with type casting
             const malformedCST = {
                 children: {
                     ordinaryCompilationUnit: [{
@@ -363,7 +363,7 @@ suite('CSTNavigator', () => {
                             packageDeclaration: [{
                                 children: {
                                     Identifier: {
-                                        // 배열이어야 하는데 객체로 설정 - TypeError 발생 예상
+                                        // Should be array but set as object - expect TypeError
                                         map: () => { throw new Error('Unexpected error'); }
                                     }
                                 }

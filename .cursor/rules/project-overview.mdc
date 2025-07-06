@@ -1,55 +1,43 @@
----
-description: 
-globs: 
-alwaysApply: true
----
-# Spring Bean Navigator VSCode Extension 프로젝트 개요
+# Spring Bean Navigator VSCode Extension Project Overview
 
-## 프로젝트 목표
-Spring Bean Navigator는 Java/Kotlin Spring 프레임워크 개발자를 위한 VSCode Extension입니다. 
-클래스 멤버로 스프링 빈을 사용할 때 Editor에 아이콘을 표시하여 해당 빈의 구현 클래스로 쉽게 이동할 수 있도록 돕습니다.
+## Project Goal
+Spring Bean Navigator is a VSCode extension for Java/Kotlin Spring framework developers. It helps users easily navigate to the implementation class of a Spring bean by displaying an icon in the editor when a class member uses a Spring bean.
 
-## 핵심 기능
-1. **Bean 주입 감지**: 스프링의 다양한 빈 주입 방법을 인식
-   - 생성자 주입 (Constructor Injection)
-   - Setter 주입 (Setter Injection)
-   - 필드 주입 (@Autowired)
-   - Lombok 기반 주입 (@RequiredArgsConstructor 등)
+## Core Features
+1. **Bean Injection Detection**: Recognizes various Spring bean injection methods
+   - Constructor Injection
+   - Setter Injection
+   - Field Injection (@Autowired)
+   - Lombok-based Injection (@RequiredArgsConstructor, etc.)
 
-2. **코드 렌즈 (CodeLens)**: 빈이 주입된 필드/매개변수에 아이콘 표시
-3. **네비게이션**: 클릭으로 빈 구현체 클래스로 이동
-4. **빈 검색**: 프로젝트 내 모든 빈 정의 탐색
+2. **CodeLens**: Displays an icon on fields/parameters where beans are injected
+3. **Navigation**: Click to jump to the bean's implementation class
+4. **Bean Search**: Explore all bean definitions in the project
 
-## 프로젝트 구조
-- **메인 진입점**: [src/extension.ts](mdc:src/extension.ts) - Extension 활성화 및 초기화
-- **빌드 설정**: [webpack.config.js](mdc:webpack.config.js) - 번들링 구성
-- **패키지 정보**: [package.json](mdc:package.json) - Extension 메타데이터 및 의존성
-- **TypeScript 설정**: [tsconfig.json](mdc:tsconfig.json) - 컴파일러 옵션
+## Project Structure
+- **Main Entry Point**: [src/extension.ts](mdc:src/extension.ts) - Extension activation and initialization
+- **Build Config**: [webpack.config.js](mdc:webpack.config.js) - Bundling configuration
+- **Package Info**: [package.json](mdc:package.json) - Extension metadata and dependencies
+- **TypeScript Config**: [tsconfig.json](mdc:tsconfig.json) - Compiler options
 
-## 기술 스택
-- **언어**: TypeScript
-- **빌드 도구**: Webpack
-- **테스트**: VSCode Test API
-- **린팅**: ESLint
+## Tech Stack
+- **Language**: TypeScript
+- **Build Tool**: Webpack
+- **Testing**: VSCode Test API
+- **Linting**: ESLint
 
-## 개발 단계
-[development-phases.mdc](mdc:.cursor/rules/development-phases.mdc)
-1. **Phase 1**: Java 파일에서 @Autowired 어노테이션 탐지
-2. **Phase 2**: 생성자 주입 및 Setter 주입 지원
-3. **Phase 3**: Lombok 어노테이션 지원 (@RequiredArgsConstructor, @AllArgsConstructor)
-4. **Phase 4**: Kotlin 지원 확장
+## Architectural Principles
+- **Modularity**: Separate each feature into independent modules
+- **Extensibility**: Easily add new Spring annotations and patterns
+- **Performance**: Re-analyze only on file changes, utilize caching
+- **User Experience**: Intuitive UI/UX, fast response time
 
-## 아키텍처 원칙
-- **모듈성**: 각 기능을 독립적인 모듈로 분리
-- **확장성**: 새로운 Spring 어노테이션 및 패턴 쉽게 추가 가능
-- **성능**: 파일 변경 시에만 재분석, 캐싱 활용
-- **사용자 경험**: 직관적인 UI/UX, 빠른 응답 시간
+## Key Classes (Planned)
+- `SpringBeanDetector`: Detects Spring bean injection patterns
+- `BeanDefinitionProvider`: Provides bean definition information
+- `NavigationProvider`: Handles navigation to bean implementations
+- `CodeLensProvider`: Displays icons in the editor
 
-## 주요 클래스 (예정)
-- `SpringBeanDetector`: 스프링 빈 주입 패턴 탐지
-- `BeanDefinitionProvider`: 빈 정의 정보 제공
-- `NavigationProvider`: 빈 구현체로의 네비게이션 처리
-- `CodeLensProvider`: Editor에 아이콘 표시
+## Development Process
+Development process described in [development-process-standards.mdc](mdc:.cursor/rules/development-process-standards.mdc). This ensures consistency, code quality, and adherence to TDD and modular design principles throughout the project.
 
-## 테스트
-- [test-strategy.mdc](mdc:.cursor/rules/test-strategy.mdc)를 참고하여 메서드를 작성할 때 마다 테스트를 작성한다

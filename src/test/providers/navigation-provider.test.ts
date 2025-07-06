@@ -1,7 +1,8 @@
 import * as assert from 'assert';
+import * as vscode from 'vscode';
+import { TestUtils } from '../helpers/core-test-utils';
 import { SpringNavigationProvider } from '../../providers/navigation-provider';
-import { BeanDefinition } from '../../models/spring-types';
-import { TestUtils } from '../helpers/test-utils';
+import { SpringAnnotationType, InjectionType, BeanDefinition } from '../../models/spring-types';
 
 suite('SpringNavigationProvider', () => {
     let provider: SpringNavigationProvider;

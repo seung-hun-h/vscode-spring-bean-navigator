@@ -3,11 +3,11 @@ import * as vscode from 'vscode';
 import { FieldExtractor } from '../../../parsers/extractors/field-extractor';
 import { PositionCalculator } from '../../../parsers/core/position-calculator';
 import { AnnotationParser } from '../../../parsers/extractors/annotation-parser';
-import { SpringAnnotationType } from '../../../models/spring-types';
-import { FieldMockBuilder } from '../../helpers/test-utils';
+import { SpringAnnotationType, AnnotationInfo, FieldInfo } from '../../../models/spring-types';
+import { FieldMockBuilder } from '../../helpers/field-mock-builder';
 
 /**
- * FieldExtractor 테스트 스위트
+ * FieldExtractor test suite
  */
 suite('FieldExtractor', () => {
     let fieldExtractor: FieldExtractor;
@@ -23,65 +23,13 @@ suite('FieldExtractor', () => {
     suite('extractFields', () => {
         test('should_extractSingleField_when_classHasOneField', () => {
             // Arrange
-            const mockClassDecl = {
-                children: {
-                    normalClassDeclaration: [{
-                        children: {
-                            classBody: [{
-                                children: {
-                                    classBodyDeclaration: [{
-                                        children: {
-                                            classMemberDeclaration: [{
-                                                children: {
-                                                    fieldDeclaration: [{
-                                                        children: {
-                                                            unannType: [{
-                                                                children: {
-                                                                    unannReferenceType: [{
-                                                                        children: {
-                                                                            unannClassOrInterfaceType: [{
-                                                                                children: {
-                                                                                    unannClassType: [{
-                                                                                        children: {
-                                                                                            Identifier: [{
-                                                                                                image: 'String'
-                                                                                            }]
-                                                                                        }
-                                                                                    }]
-                                                                                }
-                                                                            }]
-                                                                        }
-                                                                    }]
-                                                                }
-                                                            }],
-                                                            variableDeclaratorList: [{
-                                                                children: {
-                                                                    variableDeclarator: [{
-                                                                        children: {
-                                                                            variableDeclaratorId: [{
-                                                                                children: {
-                                                                                    Identifier: [{
-                                                                                        image: 'name'
-                                                                                    }]
-                                                                                }
-                                                                            }]
-                                                                        }
-                                                                    }]
-                                                                }
-                                                            }],
-                                                            fieldModifier: []
-                                                        }
-                                                    }]
-                                                }
-                                            }]
-                                        }
-                                    }]
-                                }
-                            }]
-                        }
-                    }]
-                }
-            };
+            const mockFieldDecl = FieldMockBuilder.create()
+                .withName('name')
+                .withType('String')
+                .asPrivate()
+                .build();
+            
+            const mockClassDecl = createClassWithFields([mockFieldDecl]);
             const lines = ['class TestClass {', '    private String name;', '}'];
 
             // Act
@@ -95,114 +43,19 @@ suite('FieldExtractor', () => {
 
         test('should_extractMultipleFields_when_classHasMultipleFields', () => {
             // Arrange
-            const mockClassDecl = {
-                children: {
-                    normalClassDeclaration: [{
-                        children: {
-                            classBody: [{
-                                children: {
-                                    classBodyDeclaration: [
-                                        {
-                                            children: {
-                                                classMemberDeclaration: [{
-                                                    children: {
-                                                        fieldDeclaration: [{
-                                                            children: {
-                                                                unannType: [{
-                                                                    children: {
-                                                                        unannReferenceType: [{
-                                                                            children: {
-                                                                                unannClassOrInterfaceType: [{
-                                                                                    children: {
-                                                                                        unannClassType: [{
-                                                                                            children: {
-                                                                                                Identifier: [{
-                                                                                                    image: 'String'
-                                                                                                }]
-                                                                                            }
-                                                                                        }]
-                                                                                    }
-                                                                                }]
-                                                                            }
-                                                                        }]
-                                                                    }
-                                                                }],
-                                                                variableDeclaratorList: [{
-                                                                    children: {
-                                                                        variableDeclarator: [{
-                                                                            children: {
-                                                                                variableDeclaratorId: [{
-                                                                                    children: {
-                                                                                        Identifier: [{
-                                                                                            image: 'name'
-                                                                                        }]
-                                                                                    }
-                                                                                }]
-                                                                            }
-                                                                        }]
-                                                                    }
-                                                                }],
-                                                                fieldModifier: []
-                                                            }
-                                                        }]
-                                                    }
-                                                }]
-                                            }
-                                        },
-                                        {
-                                            children: {
-                                                classMemberDeclaration: [{
-                                                    children: {
-                                                        fieldDeclaration: [{
-                                                            children: {
-                                                                unannType: [{
-                                                                    children: {
-                                                                        unannReferenceType: [{
-                                                                            children: {
-                                                                                unannClassOrInterfaceType: [{
-                                                                                    children: {
-                                                                                        unannClassType: [{
-                                                                                            children: {
-                                                                                                Identifier: [{
-                                                                                                    image: 'Integer'
-                                                                                                }]
-                                                                                            }
-                                                                                        }]
-                                                                                    }
-                                                                                }]
-                                                                            }
-                                                                        }]
-                                                                    }
-                                                                }],
-                                                                variableDeclaratorList: [{
-                                                                    children: {
-                                                                        variableDeclarator: [{
-                                                                            children: {
-                                                                                variableDeclaratorId: [{
-                                                                                    children: {
-                                                                                        Identifier: [{
-                                                                                            image: 'age'
-                                                                                        }]
-                                                                                    }
-                                                                                }]
-                                                                            }
-                                                                        }]
-                                                                    }
-                                                                }],
-                                                                fieldModifier: []
-                                                            }
-                                                        }]
-                                                    }
-                                                }]
-                                            }
-                                        }
-                                    ]
-                                }
-                            }]
-                        }
-                    }]
-                }
-            };
+            const nameField = FieldMockBuilder.create()
+                .withName('name')
+                .withType('String')
+                .asPrivate()
+                .build();
+            
+            const ageField = FieldMockBuilder.create()
+                .withName('age')
+                .withType('Integer')
+                .asPrivate()
+                .build();
+            
+            const mockClassDecl = createClassWithFields([nameField, ageField]);
             const lines = ['class TestClass {', '    private String name;', '    private Integer age;', '}'];
 
             // Act
@@ -218,19 +71,7 @@ suite('FieldExtractor', () => {
 
         test('should_returnEmptyArray_when_classHasNoFields', () => {
             // Arrange
-            const mockClassDecl = {
-                children: {
-                    normalClassDeclaration: [{
-                        children: {
-                            classBody: [{
-                                children: {
-                                    classBodyDeclaration: []
-                                }
-                            }]
-                        }
-                    }]
-                }
-            };
+            const mockClassDecl = createClassWithFields([]);
             const lines = ['class TestClass {', '}'];
 
             // Act
@@ -244,49 +85,11 @@ suite('FieldExtractor', () => {
     suite('parseFieldDeclaration', () => {
         test('should_parseFieldDeclaration_when_validFieldProvided', () => {
             // Arrange
-            const mockFieldDecl = {
-                children: {
-                    unannType: [{
-                        children: {
-                            unannReferenceType: [{
-                                children: {
-                                    unannClassOrInterfaceType: [{
-                                        children: {
-                                            unannClassType: [{
-                                                children: {
-                                                    Identifier: [{
-                                                        image: 'UserService'
-                                                    }]
-                                                }
-                                            }]
-                                        }
-                                    }]
-                                }
-                            }]
-                        }
-                    }],
-                    variableDeclaratorList: [{
-                        children: {
-                            variableDeclarator: [{
-                                children: {
-                                    variableDeclaratorId: [{
-                                        children: {
-                                            Identifier: [{
-                                                image: 'userService'
-                                            }]
-                                        }
-                                    }]
-                                }
-                            }]
-                        }
-                    }],
-                    fieldModifier: [{
-                        children: {
-                            Private: [{ image: 'private' }]
-                        }
-                    }]
-                }
-            };
+            const mockFieldDecl = FieldMockBuilder.create()
+                .withName('userService')
+                .withType('UserService')
+                .asPrivate()
+                .build();
             const lines = ['class TestClass {', '    private UserService userService;', '}'];
 
             // Act
@@ -303,26 +106,7 @@ suite('FieldExtractor', () => {
 
         test('should_returnUndefined_when_fieldTypeNotFound', () => {
             // Arrange
-            const mockFieldDecl = {
-                children: {
-                    variableDeclaratorList: [{
-                        children: {
-                            variableDeclarator: [{
-                                children: {
-                                    variableDeclaratorId: [{
-                                        children: {
-                                            Identifier: [{
-                                                image: 'userService'
-                                            }]
-                                        }
-                                    }]
-                                }
-                            }]
-                        }
-                    }],
-                    fieldModifier: []
-                }
-            };
+            const mockFieldDecl = createFieldWithoutType('userService');
             const lines = ['class TestClass {', '    userService;', '}'];
 
             // Act
@@ -334,30 +118,7 @@ suite('FieldExtractor', () => {
 
         test('should_returnUndefined_when_fieldNameNotFound', () => {
             // Arrange
-            const mockFieldDecl = {
-                children: {
-                    unannType: [{
-                        children: {
-                            unannReferenceType: [{
-                                children: {
-                                    unannClassOrInterfaceType: [{
-                                        children: {
-                                            unannClassType: [{
-                                                children: {
-                                                    Identifier: [{
-                                                        image: 'UserService'
-                                                    }]
-                                                }
-                                            }]
-                                        }
-                                    }]
-                                }
-                            }]
-                        }
-                    }],
-                    fieldModifier: []
-                }
-            };
+            const mockFieldDecl = createFieldWithoutName('UserService');
             const lines = ['class TestClass {', '    UserService;', '}'];
 
             // Act
@@ -368,7 +129,7 @@ suite('FieldExtractor', () => {
         });
 
         test('should_detectFinalReferenceField_when_finalStringFieldProvided', () => {
-            // Arrange - final String 필드 (FieldMockBuilder 사용)
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.privateFinalString('name');
             const lines = ['private final String name;'];
 
@@ -384,7 +145,7 @@ suite('FieldExtractor', () => {
         });
 
         test('should_detectLombokNonNull_when_lombokNonNullAnnotationPresent', () => {
-            // Arrange - @lombok.NonNull 어노테이션이 있는 필드
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.withNonNullAnnotation('repository', 'UserRepository');
             const lines = ['@lombok.NonNull', 'private UserRepository repository;'];
 
@@ -400,11 +161,10 @@ suite('FieldExtractor', () => {
         });
 
         test('should_detectPackagePrivateField_when_noAccessModifierSpecified', () => {
-            // Arrange - 접근 제어자가 없는 필드 (package-private)
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.create()
                 .withName('packageField')
                 .withType('String')
-                // 접근 제어자 없이 생성
                 .build();
             const lines = ['String packageField;'];
 
@@ -415,20 +175,20 @@ suite('FieldExtractor', () => {
             assert.ok(result);
             assert.strictEqual(result.name, 'packageField');
             assert.strictEqual(result.type, 'String');
-            assert.strictEqual(result.visibility, undefined); // package-private는 undefined
+            assert.strictEqual(result.visibility, undefined); // package-private is undefined
             assert.strictEqual(result.isFinal, false);
             assert.strictEqual(result.isStatic, false);
         });
 
         test('should_detectSpringNonNull_when_springNonNullAnnotationPresent', () => {
-            // Arrange - Spring Framework @NonNull 어노테이션
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.create()
                 .withName('userService')
                 .withType('UserService')
                 .asPrivate()
                 .build();
             
-            // Spring @NonNull 어노테이션 추가
+            // Add Spring @NonNull annotation
             mockFieldDecl.children.fieldModifier.push({
                 children: {
                     annotation: [{
@@ -458,14 +218,14 @@ suite('FieldExtractor', () => {
         });
 
         test('should_detectJavaxNonnull_when_javaxNonnullAnnotationPresent', () => {
-            // Arrange - JSR-305 @Nonnull 어노테이션
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.create()
                 .withName('dataService')
                 .withType('DataService')
                 .asPrivate()
                 .build();
             
-            // JSR-305 @Nonnull 어노테이션 추가 (대소문자 다름 주의)
+            // Add JSR-305 @Nonnull annotation (lowercase 'n')
             mockFieldDecl.children.fieldModifier.push({
                 children: {
                     annotation: [{
@@ -473,7 +233,7 @@ suite('FieldExtractor', () => {
                             At: [{ image: '@' }],
                             typeName: [{
                                 children: {
-                                    Identifier: [{ image: 'Nonnull' }]  // 소문자 n
+                                    Identifier: [{ image: 'Nonnull' }]
                                 }
                             }]
                         }
@@ -495,7 +255,7 @@ suite('FieldExtractor', () => {
         });
 
         test('should_detectNonNullOnFinalField_when_bothModifiersPresent', () => {
-            // Arrange - final + @NonNull 조합 필드
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.create()
                 .withName('repository')
                 .withType('UserRepository')
@@ -503,7 +263,7 @@ suite('FieldExtractor', () => {
                 .asFinal()
                 .build();
             
-            // @NonNull 어노테이션 추가
+            // Add @NonNull annotation
             mockFieldDecl.children.fieldModifier.push({
                 children: {
                     annotation: [{
@@ -534,7 +294,7 @@ suite('FieldExtractor', () => {
         });
 
         test('should_detectFinalFieldWithInitializer_when_defaultValuePresent', () => {
-            // Arrange - 초기값이 있는 final 필드
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.create()
                 .withName('DEFAULT_NAME')
                 .withType('String')
@@ -546,7 +306,7 @@ suite('FieldExtractor', () => {
             // Act
             const result = fieldExtractor.parseFieldDeclaration(mockFieldDecl, lines);
 
-            // Assert - 초기값과 상관없이 final 속성이 탐지되어야 함
+            // Assert
             assert.ok(result);
             assert.strictEqual(result.name, 'DEFAULT_NAME');
             assert.strictEqual(result.type, 'String');
@@ -555,11 +315,10 @@ suite('FieldExtractor', () => {
         });
 
         test('should_detectFinalGenericField_when_genericTypeUsed', () => {
-            // Arrange - final 제네릭 타입 필드 (List<String> 등)
-            // 제네릭 타입은 현재 단순화해서 기본 타입명만 추출
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.create()
                 .withName('items')
-                .withType('List')  // 제네릭 부분은 단순화
+                .withType('List')  // Generic part is simplified
                 .asPrivate()
                 .asFinal()
                 .build();
@@ -568,23 +327,23 @@ suite('FieldExtractor', () => {
             // Act
             const result = fieldExtractor.parseFieldDeclaration(mockFieldDecl, lines);
 
-            // Assert - 제네릭 타입도 기본 탐지 가능해야 함
+            // Assert
             assert.ok(result);
             assert.strictEqual(result.name, 'items');
-            assert.strictEqual(result.type, 'List');  // 제네릭 부분은 현재 무시
+            assert.strictEqual(result.type, 'List');  // Generic part is currently ignored
             assert.strictEqual(result.isFinal, true);
             assert.strictEqual(result.visibility, 'private');
         });
 
         test('should_prioritizeLombokNonNull_when_multipleNonNullAnnotationsPresent', () => {
-            // Arrange - 여러 NonNull 어노테이션이 동시에 있는 필드
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.create()
                 .withName('service')
                 .withType('DataService')
                 .asPrivate()
                 .build();
             
-            // 여러 NonNull 어노테이션 추가 (실제로는 첫 번째만 인식될 것)
+            // Add multiple NonNull annotations (only first one will be recognized)
             mockFieldDecl.children.fieldModifier.push({
                 children: {
                     annotation: [{
@@ -592,7 +351,7 @@ suite('FieldExtractor', () => {
                             At: [{ image: '@' }],
                             typeName: [{
                                 children: {
-                                    Identifier: [{ image: 'NonNull' }]  // Lombok
+                                    Identifier: [{ image: 'NonNull' }]
                                 }
                             }]
                         }
@@ -605,7 +364,7 @@ suite('FieldExtractor', () => {
             // Act
             const result = fieldExtractor.parseFieldDeclaration(mockFieldDecl, lines);
 
-            // Assert - 첫 번째 어노테이션이 인식됨 (실제로는 어노테이션 하나만 처리)
+            // Assert
             assert.ok(result);
             assert.strictEqual(result.name, 'service');
             assert.strictEqual(result.type, 'DataService');
@@ -616,7 +375,7 @@ suite('FieldExtractor', () => {
 
     suite('extractFieldType', () => {
         test('should_extractFieldType_when_validFieldProvided', () => {
-            // Arrange - FieldMockBuilder 사용
+            // Arrange - Using FieldMockBuilder
             const mockField = FieldMockBuilder.create()
                 .withType('String')
                 .build();
@@ -630,11 +389,7 @@ suite('FieldExtractor', () => {
 
         test('should_returnUndefined_when_invalidTypeStructure', () => {
             // Arrange
-            const mockFieldDecl = {
-                children: {
-                    invalidType: [{}]
-                }
-            } as any;
+            const mockFieldDecl = createInvalidFieldStructure();
 
             // Act
             const result = fieldExtractor.extractFieldType(mockFieldDecl);
@@ -647,25 +402,9 @@ suite('FieldExtractor', () => {
     suite('extractFieldName', () => {
         test('should_extractFieldName_when_validFieldProvided', () => {
             // Arrange
-            const mockField = {
-                children: {
-                    variableDeclaratorList: [{
-                        children: {
-                            variableDeclarator: [{
-                                children: {
-                                    variableDeclaratorId: [{
-                                        children: {
-                                            Identifier: [{
-                                                image: 'userName'
-                                            }]
-                                        }
-                                    }]
-                                }
-                            }]
-                        }
-                    }]
-                }
-            };
+            const mockField = FieldMockBuilder.create()
+                .withName('userName')
+                .build();
 
             // Act
             const result = fieldExtractor.extractFieldName(mockField);
@@ -676,11 +415,7 @@ suite('FieldExtractor', () => {
 
         test('should_returnUndefined_when_invalidNameStructure', () => {
             // Arrange
-            const mockFieldDecl = {
-                children: {
-                    invalidName: [{}]
-                }
-            } as any;
+            const mockFieldDecl = createInvalidFieldStructure();
 
             // Act
             const result = fieldExtractor.extractFieldName(mockFieldDecl);
@@ -693,15 +428,7 @@ suite('FieldExtractor', () => {
     suite('extractFieldModifiers', () => {
         test('should_extractPrivateModifier_when_privateFieldProvided', () => {
             // Arrange
-            const mockFieldDecl = {
-                children: {
-                    fieldModifier: [{
-                        children: {
-                            Private: [{ image: 'private' }]
-                        }
-                    }]
-                }
-            };
+            const mockFieldDecl = createFieldWithModifier('Private', 'private');
 
             // Act
             const result = fieldExtractor.extractFieldModifiers(mockFieldDecl);
@@ -714,15 +441,7 @@ suite('FieldExtractor', () => {
 
         test('should_extractPublicModifier_when_publicFieldProvided', () => {
             // Arrange
-            const mockFieldDecl = {
-                children: {
-                    fieldModifier: [{
-                        children: {
-                            Public: [{ image: 'public' }]
-                        }
-                    }]
-                }
-            };
+            const mockFieldDecl = createFieldWithModifier('Public', 'public');
 
             // Act
             const result = fieldExtractor.extractFieldModifiers(mockFieldDecl);
@@ -735,15 +454,7 @@ suite('FieldExtractor', () => {
 
         test('should_extractProtectedModifier_when_protectedFieldProvided', () => {
             // Arrange
-            const mockFieldDecl = {
-                children: {
-                    fieldModifier: [{
-                        children: {
-                            Protected: [{ image: 'protected' }]
-                        }
-                    }]
-                }
-            };
+            const mockFieldDecl = createFieldWithModifier('Protected', 'protected');
 
             // Act
             const result = fieldExtractor.extractFieldModifiers(mockFieldDecl);
@@ -756,15 +467,7 @@ suite('FieldExtractor', () => {
 
         test('should_extractFinalModifier_when_finalFieldProvided', () => {
             // Arrange
-            const mockFieldDecl = {
-                children: {
-                    fieldModifier: [{
-                        children: {
-                            Final: [{ image: 'final' }]
-                        }
-                    }]
-                }
-            };
+            const mockFieldDecl = createFieldWithModifier('Final', 'final');
 
             // Act
             const result = fieldExtractor.extractFieldModifiers(mockFieldDecl);
@@ -777,15 +480,7 @@ suite('FieldExtractor', () => {
 
         test('should_extractStaticModifier_when_staticFieldProvided', () => {
             // Arrange
-            const mockFieldDecl = {
-                children: {
-                    fieldModifier: [{
-                        children: {
-                            Static: [{ image: 'static' }]
-                        }
-                    }]
-                }
-            };
+            const mockFieldDecl = createFieldWithModifier('Static', 'static');
 
             // Act
             const result = fieldExtractor.extractFieldModifiers(mockFieldDecl);
@@ -819,26 +514,7 @@ suite('FieldExtractor', () => {
     suite('extractFieldAnnotations', () => {
         test('should_extractAutowiredAnnotation_when_autowiredFieldProvided', () => {
             // Arrange
-            const mockFieldDecl = {
-                children: {
-                    fieldModifier: [{
-                        children: {
-                            annotation: [{
-                                children: {
-                                    At: [{ image: '@' }],
-                                    typeName: [{
-                                        children: {
-                                            Identifier: [{
-                                                image: 'Autowired'
-                                            }]
-                                        }
-                                    }]
-                                }
-                            }]
-                        }
-                    }]
-                }
-            };
+            const mockFieldDecl = createFieldWithAnnotation('Autowired');
             const lines = ['class TestClass {', '    @Autowired', '    private UserService userService;', '}'];
 
             // Act
@@ -852,11 +528,7 @@ suite('FieldExtractor', () => {
 
         test('should_returnEmptyArray_when_noAnnotationsProvided', () => {
             // Arrange
-            const mockFieldDecl = {
-                children: {
-                    fieldModifier: []
-                }
-            };
+            const mockFieldDecl = createFieldWithoutAnnotations();
             const lines = ['class TestClass {', '    private UserService userService;', '}'];
 
             // Act
@@ -1060,58 +732,29 @@ suite('FieldExtractor', () => {
         });
 
         test('should_logErrorButNotThrow_when_unexpectedErrorOccurs', () => {
-            // Arrange - 순환 참조로 에러 발생시키기
+            // Arrange - Create circular reference to trigger error
             const circularRef: any = {};
             circularRef.children = circularRef;
             const lines = ['class TestClass {', '}'];
 
-            // Act & Assert - 에러를 던지지 않고 결과를 반환해야 함
+            // Act & Assert - Should not throw error and return result
             const result = fieldExtractor.extractFields(circularRef, lines);
             assert.strictEqual(result.length, 0);
         });
     });
 
     // ======================================================
-    // 🔧 Task 1.2: Lombok Field Analysis Expansion
     // ======================================================
-    suite('🔧 Task 1.2: Final Field Detection (Lombok Support)', () => {
+    // Lombok Field Analysis Expansion
+    // ======================================================
+    suite('Final Field Detection (Lombok Support)', () => {
         test('should_detectFinalPrimitiveField_when_finalIntFieldProvided', () => {
-            // Arrange - final int 필드
-            const mockFieldDecl = {
-                children: {
-                    unannType: [{
-                        children: {
-                            unannPrimitiveType: [{
-                                children: {
-                                    IntegralType: [{
-                                        children: {
-                                            Int: [{ image: 'int' }]
-                                        }
-                                    }]
-                                }
-                            }]
-                        }
-                    }],
-                    variableDeclaratorList: [{
-                        children: {
-                            variableDeclarator: [{
-                                children: {
-                                    variableDeclaratorId: [{
-                                        children: {
-                                            Identifier: [{ image: 'id' }]
-                                        }
-                                    }]
-                                }
-                            }]
-                        }
-                    }],
-                    fieldModifier: [{
-                        children: {
-                            Final: [{ image: 'final' }]
-                        }
-                    }]
-                }
-            };
+            // Arrange
+            const mockFieldDecl = FieldMockBuilder.create()
+                .withName('id')
+                .withPrimitiveType('int')
+                .asFinal()
+                .build();
             const lines = ['private final int id;'];
 
             // Act
@@ -1125,7 +768,7 @@ suite('FieldExtractor', () => {
         });
 
         test('should_detectFinalReferenceField_when_finalStringFieldProvided', () => {
-            // Arrange - final String 필드 (FieldMockBuilder 사용)
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.privateFinalString('name');
             const lines = ['private final String name;'];
 
@@ -1141,7 +784,7 @@ suite('FieldExtractor', () => {
         });
 
         test('should_detectMultipleFinalFields_when_severalFinalFieldsProvided', () => {
-            // Arrange - 여러 final 필드가 있는 클래스 mock
+            // Arrange
             const mockClassDecl = {
                 children: {
                     normalClassDeclaration: [{
@@ -1190,7 +833,7 @@ suite('FieldExtractor', () => {
         });
 
         test('should_excludeStaticFinalFields_when_lombokAnalysisRequested', () => {
-            // Arrange - static final 필드
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.privateStaticFinalString('CONSTANT');
             const lines = ['private static final String CONSTANT;'];
 
@@ -1204,11 +847,11 @@ suite('FieldExtractor', () => {
             assert.strictEqual(result.isFinal, true);
             assert.strictEqual(result.isStatic, true);
             assert.strictEqual(result.visibility, 'private');
-            // static final 필드는 Lombok constructor에서 제외되어야 함
+            // Static final fields should be excluded from Lombok constructors
         });
 
         test('should_detectFinalFieldWithInitializer_when_defaultValuePresent', () => {
-            // Arrange - 초기값이 있는 final 필드
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.create()
                 .withName('DEFAULT_NAME')
                 .withType('String')
@@ -1220,7 +863,7 @@ suite('FieldExtractor', () => {
             // Act
             const result = fieldExtractor.parseFieldDeclaration(mockFieldDecl, lines);
 
-            // Assert - 초기값과 상관없이 final 속성이 탐지되어야 함
+            // Assert
             assert.ok(result);
             assert.strictEqual(result.name, 'DEFAULT_NAME');
             assert.strictEqual(result.type, 'String');
@@ -1229,11 +872,10 @@ suite('FieldExtractor', () => {
         });
 
         test('should_detectFinalGenericField_when_genericTypeUsed', () => {
-            // Arrange - final 제네릭 타입 필드 (List<String> 등)
-            // 제네릭 타입은 현재 단순화해서 기본 타입명만 추출
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.create()
                 .withName('items')
-                .withType('List')  // 제네릭 부분은 단순화
+                .withType('List')  // Generic part is simplified
                 .asPrivate()
                 .asFinal()
                 .build();
@@ -1242,18 +884,18 @@ suite('FieldExtractor', () => {
             // Act
             const result = fieldExtractor.parseFieldDeclaration(mockFieldDecl, lines);
 
-            // Assert - 제네릭 타입도 기본 탐지 가능해야 함
+            // Assert
             assert.ok(result);
             assert.strictEqual(result.name, 'items');
-            assert.strictEqual(result.type, 'List');  // 제네릭 부분은 현재 무시
+            assert.strictEqual(result.type, 'List');  // Generic part is currently ignored
             assert.strictEqual(result.isFinal, true);
             assert.strictEqual(result.visibility, 'private');
         });
     });
 
-    suite('🔧 Task 1.2: NonNull Annotation Detection', () => {
+    suite('NonNull Annotation Detection', () => {
         test('should_detectLombokNonNull_when_lombokNonNullAnnotationPresent', () => {
-            // Arrange - @lombok.NonNull 어노테이션이 있는 필드
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.withNonNullAnnotation('repository', 'UserRepository');
             const lines = ['@lombok.NonNull', 'private UserRepository repository;'];
 
@@ -1269,14 +911,14 @@ suite('FieldExtractor', () => {
         });
 
         test('should_detectSpringNonNull_when_springNonNullAnnotationPresent', () => {
-            // Arrange - Spring Framework @NonNull 어노테이션
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.create()
                 .withName('userService')
                 .withType('UserService')
                 .asPrivate()
                 .build();
             
-            // Spring @NonNull 어노테이션 추가
+            // Add Spring @NonNull annotation
             mockFieldDecl.children.fieldModifier.push({
                 children: {
                     annotation: [{
@@ -1306,14 +948,14 @@ suite('FieldExtractor', () => {
         });
 
         test('should_detectJavaxNonnull_when_javaxNonnullAnnotationPresent', () => {
-            // Arrange - JSR-305 @Nonnull 어노테이션
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.create()
                 .withName('dataService')
                 .withType('DataService')
                 .asPrivate()
                 .build();
             
-            // JSR-305 @Nonnull 어노테이션 추가 (대소문자 다름 주의)
+            // Add JSR-305 @Nonnull annotation (lowercase 'n')
             mockFieldDecl.children.fieldModifier.push({
                 children: {
                     annotation: [{
@@ -1321,7 +963,7 @@ suite('FieldExtractor', () => {
                             At: [{ image: '@' }],
                             typeName: [{
                                 children: {
-                                    Identifier: [{ image: 'Nonnull' }]  // 소문자 n
+                                    Identifier: [{ image: 'Nonnull' }]
                                 }
                             }]
                         }
@@ -1343,7 +985,7 @@ suite('FieldExtractor', () => {
         });
 
         test('should_detectNonNullOnFinalField_when_bothModifiersPresent', () => {
-            // Arrange - final + @NonNull 조합 필드
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.create()
                 .withName('repository')
                 .withType('UserRepository')
@@ -1351,7 +993,7 @@ suite('FieldExtractor', () => {
                 .asFinal()
                 .build();
             
-            // @NonNull 어노테이션 추가
+            // Add @NonNull annotation
             mockFieldDecl.children.fieldModifier.push({
                 children: {
                     annotation: [{
@@ -1382,14 +1024,14 @@ suite('FieldExtractor', () => {
         });
 
         test('should_prioritizeLombokNonNull_when_multipleNonNullAnnotationsPresent', () => {
-            // Arrange - 여러 NonNull 어노테이션이 동시에 있는 필드
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.create()
                 .withName('service')
                 .withType('DataService')
                 .asPrivate()
                 .build();
             
-            // 여러 NonNull 어노테이션 추가 (실제로는 첫 번째만 인식될 것)
+            // Add multiple NonNull annotations (only first one will be recognized)
             mockFieldDecl.children.fieldModifier.push({
                 children: {
                     annotation: [{
@@ -1397,7 +1039,7 @@ suite('FieldExtractor', () => {
                             At: [{ image: '@' }],
                             typeName: [{
                                 children: {
-                                    Identifier: [{ image: 'NonNull' }]  // Lombok
+                                    Identifier: [{ image: 'NonNull' }]
                                 }
                             }]
                         }
@@ -1410,7 +1052,7 @@ suite('FieldExtractor', () => {
             // Act
             const result = fieldExtractor.parseFieldDeclaration(mockFieldDecl, lines);
 
-            // Assert - 첫 번째 어노테이션이 인식됨 (실제로는 어노테이션 하나만 처리)
+            // Assert
             assert.ok(result);
             assert.strictEqual(result.name, 'service');
             assert.strictEqual(result.type, 'DataService');
@@ -1419,13 +1061,12 @@ suite('FieldExtractor', () => {
         });
     });
 
-    suite('🔧 Task 1.2: Enhanced Access Modifier Analysis', () => {
+    suite('Enhanced Access Modifier Analysis', () => {
         test('should_detectPackagePrivateField_when_noAccessModifierSpecified', () => {
-            // Act - 접근 제어자가 없는 필드 (package-private)
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.create()
                 .withName('packageField')
                 .withType('String')
-                // 접근 제어자 없이 생성
                 .build();
             const lines = ['String packageField;'];
 
@@ -1436,13 +1077,13 @@ suite('FieldExtractor', () => {
             assert.ok(result);
             assert.strictEqual(result.name, 'packageField');
             assert.strictEqual(result.type, 'String');
-            assert.strictEqual(result.visibility, undefined); // package-private는 undefined
+            assert.strictEqual(result.visibility, undefined); // package-private is undefined
             assert.strictEqual(result.isFinal, false);
             assert.strictEqual(result.isStatic, false);
         });
 
         test('should_analyzeComplexModifierCombination_when_multipleModifiersPresent', () => {
-            // Arrange - private final static 조합
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.create()
                 .withName('INSTANCE')
                 .withType('MyClass')
@@ -1465,7 +1106,7 @@ suite('FieldExtractor', () => {
         });
 
         test('should_detectTransientField_when_transientModifierPresent', () => {
-            // Arrange - transient 필드 (직렬화에서 제외되는 필드)
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.create()
                 .withName('tempData')
                 .withType('String')
@@ -1482,11 +1123,11 @@ suite('FieldExtractor', () => {
             assert.strictEqual(result.name, 'tempData');
             assert.strictEqual(result.type, 'String');
             assert.strictEqual(result.visibility, 'private');
-            // transient는 현재 별도 속성으로 처리되지 않지만 필드 자체는 탐지되어야 함
+            // Transient is not tracked as a separate property but field should be detected
         });
 
         test('should_detectVolatileField_when_volatileModifierPresent', () => {
-            // Arrange - volatile 필드 (메모리 가시성 보장)
+            // Arrange
             const mockFieldDecl = FieldMockBuilder.create()
                 .withName('flag')
                 .withPrimitiveType('boolean')
@@ -1503,107 +1144,219 @@ suite('FieldExtractor', () => {
             assert.strictEqual(result.name, 'flag');
             assert.strictEqual(result.type, 'boolean');
             assert.strictEqual(result.visibility, 'private');
-            // volatile는 현재 별도 속성으로 처리되지 않지만 필드 자체는 탐지되어야 함
+            // Volatile is not tracked as a separate property but field should be detected
         });
     });
 
-    suite('🔧 Task 1.2: Lombok Field Classification', () => {
+    suite('Lombok Field Classification', () => {
         test('should_classifyRequiredArgsConstructorFields_when_finalAndNonNullFieldsPresent', () => {
-            // Arrange - final 필드와 @NonNull 필드, 일반 필드 혼재
-            const finalField = fieldExtractor.parseFieldDeclaration(
-                FieldMockBuilder.privateFinalString('name'), 
-                ['private final String name;']
-            );
-            const nonNullField = fieldExtractor.parseFieldDeclaration(
-                FieldMockBuilder.withNonNullAnnotation('userService', 'UserService'), 
-                ['@NonNull private UserService userService;']
-            );
-            const normalField = fieldExtractor.parseFieldDeclaration(
-                FieldMockBuilder.create().withName('temp').withType('String').asPrivate().build(),
-                ['private String temp;']
+            // Arrange
+            const fields = [
+                createParsedField(FieldMockBuilder.privateFinalString('name'), ['private final String name;']),
+                createParsedField(FieldMockBuilder.withNonNullAnnotation('userService', 'UserService'), ['@NonNull private UserService userService;']),
+                createParsedField(FieldMockBuilder.create().withName('temp').withType('String').asPrivate().build(), ['private String temp;'])
+            ].filter(f => f !== undefined);
+
+            // Act
+            const requiredFields = fields.filter((field): field is FieldInfo => 
+                field !== undefined && (field.isFinal || field.annotations.some((ann: AnnotationInfo) => ann.name === 'NonNull'))
             );
 
-            const allFields = [finalField, nonNullField, normalField].filter(f => f !== undefined);
-
-            // Act - @RequiredArgsConstructor에 포함될 필드들 필터링 (final 또는 @NonNull)
-            const requiredFields = allFields.filter(field => 
-                field!.isFinal || field!.annotations.some(ann => ann.name === 'NonNull')
-            );
-
-            // Assert - final 필드와 @NonNull 필드만 포함되어야 함
+            // Assert
             assert.strictEqual(requiredFields.length, 2);
-            assert.ok(requiredFields.some(f => f!.name === 'name'));
-            assert.ok(requiredFields.some(f => f!.name === 'userService'));
+            assert.ok(requiredFields.some(f => f.name === 'name'));
+            assert.ok(requiredFields.some(f => f.name === 'userService'));
         });
 
-        test('should_classifyAllArgsConstructorFields_when_allFieldsAnalyzed', () => {
-            // Arrange - 다양한 종류의 필드들
-            const instanceField = fieldExtractor.parseFieldDeclaration(
-                FieldMockBuilder.create().withName('data').withType('String').asPrivate().build(),
-                ['private String data;']
-            );
-            const staticField = fieldExtractor.parseFieldDeclaration(
-                FieldMockBuilder.privateStaticFinalString('CONSTANT'),
-                ['private static final String CONSTANT;']
-            );
-            const finalField = fieldExtractor.parseFieldDeclaration(
-                FieldMockBuilder.privateFinalString('name'),
-                ['private final String name;']
-            );
+        test('should_classifyAllArgsConstructorFields_when_variousFieldsPresent', () => {
+            // Arrange
+            const fields = [
+                createParsedField(FieldMockBuilder.privateFinalString('id'), ['private final String id;']),
+                createParsedField(FieldMockBuilder.withNonNullAnnotation('name', 'String'), ['@NonNull private String name;']),
+                createParsedField(FieldMockBuilder.create().withName('description').withType('String').asPrivate().build(), ['private String description;']),
+                createParsedField(FieldMockBuilder.privateStaticFinalString('VERSION'), ['private static final String VERSION;'])
+            ].filter(f => f !== undefined) as FieldInfo[];
 
-            const allFields = [instanceField, staticField, finalField].filter(f => f !== undefined);
+            // Act
+            const allArgsFields = fields.filter(field => !field.isStatic);
 
-            // Act - @AllArgsConstructor에 포함될 필드들 필터링 (static 제외)
-            const allArgsFields = allFields.filter(field => !field!.isStatic);
-
-            // Assert - static 필드는 제외되어야 함
-            assert.strictEqual(allArgsFields.length, 2);
-            assert.ok(allArgsFields.some(f => f!.name === 'data'));
-            assert.ok(allArgsFields.some(f => f!.name === 'name'));
-            assert.ok(!allArgsFields.some(f => f!.name === 'CONSTANT'));
+            // Assert
+            assert.strictEqual(allArgsFields.length, 3);
+            assert.ok(allArgsFields.some(f => f.name === 'id'));
+            assert.ok(allArgsFields.some(f => f.name === 'name'));
+            assert.ok(allArgsFields.some(f => f.name === 'description'));
+            assert.ok(!allArgsFields.some(f => f.name === 'VERSION'));
         });
 
-        test('should_maintainFieldOrder_when_multipleFieldsClassified', () => {
-            // Arrange - 순서가 중요한 여러 필드들 (소스 코드 순서)
-            const field1 = fieldExtractor.parseFieldDeclaration(
-                FieldMockBuilder.privateFinalString('first'),
-                ['private final String first;']
-            );
-            const field2 = fieldExtractor.parseFieldDeclaration(
-                FieldMockBuilder.privateFinalString('second'),
-                ['private final String second;']
-            );
-            const field3 = fieldExtractor.parseFieldDeclaration(
-                FieldMockBuilder.privateFinalString('third'),
-                ['private final String third;']
-            );
+        test('should_preserveFieldOrder_when_multipleFieldsPresent', () => {
+            // Arrange
+            const fields = [
+                createParsedField(FieldMockBuilder.create().withName('first').withType('String').asPrivate().build(), ['private String first;']),
+                createParsedField(FieldMockBuilder.create().withName('second').withPrimitiveType('int').asPrivate().build(), ['private int second;']),
+                createParsedField(FieldMockBuilder.create().withName('third').withPrimitiveType('boolean').asPrivate().build(), ['private boolean third;'])
+            ].filter(f => f !== undefined) as FieldInfo[];
 
-            const orderedFields = [field1, field2, field3].filter(f => f !== undefined);
+            // Act
+            const fieldNames = fields.map(f => f.name);
 
-            // Act - 필드 순서 확인
-            const fieldNames = orderedFields.map(f => f!.name);
-
-            // Assert - 소스 코드 순서대로 유지되어야 함
+            // Assert
             assert.deepStrictEqual(fieldNames, ['first', 'second', 'third']);
         });
 
         test('should_handleEmptyFieldList_when_noEligibleFieldsPresent', () => {
-            // Arrange - static 필드만 있는 경우 (Lombok constructor에 포함되지 않음)
-            const staticField = fieldExtractor.parseFieldDeclaration(
-                FieldMockBuilder.privateStaticFinalString('ONLY_STATIC'),
-                ['private static final String ONLY_STATIC;']
+            // Arrange
+            const staticField = createParsedField(
+                FieldMockBuilder.privateStaticFinalString('CONSTANT1'), 
+                ['private static final String CONSTANT1;']
             );
+            
+            const fields = staticField ? [staticField] as FieldInfo[] : [];
 
-            const allFields = staticField ? [staticField] : [];
-
-            // Act - @RequiredArgsConstructor에 포함될 필드 필터링
-            const requiredFields = allFields.filter(field => 
+            // Act
+            const requiredFields = fields.filter(field => 
                 field.isFinal && !field.isStatic || 
-                field.annotations.some(ann => ann.name === 'NonNull')
+                field.annotations.some((ann: AnnotationInfo) => ann.name === 'NonNull')
             );
 
-            // Assert - 해당하는 필드가 없으면 빈 배열
+            // Assert
             assert.strictEqual(requiredFields.length, 0);
         });
     });
-}); 
+});
+
+/**
+ * Helper function to create a class declaration with fields
+ */
+function createClassWithFields(fields: any[]): any {
+    const fieldDeclarations = fields.map(field => ({
+        children: {
+            classMemberDeclaration: [{
+                children: {
+                    fieldDeclaration: [field]
+                }
+            }]
+        }
+    }));
+
+    return {
+        children: {
+            normalClassDeclaration: [{
+                children: {
+                    classBody: [{
+                        children: {
+                            classBodyDeclaration: fieldDeclarations
+                        }
+                    }]
+                }
+            }]
+        }
+    };
+}
+
+/**
+ * Helper function to create a field without type
+ */
+function createFieldWithoutType(name: string): any {
+    // Create a basic field structure but remove the type part
+    const field = FieldMockBuilder.create()
+        .withName(name)
+        .build();
+    
+    // Remove type information to simulate missing type
+    delete field.children.unannType;
+    
+    return field;
+}
+
+/**
+ * Helper function to create a field without name
+ */
+function createFieldWithoutName(type: string): any {
+    // Create a basic field structure but remove the name part
+    const field = FieldMockBuilder.create()
+        .withType(type)
+        .build();
+    
+    // Remove variable declarator to simulate missing name
+    delete field.children.variableDeclaratorList;
+    
+    return field;
+}
+
+/**
+ * Helper function to create a field with a specific modifier
+ */
+function createFieldWithModifier(modifierType: string, value: string): any {
+    // Create a minimal field structure with only the specified modifier
+    const field = FieldMockBuilder.create().build();
+    
+    // Replace modifiers with only the specified one
+    field.children.fieldModifier = [{
+        children: {
+            [modifierType]: [{ image: value }]
+        }
+    }];
+    
+    return field;
+}
+
+/**
+ * Helper function to create a field with an annotation
+ */
+function createFieldWithAnnotation(annotationName: string): any {
+    // Create a field with the specified annotation
+    const field = FieldMockBuilder.create().build();
+    
+    // Add the annotation to field modifiers
+    field.children.fieldModifier = [{
+        children: {
+            annotation: [{
+                children: {
+                    At: [{ image: '@' }],
+                    typeName: [{
+                        children: {
+                            Identifier: [{
+                                image: annotationName
+                            }]
+                        }
+                    }]
+                }
+            }]
+        }
+    }];
+    
+    return field;
+}
+
+/**
+ * Helper function to create a field without annotations
+ */
+function createFieldWithoutAnnotations(): any {
+    // Create a field and ensure no annotations
+    const field = FieldMockBuilder.create().build();
+    field.children.fieldModifier = [];
+    
+    return field;
+}
+
+/**
+ * Helper function to create an invalid field structure
+ */
+function createInvalidFieldStructure(): any {
+    // Return a structure that doesn't match the expected field format
+    return {
+        children: {
+            invalidType: [{}]
+        }
+    };
+}
+
+/**
+ * Helper function to create a parsed field using FieldExtractor
+ */
+function createParsedField(mockFieldDecl: any, lines: string[]): any {
+    const positionCalculator = new PositionCalculator();
+    const annotationParser = new AnnotationParser(positionCalculator);
+    const fieldExtractor = new FieldExtractor(positionCalculator, annotationParser);
+    return fieldExtractor.parseFieldDeclaration(mockFieldDecl, lines);
+} 

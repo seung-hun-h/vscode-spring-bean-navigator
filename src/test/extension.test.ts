@@ -6,7 +6,7 @@ import { SpringCodeLensProvider } from '../providers/code-lens-provider';
 import { JavaFileParser } from '../parsers/java-file-parser';
 import { BeanDefinition, SpringAnnotationType } from '../models/spring-types';
 
-suite('🚀 Extension Integration Test Suite', () => {
+suite('Extension Integration Test Suite', () => {
 
 	let beanResolver: BeanResolver;
 	let beanDetector: SpringBeanDetector;
@@ -24,9 +24,9 @@ suite('🚀 Extension Integration Test Suite', () => {
 		beanResolver?.clearCache();
 	});
 
-	suite('📊 전체 워크플로우 테스트', () => {
-		test('should_BeanResolver_기본_동작_확인', () => {
-			// 수동으로 Bean 정의 생성 (실제 BeanDefinition 구조에 맞춰)
+	suite('Full Workflow Tests', () => {
+		test('should_verifyBeanResolverBasicOperation', () => {
+			// Arrange
 			const testBean: BeanDefinition = {
 				name: 'userService',
 				type: 'UserService',
@@ -41,22 +41,22 @@ suite('🚀 Extension Integration Test Suite', () => {
 				fullyQualifiedName: 'com.example.service.UserService'
 			};
 
-			// Bean 등록
+			// Act
 			beanResolver.addBeanDefinition(testBean);
 
-			// 검증
-			assert.strictEqual(beanResolver.getBeanCount(), 1, 'Bean이 1개 등록되어야 함');
+			// Assert
+			assert.strictEqual(beanResolver.getBeanCount(), 1, 'Should register 1 bean');
 
 			const foundByName = beanResolver.findBeanByName('userService');
-			assert.ok(foundByName, 'Bean 이름으로 찾기 성공');
+			assert.ok(foundByName, 'Should find bean by name');
 			assert.strictEqual(foundByName.className, 'UserService');
 
 			const foundByType = beanResolver.findBeansByType('UserService');
-			assert.strictEqual(foundByType.length, 1, 'Bean 타입으로 찾기 성공');
+			assert.strictEqual(foundByType.length, 1, 'Should find bean by type');
 		});
 
-		test('should_다중_Bean_처리_정상_동작', () => {
-			// 여러 Bean 정의 생성
+		test('should_handleMultipleBeansCorrectly', () => {
+			// Arrange
 			const beans: BeanDefinition[] = [
 				{
 					name: 'userService',
@@ -99,24 +99,22 @@ suite('🚀 Extension Integration Test Suite', () => {
 				}
 			];
 
-			// 모든 Bean 등록
+			// Act
 			beans.forEach(bean => beanResolver.addBeanDefinition(bean));
 
-			// 검증
-			assert.strictEqual(beanResolver.getBeanCount(), 3, '3개의 Bean이 등록되어야 함');
+			// Assert
+			assert.strictEqual(beanResolver.getBeanCount(), 3, 'Should register 3 beans');
 
-			// 각각 찾기 테스트
-			assert.ok(beanResolver.findBeanByName('userService'), 'UserService 찾기 성공');
-			assert.ok(beanResolver.findBeanByName('userRepository'), 'UserRepository 찾기 성공');
-			assert.ok(beanResolver.findBeanByName('userController'), 'UserController 찾기 성공');
+			assert.ok(beanResolver.findBeanByName('userService'), 'Should find UserService');
+			assert.ok(beanResolver.findBeanByName('userRepository'), 'Should find UserRepository');
+			assert.ok(beanResolver.findBeanByName('userController'), 'Should find UserController');
 
-			// 전체 Bean 목록 확인
 			const allBeans = beanResolver.getAllBeans();
-			assert.strictEqual(allBeans.length, 3, '전체 Bean 목록이 3개여야 함');
+			assert.strictEqual(allBeans.length, 3, 'Should have 3 beans in total');
 		});
 
-		test('should_Bean_해결_로직_정상_동작', () => {
-			// 테스트용 Bean 정의들
+		test('should_resolveBeans_when_beanDefinitionsExist', () => {
+			// Arrange
 			const serviceBean: BeanDefinition = {
 				name: 'orderService',
 				type: 'OrderService',
@@ -133,21 +131,21 @@ suite('🚀 Extension Integration Test Suite', () => {
 
 			beanResolver.addBeanDefinition(serviceBean);
 
-			// Bean 해결 테스트
+			// Act
 			const resolution = beanResolver.resolveBeanForInjection('OrderService');
 
-			assert.ok(resolution.resolved, '단일 Bean 해결 성공');
+			assert.ok(resolution.resolved, 'Should resolve single bean');
 			assert.strictEqual(resolution.resolved?.className, 'OrderService');
-			assert.strictEqual(resolution.candidates.length, 1, '후보가 1개여야 함');
+			assert.strictEqual(resolution.candidates.length, 1, 'Should have 1 candidate');
 
-			// 존재하지 않는 타입 테스트
+			// Assert
 			const noResolution = beanResolver.resolveBeanForInjection('NonExistentService');
-			assert.strictEqual(noResolution.resolved, undefined, '존재하지 않는 Bean은 undefined');
-			assert.strictEqual(noResolution.candidates.length, 0, '후보가 0개여야 함');
+			assert.strictEqual(noResolution.resolved, undefined, 'Non-existent bean should be undefined');
+			assert.strictEqual(noResolution.candidates.length, 0, 'Should have 0 candidates');
 		});
 
-		test('should_인터페이스_구현체_매칭_동작', () => {
-			// 인터페이스 구현체 Bean 정의 (interfaces 속성 포함)
+		test('should_matchInterfaceImplementation', () => {
+			// Arrange
 			const implBean: BeanDefinition = {
 				name: 'userRepositoryImpl',
 				type: 'UserRepositoryImpl',
@@ -162,22 +160,22 @@ suite('🚀 Extension Integration Test Suite', () => {
 				fullyQualifiedName: 'com.example.repository.impl.UserRepositoryImpl'
 			};
 
-			// 인터페이스 정보 추가 (BeanResolver에서 처리할 수 있도록)
 			(implBean as any).interfaces = ['UserRepository'];
 
+			// Act
 			beanResolver.addBeanDefinition(implBean);
 
-			// 인터페이스 타입으로 구현체 검색
+			// Assert
 			const foundByInterface = beanResolver.findBeansByType('UserRepository');
-			assert.strictEqual(foundByInterface.length, 1, '인터페이스 타입으로 구현체를 찾을 수 있어야 함');
+			assert.strictEqual(foundByInterface.length, 1, 'Should find implementation by interface type');
 			assert.strictEqual(foundByInterface[0].className, 'UserRepositoryImpl');
 		});
 	});
 
-	suite('🔧 생성자/Setter 주입 통합 테스트', () => {
+	suite('Constructor and Setter Injection Integration Tests', () => {
 
-		test('should_생성자주입_전체워크플로우_성공_when_단일생성자존재', async () => {
-			// Arrange: 의존성 Bean들 등록
+		test('should_completeConstructorInjectionWorkflow_when_singleConstructorExists', async () => {
+			// Arrange: Register dependency Beans
 			const userRepositoryBean: BeanDefinition = {
 				name: 'userRepository',
 				type: 'UserRepository',
@@ -209,7 +207,6 @@ suite('🚀 Extension Integration Test Suite', () => {
 			beanResolver.addBeanDefinition(userRepositoryBean);
 			beanResolver.addBeanDefinition(emailServiceBean);
 
-			// 단일 생성자가 있는 Java 서비스 클래스
 			const javaContent = `
 				@Service
 				public class OrderService {
@@ -228,43 +225,43 @@ suite('🚀 Extension Integration Test Suite', () => {
 				languageId: 'java'
 			} as vscode.TextDocument;
 
-			// Act: 전체 워크플로우 실행
-			// 1. Java 파일 파싱
+			// Act
 			const parseResult = await javaParser.parseJavaFile(mockDocument.uri, javaContent);
-			assert.strictEqual(parseResult.errors.length, 0, '파싱 에러가 없어야 함');
-			assert.strictEqual(parseResult.classes.length, 1, '클래스가 1개 파싱되어야 함');
 
-			// 2. 주입 패턴 탐지
+			// Assert
+			assert.strictEqual(parseResult.errors.length, 0, 'Should have no parsing errors');
+			assert.strictEqual(parseResult.classes.length, 1, 'Should parse 1 class');
+
 			const injections = parseResult.injections;
-			assert.strictEqual(injections.length, 2, '생성자 매개변수 2개가 탐지되어야 함');
+			assert.strictEqual(injections.length, 2, 'Should detect 2 constructor parameters');
 
 			const userRepoInjection = injections.find(inj => inj.targetType === 'UserRepository');
 			const emailServiceInjection = injections.find(inj => inj.targetType === 'EmailService');
 
-			assert.ok(userRepoInjection, 'UserRepository 주입이 탐지되어야 함');
-			assert.strictEqual(userRepoInjection.injectionType, 'constructor', '생성자 주입 타입이어야 함');
+			assert.ok(userRepoInjection, 'Should detect UserRepository injection');
+			assert.strictEqual(userRepoInjection.injectionType, 'constructor', 'Should be constructor injection type');
 
-			assert.ok(emailServiceInjection, 'EmailService 주입이 탐지되어야 함');
-			assert.strictEqual(emailServiceInjection.injectionType, 'constructor', '생성자 주입 타입이어야 함');
+			assert.ok(emailServiceInjection, 'Should detect EmailService injection');
+			assert.strictEqual(emailServiceInjection.injectionType, 'constructor', 'Should be constructor injection type');
 
-			// 3. CodeLens 생성
+			// Act
 			const codeLenses = await codeLensProvider.provideCodeLenses(mockDocument);
-			assert.strictEqual(codeLenses.length, 2, '2개의 CodeLens가 생성되어야 함');
+			assert.strictEqual(codeLenses.length, 2, 'Should create 2 CodeLenses');
 
-			// 4. Bean 해결 확인
+			// Assert
 			const userRepoCodeLens = codeLenses.find(cl => cl.command?.title.includes('userRepository'));
 			const emailServiceCodeLens = codeLenses.find(cl => cl.command?.title.includes('emailService'));
 
-			assert.ok(userRepoCodeLens, 'UserRepository CodeLens가 생성되어야 함');
+			assert.ok(userRepoCodeLens, 'Should create UserRepository CodeLens');
 			assert.strictEqual(userRepoCodeLens.command?.command, 'spring-bean-navigator.goToBean');
 
-			assert.ok(emailServiceCodeLens, 'EmailService CodeLens가 생성되어야 함');
+			assert.ok(emailServiceCodeLens, 'Should create EmailService CodeLens');
 			assert.strictEqual(emailServiceCodeLens.command?.command, 'spring-bean-navigator.goToBean');
 
 		});
 
-		test('should_Autowired생성자주입_전체워크플로우_성공_when_다중생성자존재', async () => {
-			// Arrange: 의존성 Bean들 등록
+		test('should_completeAutowiredConstructorInjectionWorkflow_when_multipleConstructorsExist', async () => {
+			// Arrange: Register dependency Beans
 			const userRepositoryBean: BeanDefinition = {
 				name: 'userRepository',
 				type: 'UserRepository',
@@ -296,7 +293,7 @@ suite('🚀 Extension Integration Test Suite', () => {
 			beanResolver.addBeanDefinition(userRepositoryBean);
 			beanResolver.addBeanDefinition(paymentGatewayBean);
 
-			// @Autowired 생성자가 있는 Java 서비스 클래스
+			
 			const javaContent = `
 				@Service
 				public class PaymentService {
@@ -318,24 +315,29 @@ suite('🚀 Extension Integration Test Suite', () => {
 				languageId: 'java'
 			} as vscode.TextDocument;
 
-			// Act: 전체 워크플로우 실행
+			// Act: Execute full workflow
 			const parseResult = await javaParser.parseJavaFile(mockDocument.uri, javaContent);
-			assert.strictEqual(parseResult.errors.length, 0, '파싱 에러가 없어야 함');
+
+			// Assert
+			assert.strictEqual(parseResult.errors.length, 0, 'Should have no parsing errors');
 
 			const injections = parseResult.injections;
-			assert.strictEqual(injections.length, 2, '@Autowired 생성자 매개변수 2개가 탐지되어야 함');
+			assert.strictEqual(injections.length, 2, 'Should detect 2 @Autowired constructor parameters');
 
-			// @Autowired 생성자의 매개변수들만 탐지되어야 함
+			// Only @Autowired constructor parameters should be detected
 			const constructorInjections = injections.filter(inj => inj.injectionType === 'constructor');
-			assert.strictEqual(constructorInjections.length, 2, '생성자 주입이 2개여야 함');
+			assert.strictEqual(constructorInjections.length, 2, 'Should have 2 constructor injections');
 
+			// Act
 			const codeLenses = await codeLensProvider.provideCodeLenses(mockDocument);
-			assert.strictEqual(codeLenses.length, 2, '2개의 CodeLens가 생성되어야 함');
+
+			// Assert
+			assert.strictEqual(codeLenses.length, 2, 'Should create 2 CodeLenses');
 
 		});
 
-		test('should_Setter주입_전체워크플로우_성공_when_AutowiredSetter존재', async () => {
-			// Arrange: 의존성 Bean들 등록
+		test('should_completeSetterInjectionWorkflow_when_autowiredSetterExists', async () => {
+			// Arrange: Register dependency Beans
 			const emailServiceBean: BeanDefinition = {
 				name: 'emailService',
 				type: 'EmailService',
@@ -367,7 +369,7 @@ suite('🚀 Extension Integration Test Suite', () => {
 			beanResolver.addBeanDefinition(emailServiceBean);
 			beanResolver.addBeanDefinition(userRepositoryBean);
 
-			// @Autowired setter가 있는 Java 서비스 클래스
+			// Java service class with @Autowired setter
 			const javaContent = `
 				@Service
 				public class UserService {
@@ -391,30 +393,30 @@ suite('🚀 Extension Integration Test Suite', () => {
 				languageId: 'java'
 			} as vscode.TextDocument;
 
-			// Act: 전체 워크플로우 실행
+			// Act: Execute full workflow
 			const parseResult = await javaParser.parseJavaFile(mockDocument.uri, javaContent);
-			assert.strictEqual(parseResult.errors.length, 0, '파싱 에러가 없어야 함');
+			assert.strictEqual(parseResult.errors.length, 0, 'Should have no parsing errors');
 
 			const injections = parseResult.injections;
-			assert.strictEqual(injections.length, 2, 'Setter 주입 2개가 탐지되어야 함');
+			assert.strictEqual(injections.length, 2, 'Should detect 2 setter injections');
 
-			// Setter 주입들 검증
+			// Verify setter injections
 			const setterInjections = injections.filter(inj => inj.injectionType === 'setter');
-			assert.strictEqual(setterInjections.length, 2, 'Setter 주입이 2개여야 함');
+			assert.strictEqual(setterInjections.length, 2, 'Should have 2 setter injections');
 
 			const emailSetterInjection = setterInjections.find(inj => inj.targetType === 'EmailService');
 			const userRepoSetterInjection = setterInjections.find(inj => inj.targetType === 'UserRepository');
 
-			assert.ok(emailSetterInjection, 'EmailService setter 주입이 탐지되어야 함');
-			assert.ok(userRepoSetterInjection, 'UserRepository setter 주입이 탐지되어야 함');
+			assert.ok(emailSetterInjection, 'Should detect EmailService setter injection');
+			assert.ok(userRepoSetterInjection, 'Should detect UserRepository setter injection');
 
 			const codeLenses = await codeLensProvider.provideCodeLenses(mockDocument);
-			assert.strictEqual(codeLenses.length, 2, '2개의 CodeLens가 생성되어야 함');
+			assert.strictEqual(codeLenses.length, 2, 'Should create 2 CodeLenses');
 
 		});
 
-		test('should_혼합주입_전체워크플로우_성공_when_필드생성자Setter조합', async () => {
-			// Arrange: 의존성 Bean들 등록
+		test('should_completeMixedInjectionWorkflow_when_fieldConstructorSetterCombined', async () => {
+			// Arrange: Register dependency Beans
 			const userRepositoryBean: BeanDefinition = {
 				name: 'userRepository',
 				type: 'UserRepository',
@@ -461,15 +463,15 @@ suite('🚀 Extension Integration Test Suite', () => {
 			beanResolver.addBeanDefinition(emailServiceBean);
 			beanResolver.addBeanDefinition(paymentGatewayBean);
 
-			// 필드, 생성자, setter 주입이 혼합된 Java 서비스 클래스
+			// Java service class with mixed field, constructor, and setter injection
 			const javaContent = `
 				@Service
 				public class UserService {
 					@Autowired
-					private UserRepository userRepository; // 필드 주입
+					private UserRepository userRepository; // field injection
 					
-					private final EmailService emailService; // 생성자 주입
-					private PaymentGateway paymentGateway; // Setter 주입
+					private final EmailService emailService; // constructor injection
+					private PaymentGateway paymentGateway; // setter injection
 					
 					public UserService(EmailService emailService) {
 						this.emailService = emailService;
@@ -487,44 +489,44 @@ suite('🚀 Extension Integration Test Suite', () => {
 				languageId: 'java'
 			} as vscode.TextDocument;
 
-			// Act: 전체 워크플로우 실행
+			// Act: Execute full workflow
 			const parseResult = await javaParser.parseJavaFile(mockDocument.uri, javaContent);
-			assert.strictEqual(parseResult.errors.length, 0, '파싱 에러가 없어야 함');
+			assert.strictEqual(parseResult.errors.length, 0, 'Should have no parsing errors');
 
 			const injections = parseResult.injections;
-			assert.strictEqual(injections.length, 3, '3가지 주입 방식이 모두 탐지되어야 함');
+			assert.strictEqual(injections.length, 3, 'Should detect all 3 injection types');
 
-			// 각 주입 타입별 검증
+			// Verify each injection type
 			const fieldInjection = injections.find(inj => inj.injectionType === 'field');
 			const constructorInjection = injections.find(inj => inj.injectionType === 'constructor');
 			const setterInjection = injections.find(inj => inj.injectionType === 'setter');
 
-			assert.ok(fieldInjection, '필드 주입이 탐지되어야 함');
+			assert.ok(fieldInjection, 'Should detect field injection');
 			assert.strictEqual(fieldInjection.targetType, 'UserRepository');
 
-			assert.ok(constructorInjection, '생성자 주입이 탐지되어야 함');
+			assert.ok(constructorInjection, 'Should detect constructor injection');
 			assert.strictEqual(constructorInjection.targetType, 'EmailService');
 
-			assert.ok(setterInjection, 'Setter 주입이 탐지되어야 함');
+			assert.ok(setterInjection, 'Should detect setter injection');
 			assert.strictEqual(setterInjection.targetType, 'PaymentGateway');
 
-			// CodeLens 생성 검증
+			// Verify CodeLens creation
 			const codeLenses = await codeLensProvider.provideCodeLenses(mockDocument);
-			assert.strictEqual(codeLenses.length, 3, '3개의 CodeLens가 생성되어야 함');
+			assert.strictEqual(codeLenses.length, 3, 'Should create 3 CodeLenses');
 
-			// 각 CodeLens가 올바른 Bean을 가리키는지 확인
+			// Verify each CodeLens points to correct Bean
 			const userRepoCodeLens = codeLenses.find(cl => cl.command?.title.includes('userRepository'));
 			const emailServiceCodeLens = codeLenses.find(cl => cl.command?.title.includes('emailService'));
 			const paymentGatewayCodeLens = codeLenses.find(cl => cl.command?.title.includes('paymentGateway'));
 
-			assert.ok(userRepoCodeLens, 'UserRepository CodeLens가 생성되어야 함');
-			assert.ok(emailServiceCodeLens, 'EmailService CodeLens가 생성되어야 함');
-			assert.ok(paymentGatewayCodeLens, 'PaymentGateway CodeLens가 생성되어야 함');
+			assert.ok(userRepoCodeLens, 'Should create UserRepository CodeLens');
+			assert.ok(emailServiceCodeLens, 'Should create EmailService CodeLens');
+			assert.ok(paymentGatewayCodeLens, 'Should create PaymentGateway CodeLens');
 
 		});
 
-		test('should_다중후보Bean_처리워크플로우_성공_when_인터페이스에_다중구현체존재', async () => {
-			// Arrange: 같은 인터페이스의 다중 구현체 Bean들 등록
+		test('should_handleMultipleCandidateBeansWorkflow_when_interfaceHasMultipleImplementations', async () => {
+			// Arrange: Register multiple implementation Beans of same interface
 			const jpaImpl: BeanDefinition = {
 				name: 'notificationServiceJpa',
 				type: 'EmailNotificationService',
@@ -553,14 +555,14 @@ suite('🚀 Extension Integration Test Suite', () => {
 				fullyQualifiedName: 'com.example.service.SmsNotificationService'
 			};
 
-			// 인터페이스 정보 추가
+			// Add interface information
 			(jpaImpl as any).interfaces = ['NotificationService'];
 			(smsImpl as any).interfaces = ['NotificationService'];
 
 			beanResolver.addBeanDefinition(jpaImpl);
 			beanResolver.addBeanDefinition(smsImpl);
 
-			// 인터페이스 타입으로 주입받는 서비스 클래스
+			// Service class injecting by interface type
 			const javaContent = `
 @Service
 public class UserService {
@@ -577,31 +579,31 @@ public class UserService {
 				languageId: 'java'
 			} as vscode.TextDocument;
 
-			// Act: 전체 워크플로우 실행
+			// Act: Execute full workflow
 			const parseResult = await javaParser.parseJavaFile(mockDocument.uri, javaContent);
 			const injections = parseResult.injections;
-			assert.strictEqual(injections.length, 1, '생성자 주입이 1개 탐지되어야 함');
+			assert.strictEqual(injections.length, 1, 'Should detect 1 constructor injection');
 
 			const notificationInjection = injections[0];
 			assert.strictEqual(notificationInjection.targetType, 'NotificationService');
 
-			// CodeLens 생성 시 다중 후보 처리 확인
+			// Verify multiple candidate handling in CodeLens creation
 			const codeLenses = await codeLensProvider.provideCodeLenses(mockDocument);
-			assert.strictEqual(codeLenses.length, 1, '1개의 CodeLens가 생성되어야 함');
+			assert.strictEqual(codeLenses.length, 1, 'Should create 1 CodeLens');
 
 			const codeLens = codeLenses[0];
-			assert.ok(codeLens.command?.title.includes('Multiple candidates'), '다중 후보 메시지를 표시해야 함');
+			assert.ok(codeLens.command?.title.includes('Multiple candidates'), 'Should display multiple candidates message');
 			assert.strictEqual(codeLens.command?.command, 'spring-bean-navigator.selectBean');
-			assert.strictEqual(codeLens.command?.arguments?.[0].length, 2, '2개의 후보가 전달되어야 함');
+			assert.strictEqual(codeLens.command?.arguments?.[0].length, 2, 'Should pass 2 candidates');
 
 		});
 
-		test('should_Bean미발견_처리워크플로우_성공_when_존재하지않는Bean타입', async () => {
+		test('should_handleBeanNotFoundWorkflow_when_beanTypeDoesNotExist', async () => {
 
-			// Arrange: 의존성 Bean을 등록하지 않음
-			// beanResolver에 Bean을 추가하지 않아서 찾을 수 없는 상황 생성
+			// Arrange: Do not register dependency Bean
+			// No beans added to beanResolver to create not found situation
 
-			// 존재하지 않는 Bean 타입을 주입받는 서비스 클래스
+			// Service class injecting non-existent Bean type
 			const javaContent = `
 @Service
 public class UserService {
@@ -618,28 +620,28 @@ public class UserService {
 				languageId: 'java'
 			} as vscode.TextDocument;
 
-			// Act: 전체 워크플로우 실행
+			// Act: Execute full workflow
 			const parseResult = await javaParser.parseJavaFile(mockDocument.uri, javaContent);
 			const injections = parseResult.injections;
-			assert.strictEqual(injections.length, 1, '생성자 주입이 1개 탐지되어야 함');
+			assert.strictEqual(injections.length, 1, 'Should detect 1 constructor injection');
 
 			const unknownInjection = injections[0];
 			assert.strictEqual(unknownInjection.targetType, 'UnknownService');
 
-			// CodeLens 생성 시 Bean 미발견 처리 확인 (Bean을 찾을 수 없는 경우 CodeLens 노출하지 않음)
+			// Verify Bean not found handling in CodeLens creation (no CodeLens when Bean not found)
 			const codeLenses = await codeLensProvider.provideCodeLenses(mockDocument);
-			assert.strictEqual(codeLenses.length, 0, 'Bean을 찾을 수 없는 경우 CodeLens를 노출하지 않아야 함');
+			assert.strictEqual(codeLenses.length, 0, 'Should not create CodeLens when Bean not found');
 
 		});
 	});
 
-	suite('성능 및 안정성 테스트', () => {
+	suite('Performance and Stability Tests', () => {
 
-		test('should_대량_Bean_처리_성능_확인', () => {
+		test('should_handleLargeBeanVolume_performanceCheck', () => {
 
 			const startTime = Date.now();
 
-			// 1000개의 Bean 생성 및 등록
+			// Create and register 1000 beans
 			for (let i = 0; i < 1000; i++) {
 				const bean: BeanDefinition = {
 					name: `testBean${i}`,
@@ -661,46 +663,46 @@ public class UserService {
 			const endTime = Date.now();
 			const processingTime = endTime - startTime;
 
-			// 검증
-			assert.strictEqual(beanResolver.getBeanCount(), 1000, '1000개의 Bean이 등록되어야 함');
-			assert.ok(processingTime < 5000, `처리 시간이 5초 미만이어야 함 (실제: ${processingTime}ms)`);
+			// Verify
+			assert.strictEqual(beanResolver.getBeanCount(), 1000, 'Should register 1000 beans');
+			assert.ok(processingTime < 5000, `Processing time should be under 5 seconds (actual: ${processingTime}ms)`);
 
-			// 검색 성능 테스트
+			// Test search performance
 			const searchStart = Date.now();
 			const foundBean = beanResolver.findBeanByName('testBean500');
 			const searchEnd = Date.now();
 			const searchTime = searchEnd - searchStart;
 
-			assert.ok(foundBean, 'Bean 검색 성공');
-			assert.ok(searchTime < 100, `검색 시간이 100ms 미만이어야 함 (실제: ${searchTime}ms)`);
+			assert.ok(foundBean, 'Bean search should succeed');
+			assert.ok(searchTime < 100, `Search time should be under 100ms (actual: ${searchTime}ms)`);
 
 		});
 
-		test('should_에러_상황_견고성_확인', () => {
+		test('should_handleErrorSituationsRobustly', () => {
 
-			// null/undefined 입력 테스트
+			// Test null/undefined input
 			const nullResult = beanResolver.findBeanByName(null as any);
 			const undefinedResult = beanResolver.findBeanByName(undefined as any);
 			const emptyResult = beanResolver.findBeanByName('');
 			const spaceResult = beanResolver.findBeanByName('   ');
 
-			assert.strictEqual(nullResult, undefined, 'null 입력 시 undefined 반환');
-			assert.strictEqual(undefinedResult, undefined, 'undefined 입력 시 undefined 반환');
-			assert.strictEqual(emptyResult, undefined, '빈 문자열 입력 시 undefined 반환');
-			assert.strictEqual(spaceResult, undefined, '공백 문자열 입력 시 undefined 반환');
+			assert.strictEqual(nullResult, undefined, 'Should return undefined for null input');
+			assert.strictEqual(undefinedResult, undefined, 'Should return undefined for undefined input');
+			assert.strictEqual(emptyResult, undefined, 'Should return undefined for empty string');
+			assert.strictEqual(spaceResult, undefined, 'Should return undefined for whitespace string');
 
-			// 타입별 검색에서도 유사한 테스트
+			// Similar tests for type-based search
 			const nullTypeResults = beanResolver.findBeansByType(null as any);
 			const emptyTypeResults = beanResolver.findBeansByType('');
 
-			assert.strictEqual(nullTypeResults.length, 0, 'null 타입 검색 시 빈 배열 반환');
-			assert.strictEqual(emptyTypeResults.length, 0, '빈 타입 검색 시 빈 배열 반환');
+			assert.strictEqual(nullTypeResults.length, 0, 'Should return empty array for null type search');
+			assert.strictEqual(emptyTypeResults.length, 0, 'Should return empty array for empty type search');
 
 		});
 
-		test('should_메모리_효율성_확인', () => {
+		test('should_verifyMemoryEfficiency', () => {
 
-			// Bean 추가
+			// Add Bean
 			const testBean: BeanDefinition = {
 				name: 'cacheTestBean',
 				type: 'CacheTestService',
@@ -716,44 +718,44 @@ public class UserService {
 			};
 
 			beanResolver.addBeanDefinition(testBean);
-			assert.strictEqual(beanResolver.getBeanCount(), 1, 'Bean 추가 후 개수 확인');
+			assert.strictEqual(beanResolver.getBeanCount(), 1, 'Should have 1 bean after addition');
 
-			// 캐시 클리어
+			// Clear cache
 			beanResolver.clearCache();
-			assert.strictEqual(beanResolver.getBeanCount(), 0, '캐시 클리어 후 Bean 개수가 0이어야 함');
+			assert.strictEqual(beanResolver.getBeanCount(), 0, 'Should have 0 beans after cache clear');
 
-			// 클리어 후 검색 테스트
+			// Test search after clear
 			const notFound = beanResolver.findBeanByName('cacheTestBean');
-			assert.strictEqual(notFound, undefined, '캐시 클리어 후에는 Bean을 찾을 수 없어야 함');
+			assert.strictEqual(notFound, undefined, 'Should not find bean after cache clear');
 
 		});
 	});
 
-	suite('실제 시나리오 테스트', () => {
+	suite('Real Scenario Tests', () => {
 
-		test('should_Extension_초기화_시뮬레이션_성공', () => {
+		test('should_simulateExtensionInitializationSuccessfully', () => {
 
-			// Extension 활성화 시나리오 시뮬레이션
-			// 1. 컴포넌트들이 올바르게 생성되는지 확인
-			assert.ok(beanResolver, 'BeanResolver 생성 성공');
-			assert.ok(beanDetector, 'SpringBeanDetector 생성 성공');
-			assert.ok(codeLensProvider, 'SpringCodeLensProvider 생성 성공');
-			assert.ok(javaParser, 'JavaFileParser 생성 성공');
+			// Simulate extension activation scenario
+			// 1. Verify components are created correctly
+			assert.ok(beanResolver, 'BeanResolver should be created');
+			assert.ok(beanDetector, 'SpringBeanDetector should be created');
+			assert.ok(codeLensProvider, 'SpringCodeLensProvider should be created');
+			assert.ok(javaParser, 'JavaFileParser should be created');
 
-			// 2. 초기 상태 확인
-			assert.strictEqual(beanResolver.getBeanCount(), 0, '초기 Bean 개수가 0이어야 함');
+			// 2. Verify initial state
+			assert.strictEqual(beanResolver.getBeanCount(), 0, 'Initial bean count should be 0');
 
-			// 3. Provider 간 의존성 확인
-			// (SpringCodeLensProvider가 BeanResolver와 SpringBeanDetector를 받는지)
-			// 이는 생성자에서 이미 확인됨
+			// 3. Verify provider dependencies
+			// (SpringCodeLensProvider receives BeanResolver and SpringBeanDetector)
+			// This is already verified in constructor
 
 		});
 
-		test('should_전형적인_Spring_Boot_시나리오_시뮬레이션', () => {
+		test('should_simulateTypicalSpringBootScenario', () => {
 
-			// 시나리오: Spring Boot 프로젝트에서 Service와 Repository가 있는 상황
+			// Scenario: Spring Boot project with Service and Repository
 
-			// 1. Repository Bean 등록 (프로젝트 스캔 결과)
+			// 1. Register Repository Bean (project scan result)
 			const repositoryBean: BeanDefinition = {
 				name: 'productRepository',
 				type: 'ProductRepository',
@@ -768,7 +770,7 @@ public class UserService {
 				fullyQualifiedName: 'com.example.repository.ProductRepository'
 			};
 
-			// 2. Service Bean 등록
+			// 2. Register Service Bean
 			const serviceBean: BeanDefinition = {
 				name: 'productService',
 				type: 'ProductService',
@@ -786,14 +788,14 @@ public class UserService {
 			beanResolver.addBeanDefinition(repositoryBean);
 			beanResolver.addBeanDefinition(serviceBean);
 
-			// 3. 사용자가 Service에서 Repository 주입을 원하는 상황 시뮬레이션
+			// 3. Simulate user wanting Repository injection in Service
 			const injectionResolution = beanResolver.resolveBeanForInjection('ProductRepository');
 
-			assert.ok(injectionResolution.resolved, 'Repository Bean 해결 성공');
+			assert.ok(injectionResolution.resolved, 'Should resolve Repository Bean');
 			assert.strictEqual(injectionResolution.resolved?.name, 'productRepository');
-			assert.strictEqual(injectionResolution.candidates.length, 1, '후보가 1개');
+			assert.strictEqual(injectionResolution.candidates.length, 1, 'Should have 1 candidate');
 
-			// 4. CodeLens 표시를 위한 정보 생성 시뮬레이션
+			// 4. Simulate CodeLens display information generation
 			const targetBean = injectionResolution.resolved!;
 			const navigationInfo = {
 				title: `Go to ${targetBean.className}`,
@@ -806,9 +808,9 @@ public class UserService {
 
 		});
 
-		test('should_다중_구현체_후보_처리_시뮬레이션', () => {
+		test('should_simulateMultipleImplementationCandidateHandling', () => {
 
-			// 같은 인터페이스의 여러 구현체 상황
+			// Multiple implementations of same interface
 			const jpaImpl: BeanDefinition = {
 				name: 'userRepositoryJpa',
 				type: 'UserRepositoryJpaImpl',
@@ -837,18 +839,18 @@ public class UserService {
 				fullyQualifiedName: 'com.example.repository.mongo.UserRepositoryMongoImpl'
 			};
 
-			// 인터페이스 정보 추가
+			// Add interface information
 			(jpaImpl as any).interfaces = ['UserRepository'];
 			(mongoImpl as any).interfaces = ['UserRepository'];
 
 			beanResolver.addBeanDefinition(jpaImpl);
 			beanResolver.addBeanDefinition(mongoImpl);
 
-			// 인터페이스 타입으로 검색하면 두 구현체 모두 반환
+			// Search by interface type returns both implementations
 			const multipleResolution = beanResolver.resolveBeanForInjection('UserRepository');
 
-			assert.strictEqual(multipleResolution.resolved, undefined, '다중 후보 시 자동 해결 안됨');
-			assert.strictEqual(multipleResolution.candidates.length, 2, '2개의 후보가 있어야 함');
+			assert.strictEqual(multipleResolution.resolved, undefined, 'Should not auto-resolve with multiple candidates');
+			assert.strictEqual(multipleResolution.candidates.length, 2, 'Should have 2 candidates');
 
 			const candidateNames = multipleResolution.candidates.map(c => c.className).sort();
 			assert.deepStrictEqual(candidateNames, ['UserRepositoryJpaImpl', 'UserRepositoryMongoImpl']);

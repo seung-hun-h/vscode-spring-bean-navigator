@@ -1,9 +1,9 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { SetterExtractor } from '../../../parsers/extractors/setter-extractor';
-import { MethodInfo, ParameterInfo, AnnotationInfo, SpringAnnotationType } from '../../../models/spring-types';
+import { SpringAnnotationType } from '../../../models/spring-types';
 
-suite('🔧 SetterExtractor Test Suite', () => {
+suite('SetterExtractor Test Suite', () => {
     
     let setterExtractor: SetterExtractor;
     
@@ -16,15 +16,15 @@ suite('🔧 SetterExtractor Test Suite', () => {
         test('should_extractSimpleSetterMethod_when_autowiredSetterExists', () => {
             // Arrange
             const javaCode = `
-public class UserService {
-    private UserRepository userRepository;
-    
-    @Autowired
-    public void setUserRepository(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-}`;
-            
+                public class UserService {
+                    private UserRepository userRepository;
+                    
+                    @Autowired
+                    public void setUserRepository(UserRepository userRepository) {
+                        this.userRepository = userRepository;
+                    }
+                }`;
+                            
             // Act
             const methods = setterExtractor.extractSetterMethods(javaCode, vscode.Uri.file('/test/UserService.java'));
             
@@ -46,24 +46,24 @@ public class UserService {
         test('should_extractMultipleSetterMethods_when_multipleAutowiredSettersExist', () => {
             // Arrange
             const javaCode = `
-public class PaymentService {
-    private UserRepository userRepository;
-    private EmailService emailService;
-    
-    @Autowired
-    public void setUserRepository(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-    
-    @Autowired
-    public void setEmailService(EmailService emailService) {
-        this.emailService = emailService;
-    }
-    
-    public void processPayment() {
-        // 일반 메서드 (setter 아님)
-    }
-}`;
+                public class PaymentService {
+                    private UserRepository userRepository;
+                    private EmailService emailService;
+                    
+                    @Autowired
+                    public void setUserRepository(UserRepository userRepository) {
+                        this.userRepository = userRepository;
+                    }
+                    
+                    @Autowired
+                    public void setEmailService(EmailService emailService) {
+                        this.emailService = emailService;
+                    }
+                    
+                    public void processPayment() {
+                        // 일반 메서드 (setter 아님)
+                    }
+                }`;
             
             // Act
             const methods = setterExtractor.extractSetterMethods(javaCode, vscode.Uri.file('/test/PaymentService.java'));
@@ -87,20 +87,20 @@ public class PaymentService {
         test('should_ignoreNonAutowiredSetters_when_autowiredAnnotationMissing', () => {
             // Arrange
             const javaCode = `
-public class OrderService {
-    private UserRepository userRepository;
-    private EmailService emailService;
-    
-    @Autowired
-    public void setUserRepository(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-    
-    // @Autowired 없는 setter - 무시되어야 함
-    public void setEmailService(EmailService emailService) {
-        this.emailService = emailService;
-    }
-}`;
+                public class OrderService {
+                    private UserRepository userRepository;
+                    private EmailService emailService;
+                    
+                    @Autowired
+                    public void setUserRepository(UserRepository userRepository) {
+                        this.userRepository = userRepository;
+                    }
+                    
+                    // @Autowired 없는 setter - 무시되어야 함
+                    public void setEmailService(EmailService emailService) {
+                        this.emailService = emailService;
+                    }
+                }`;
             
             // Act
             const methods = setterExtractor.extractSetterMethods(javaCode, vscode.Uri.file('/test/OrderService.java'));
@@ -113,16 +113,16 @@ public class OrderService {
         test('should_handleComplexSetterMethod_when_annotationsAndModifiersPresent', () => {
             // Arrange
             const javaCode = `
-public class ComplexService {
-    @Autowired
-    @Qualifier("primary")
-    public void setUserRepository(
-        @Qualifier("userRepo") UserRepository userRepository,
-        @Value("\${app.config}") String config
-    ) {
-        // 복잡한 setter
-    }
-}`;
+                public class ComplexService {
+                    @Autowired
+                    @Qualifier("primary")
+                    public void setUserRepository(
+                        @Qualifier("userRepo") UserRepository userRepository,
+                        @Value("\${app.config}") String config
+                    ) {
+                        // 복잡한 setter
+                    }
+                }`;
             
             // Act
             const methods = setterExtractor.extractSetterMethods(javaCode, vscode.Uri.file('/test/ComplexService.java'));
@@ -148,17 +148,17 @@ public class ComplexService {
         test('should_handleGenericTypes_when_setterHasGenericParameters', () => {
             // Arrange
             const javaCode = `
-public class GenericService {
-    @Autowired
-    public void setUserList(List<User> users) {
-        // 제네릭 타입 setter
-    }
-    
-    @Autowired
-    public void setRepositoryMap(Map<String, Repository> repositories) {
-        // 제네릭 Map setter
-    }
-}`;
+                public class GenericService {
+                    @Autowired
+                    public void setUserList(List<User> users) {
+                        // 제네릭 타입 setter
+                    }
+                    
+                    @Autowired
+                    public void setRepositoryMap(Map<String, Repository> repositories) {
+                        // 제네릭 Map setter
+                    }
+                }`;
             
             // Act
             const methods = setterExtractor.extractSetterMethods(javaCode, vscode.Uri.file('/test/GenericService.java'));
@@ -178,18 +178,18 @@ public class GenericService {
         test('should_returnEmptyArray_when_noAutowiredSettersFound', () => {
             // Arrange
             const javaCode = `
-public class NoSetterService {
-    private UserRepository userRepository;
-    
-    public void processUser() {
-        // 일반 메서드
-    }
-    
-    public void setUserRepository(UserRepository userRepository) {
-        // @Autowired 없는 setter
-        this.userRepository = userRepository;
-    }
-}`;
+                public class NoSetterService {
+                    private UserRepository userRepository;
+                    
+                    public void processUser() {
+                        // 일반 메서드
+                    }
+                    
+                    public void setUserRepository(UserRepository userRepository) {
+                        // @Autowired 없는 setter
+                        this.userRepository = userRepository;
+                    }
+                }`;
             
             // Act
             const methods = setterExtractor.extractSetterMethods(javaCode, vscode.Uri.file('/test/NoSetterService.java'));
@@ -201,18 +201,18 @@ public class NoSetterService {
         test('should_handleReturnType_when_setterHasReturnType', () => {
             // Arrange
             const javaCode = `
-public class FluentService {
-    @Autowired
-    public FluentService setUserRepository(UserRepository userRepository) {
-        this.userRepository = userRepository;
-        return this;
-    }
-    
-    @Autowired
-    public void setEmailService(EmailService emailService) {
-        this.emailService = emailService;
-    }
-}`;
+                public class FluentService {
+                    @Autowired
+                    public FluentService setUserRepository(UserRepository userRepository) {
+                        this.userRepository = userRepository;
+                        return this;
+                    }
+                    
+                    @Autowired
+                    public void setEmailService(EmailService emailService) {
+                        this.emailService = emailService;
+                    }
+                }`;
             
             // Act
             const methods = setterExtractor.extractSetterMethods(javaCode, vscode.Uri.file('/test/FluentService.java'));
@@ -430,35 +430,35 @@ public class FluentService {
     suite('Integration Tests', () => {
         
         test('should_handleRealWorldExample_when_completeSpringServiceProvided', () => {
-            // Arrange - 실제 Spring Service 예시
+            // Arrange - Real Spring Service example
             const realWorldJava = `
-package com.example.service;
+                package com.example.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Service;
+                import org.springframework.beans.factory.annotation.Autowired;
+                import org.springframework.beans.factory.annotation.Qualifier;
+                import org.springframework.stereotype.Service;
 
-@Service
-public class UserService {
-    private UserRepository userRepository;
-    private EmailService emailService;
-    
-    @Autowired
-    public void setUserRepository(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-    
-    @Autowired
-    @Qualifier("asyncEmailService")
-    public void setEmailService(EmailService emailService) {
-        this.emailService = emailService;
-    }
-    
-    public void createUser(String name) {
-        // 메소드 구현
-    }
-}`;
-            
+                @Service
+                public class UserService {
+                    private UserRepository userRepository;
+                    private EmailService emailService;
+                    
+                    @Autowired
+                    public void setUserRepository(UserRepository userRepository) {
+                        this.userRepository = userRepository;
+                    }
+                    
+                    @Autowired
+                    @Qualifier("asyncEmailService")
+                    public void setEmailService(EmailService emailService) {
+                        this.emailService = emailService;
+                    }
+                    
+                    public void createUser(String name) {
+                        // 메소드 구현
+                    }
+                }`;
+                            
             // Act
             const methods = setterExtractor.extractSetterMethods(realWorldJava, vscode.Uri.file('/test/UserService.java'));
             

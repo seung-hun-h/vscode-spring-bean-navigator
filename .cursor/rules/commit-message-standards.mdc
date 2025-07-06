@@ -1,0 +1,119 @@
+# Commit Message Standards
+
+## Commit Message Format
+
+### Structure
+```
+<type>: <subject under 50 characters>
+```
+
+### Type Categories
+- **feat**: New feature (behavioral change)
+- **fix**: Bug fix (behavioral change)
+- **refactor**: Code refactoring without behavior change (structural change)
+- **test**: Adding or modifying tests
+- **docs**: Documentation changes
+- **style**: Code style changes (formatting, missing semicolons, etc.)
+- **chore**: Build process or auxiliary tool changes
+
+### Commit Message Rules
+- Use imperative mood ("add" not "added" or "adds")
+- No capitalization of first letter
+- No period at the end
+- **Maximum 50 characters total**
+- **Write in English only**
+- Be specific and descriptive
+- Single line only - no body or details
+
+## Commit Guidelines
+
+### When to Commit
+Only commit when:
+1. **ALL tests are passing**
+2. **ALL compiler/linter warnings resolved**
+3. **Change represents single logical unit**
+4. **Commit message clearly indicates change type**
+
+### Commit Frequency
+- **Small, frequent commits** over large, infrequent ones
+- Each commit should be atomic and reversible
+- Separate structural and behavioral changes into different commits
+
+### TDD Commit Pattern
+Follow the Red-Green-Refactor cycle:
+1. **Red**: `test: add failing test for <feature>`
+2. **Green**: `feat: implement <feature> to pass test`
+3. **Refactor**: `refactor: extract method for better readability`
+
+## Examples
+
+### Good Examples
+```
+feat: add @Autowired field detection
+refactor: extract annotation parsing logic
+test: add constructor injection test
+fix: resolve null pointer in bean detector
+docs: update README with usage examples
+```
+
+### Bad Examples
+```
+// ❌ Too vague
+fix: bug fix
+
+// ❌ Multiple changes
+feat: add detector and fix parser bug
+
+// ❌ Wrong type (should be refactor)
+feat: rename method for clarity
+
+// ❌ Too generic
+test: add test
+
+// ❌ Too long (over 50 characters)
+feat: implement comprehensive Spring Bean detection system with @Autowired support
+
+// ❌ Not in English
+feat: 스프링 빈 탐지 기능 추가
+```
+
+## Structural vs Behavioral Changes
+
+### Structural Changes (refactor)
+- Renaming variables, methods, classes
+- Extracting methods or classes
+- Moving code between files
+- Changing code organization
+- **No behavior change - tests remain the same**
+
+### Behavioral Changes (feat/fix)
+- Adding new functionality
+- Fixing bugs
+- Changing existing behavior
+- **Behavior change - tests may need updates**
+
+## Commit Message Templates
+
+### Feature Development
+```
+feat: <description under 50 characters>
+```
+
+### Bug Fix
+```
+fix: <description under 50 characters>
+```
+
+### Refactoring
+```
+refactor: <description under 50 characters>
+```
+
+### Test
+```
+test: <description under 50 characters>
+```
+
+```
+test: <description under 50 characters>
+```

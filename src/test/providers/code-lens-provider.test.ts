@@ -82,8 +82,8 @@ suite('SpringCodeLensProvider', () => {
     });
 });
 
-// Phase 2: 생성자/Setter CodeLens 테스트
-suite('Phase 2: Constructor and Setter CodeLens', () => {
+// Constructor/Setter CodeLens tests
+suite('Constructor and Setter CodeLens', () => {
     let provider: SpringCodeLensProvider;
     let mockBeanResolver: BeanResolver;
     let mockBeanDetector: SpringBeanDetector;
@@ -93,7 +93,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
         mockBeanDetector = new SpringBeanDetector();
         provider = new SpringCodeLensProvider(mockBeanResolver, mockBeanDetector);
         
-        // 테스트용 Bean 정의 추가
+        // Add test Bean definition
         const userRepositoryBean: import('../../models/spring-types').BeanDefinition = createBeanDefinition('userRepository', 'UserRepository', 'com.example.repository.UserRepository');
         const emailServiceBean: import('../../models/spring-types').BeanDefinition = createBeanDefinition('emailService', 'EmailService', 'com.example.service.EmailService');
         const paymentGatewayBean: import('../../models/spring-types').BeanDefinition = createBeanDefinition('paymentGateway', 'PaymentGateway', 'com.example.gateway.PaymentGateway');
@@ -105,7 +105,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
 
     suite('provideConstructorCodeLenses', () => {
         test('should_provideCodeLens_when_singleConstructorParametersExist', async () => {
-            // Arrange: 단일 생성자가 있는 Spring 서비스
+            // Arrange: Spring service with single constructor
             const javaContent = `
                 package com.example.service;
 
@@ -130,7 +130,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
             
             assert.ok(codeLenses, 'Should return CodeLens array');
             
-            // 생성자 매개변수 2개에 대한 CodeLens가 생성되어야 함
+            // Should create CodeLens for 2 constructor parameters
             const constructorCodeLenses = codeLenses.filter(cl => 
                 cl.command?.title.includes('userRepository') || 
                 cl.command?.title.includes('emailService')
@@ -138,14 +138,14 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
             
             assert.strictEqual(constructorCodeLenses.length, 2, 'Should provide CodeLens for constructor parameters');
             
-            // UserRepository 매개변수 CodeLens 검증
+            // Verify UserRepository parameter CodeLens
             const userRepoCodeLens = constructorCodeLenses.find(cl => 
                 cl.command?.title.includes('userRepository')
             );
             assert.ok(userRepoCodeLens, 'Should have CodeLens for UserRepository parameter');
             assert.strictEqual(userRepoCodeLens.command?.command, 'spring-bean-navigator.goToBean');
             
-            // EmailService 매개변수 CodeLens 검증
+            // Verify EmailService parameter CodeLens
             const emailServiceCodeLens = constructorCodeLenses.find(cl => 
                 cl.command?.title.includes('emailService')
             );
@@ -154,7 +154,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
         });
 
         test('should_provideCodeLens_when_autowiredConstructorExists', async () => {
-            // Arrange: @Autowired 생성자가 있는 Spring 서비스
+            // Arrange: Spring service with @Autowired constructor
             const javaContent = `
                 package com.example.service;
 
@@ -184,7 +184,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
             // Assert
             assert.ok(codeLenses, 'Should return CodeLens array');
             
-            // @Autowired 생성자 매개변수에만 CodeLens가 생성되어야 함
+            // Should create CodeLens only for @Autowired constructor parameters
             const constructorCodeLenses = codeLenses.filter(cl => 
                 cl.command?.title.includes('userRepository') || 
                 cl.command?.title.includes('paymentGateway')
@@ -194,7 +194,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
         });
 
         test('should_notProvideCodeLens_when_multipleConstructorsWithoutAutowired', async () => {
-            // Arrange: 다중 생성자이지만 @Autowired가 없는 경우
+            // Arrange: Multiple constructors without @Autowired
             const javaContent = `
                 @Service
                 public class NotificationService {
@@ -216,12 +216,12 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
                 cl.command?.title.includes('emailService')
             );
             
-            // 다중 생성자에서 @Autowired가 없으면 주입하지 않음
+            // No injection without @Autowired in multiple constructors
             assert.strictEqual(constructorCodeLenses.length, 0, 'Should not provide CodeLens for ambiguous constructors');
         });
 
         test('should_handleMultipleCandidates_when_interfaceHasMultipleImplementations', async () => {
-            // Arrange: 인터페이스에 다중 구현체가 있는 경우
+            // Arrange: Interface with multiple implementations
             const impl1: import('../../models/spring-types').BeanDefinition = createImplementationBean(
                 'notificationService1', 
                 'EmailNotificationService', 
@@ -264,7 +264,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
 
     suite('provideSetterCodeLenses', () => {
         test('should_provideCodeLens_when_autowiredSetterExists', async () => {
-            // Arrange: @Autowired setter가 있는 Spring 서비스
+            // Arrange: Spring service with @Autowired setter
             const javaContent = `
                 package com.example.service;
 
@@ -296,7 +296,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
             // Assert
             assert.ok(codeLenses, 'Should return CodeLens array');
             
-            // Setter 매개변수 2개에 대한 CodeLens가 생성되어야 함
+            // Should create CodeLens for 2 setter parameters
             const setterCodeLenses = codeLenses.filter(cl => 
                 cl.command?.title.includes('emailService') || 
                 cl.command?.title.includes('userRepository')
@@ -304,14 +304,14 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
             
             assert.strictEqual(setterCodeLenses.length, 2, 'Should provide CodeLens for setter parameters');
             
-            // EmailService setter CodeLens 검증
+            // Verify EmailService setter CodeLens
             const emailSetterCodeLens = setterCodeLenses.find(cl => 
                 cl.command?.title.includes('emailService')
             );
             assert.ok(emailSetterCodeLens, 'Should have CodeLens for EmailService setter parameter');
             assert.strictEqual(emailSetterCodeLens.command?.command, 'spring-bean-navigator.goToBean');
             
-            // UserRepository setter CodeLens 검증
+            // Verify UserRepository setter CodeLens
             const userRepoSetterCodeLens = setterCodeLenses.find(cl => 
                 cl.command?.title.includes('userRepository')
             );
@@ -320,7 +320,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
         });
 
         test('should_notProvideCodeLens_when_setterWithoutAutowired', async () => {
-            // Arrange: @Autowired가 없는 setter
+            // Arrange: Setter without @Autowired
             const javaContent = `
                 @Service
                 public class UserService {
@@ -340,12 +340,12 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
                 cl.command?.title.includes('emailService')
             );
             
-            // @Autowired가 없는 setter는 주입하지 않음
+            // No injection for setter without @Autowired
             assert.strictEqual(setterCodeLenses.length, 0, 'Should not provide CodeLens for non-autowired setters');
         });
 
         test('should_notProvideCodeLens_when_autowiredButNotSetter', async () => {
-            // Arrange: @Autowired이지만 setter가 아닌 메서드
+            // Arrange: @Autowired but not a setter method
             const javaContent = `
                 @Service
                 public class UserService {
@@ -366,14 +366,14 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
                 cl.command?.title.includes('emailService')
             );
             
-            // setXxx 패턴이 아닌 메서드는 setter 주입으로 간주하지 않음
+            // Methods not following setXxx pattern are not considered setter injection
             assert.strictEqual(methodCodeLenses.length, 0, 'Should not provide CodeLens for non-setter methods');
         });
     });
 
     suite('provideMixedInjectionCodeLenses', () => {
         test('should_provideCodeLenses_when_fieldConstructorSetterCombined', async () => {
-            // Arrange: 필드, 생성자, setter 주입이 혼합된 경우
+            // Arrange: Mixed field, constructor, and setter injection
             const javaContent = `
                 package com.example.service;
 
@@ -408,7 +408,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
             // Assert
             assert.ok(codeLenses, 'Should return CodeLens array');
             
-            // 3가지 주입 방식 모두에 대한 CodeLens가 생성되어야 함
+            // Should create CodeLens for all 3 injection types
             const allInjectionCodeLenses = codeLenses.filter(cl => 
                 cl.command?.title.includes('userRepository') || 
                 cl.command?.title.includes('emailService') ||
@@ -417,7 +417,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
             
             assert.strictEqual(allInjectionCodeLenses.length, 3, 'Should provide CodeLens for all injection types');
             
-            // 각 주입 방식 검증
+            // Verify each injection type
             const fieldCodeLens = allInjectionCodeLenses.find(cl => 
                 cl.command?.title.includes('userRepository')
             );
@@ -435,7 +435,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
         });
 
         test('should_notProvideCodeLens_when_beanDoesNotExist', async () => {
-            // Arrange: 존재하지 않는 Bean 타입
+            // Arrange: Non-existent Bean type
             const javaContent = `
                 @Service
                 public class UserService {
@@ -461,7 +461,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
         });
 
         test('should_notProvideCodeLens_when_autowiredFieldBeanNotFound', async () => {
-            // Arrange: @Autowired 필드이지만 Bean을 찾을 수 없는 경우
+            // Arrange: @Autowired field but Bean not found
             const javaContent = `
                 package com.example.service;
 
@@ -483,13 +483,13 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
             const codeLenses = await provider.provideCodeLenses(document);
             
             // Assert
-            // UserRepository만 CodeLens가 있어야 함
+            // Only UserRepository should have CodeLens
             const userRepoCodeLens = codeLenses.find(cl => 
                 cl.command?.title.includes('userRepository')
             );
             assert.ok(userRepoCodeLens, 'Should provide CodeLens for existing bean');
             
-            // NonExistentService는 CodeLens가 없어야 함
+            // NonExistentService should not have CodeLens
             const nonExistentCodeLens = codeLenses.find(cl => 
                 cl.command?.title.includes('NonExistentService')
             );
@@ -499,7 +499,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
         });
 
         test('should_notProvideCodeLens_when_setterBeanNotFound', async () => {
-            // Arrange: @Autowired setter이지만 Bean을 찾을 수 없는 경우
+            // Arrange: @Autowired setter but Bean not found
             const javaContent = `
                 @Service
                 public class UserService {
@@ -522,13 +522,13 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
             const codeLenses = await provider.provideCodeLenses(document);
             
             // Assert
-            // UserRepository setter만 CodeLens가 있어야 함
+            // Only UserRepository setter should have CodeLens
             const userRepoCodeLens = codeLenses.find(cl => 
                 cl.command?.title.includes('userRepository')
             );
             assert.ok(userRepoCodeLens, 'Should provide CodeLens for existing bean setter');
             
-            // UnknownService setter는 CodeLens가 없어야 함
+            // UnknownService setter should not have CodeLens
             const unknownCodeLens = codeLenses.find(cl => 
                 cl.command?.title.includes('UnknownService')
             );
@@ -538,7 +538,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
         });
 
         test('should_notProvideCodeLens_when_collectionBeanNotFound', async () => {
-            // Arrange: 컬렉션 타입이지만 Bean을 찾을 수 없는 경우
+            // Arrange: Collection type but Bean not found
             const javaContent = `
                 @Service
                 public class UserService {
@@ -546,7 +546,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
                     private List<NonExistentService> nonExistentServices;
                     
                     @Autowired
-                    private List<UserRepository> userRepositories; // 이것은 존재함
+                    private List<UserRepository> userRepositories; // This exists
                 }`;
             const document = createDocumentWithContent(javaContent);
             
@@ -554,13 +554,13 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
             const codeLenses = await provider.provideCodeLenses(document);
             
             // Assert
-            // UserRepository 컬렉션만 CodeLens가 있어야 함
+            // Only UserRepository collection should have CodeLens
             const userRepoCodeLens = codeLenses.find(cl => 
                 cl.command?.title.includes('userRepository')
             );
             assert.ok(userRepoCodeLens, 'Should provide CodeLens for existing bean collection');
             
-            // NonExistentService 컬렉션은 CodeLens가 없어야 함
+            // NonExistentService collection should not have CodeLens
             const nonExistentCodeLens = codeLenses.find(cl => 
                 cl.command?.title.includes('NonExistentService')
             );
@@ -572,7 +572,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
 
     suite('Performance and Edge Cases', () => {
         test('should_handleLargeClass_when_manyInjectionsPresent', async () => {
-            // Arrange: 많은 주입을 가진 큰 클래스
+            // Arrange: Large class with many injections
             const dependencies = [];
             for (let i = 0; i < 10; i++) {
                 dependencies.push(`EmailService emailService${i}`);
@@ -583,7 +583,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
             const javaContent = `
                 @Service
                 public class LargeService {
-                    ${dependencies.map((dep, i) => `@Autowired\n    private ${dep};`).join('\n    ')}
+                    ${dependencies.map((dep, _) => `@Autowired\n    private ${dep};`).join('\n    ')}
                 }`;
             const document = createDocumentWithContent(javaContent);
             
@@ -595,7 +595,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
             // Assert
             assert.ok(codeLenses, 'Should return CodeLens array');
             assert.strictEqual(codeLenses.length, 10, 'Should handle many injections');
-            assert.ok(endTime - startTime < 1000, 'Should complete within reasonable time'); // 1초 이내
+            assert.ok(endTime - startTime < 1000, 'Should complete within reasonable time'); // within 1 second
         });
 
         test('should_cacheResults_when_sameDocumentProcessedMultipleTimes', async () => {
@@ -611,11 +611,11 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
                 }`;
             const document = createDocumentWithContent(javaContent);
             
-            // Act: 같은 문서를 여러 번 처리
+            // Act: Process same document multiple times
             const codeLenses1 = await provider.provideCodeLenses(document);
             const codeLenses2 = await provider.provideCodeLenses(document);
             
-            // Assert: 결과가 일관되어야 함
+            // Assert: Results should be consistent
             assert.strictEqual(codeLenses1.length, codeLenses2.length, 'Results should be consistent');
             
             if (codeLenses1.length > 0 && codeLenses2.length > 0) {
@@ -629,7 +629,7 @@ suite('Phase 2: Constructor and Setter CodeLens', () => {
     });
 });
 
-// Helper functions for Phase 2 testing
+// Helper functions for testing
 function createBeanDefinition(name: string, type: string, implementationClass: string): import('../../models/spring-types').BeanDefinition {
     return {
         name,

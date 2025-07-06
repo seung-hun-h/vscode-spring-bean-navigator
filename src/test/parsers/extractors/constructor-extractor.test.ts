@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { ConstructorExtractor } from '../../../parsers/extractors/constructor-extractor';
 import { ConstructorInfo, ParameterInfo, SpringAnnotationType } from '../../../models/spring-types';
 
-suite('🔧 ConstructorExtractor Test Suite', () => {
+suite('ConstructorExtractor Test Suite', () => {
     
     let constructorExtractor: ConstructorExtractor;
     
@@ -333,7 +333,7 @@ suite('🔧 ConstructorExtractor Test Suite', () => {
     suite('Integration Tests', () => {
         
         test('should_handleRealWorldExample_when_completeSpringServiceProvided', () => {
-            // Arrange - 실제 Spring Service 예시
+            // Arrange - Real Spring Service example
             const realWorldJava = `
                 package com.example.service;
 

@@ -9,7 +9,7 @@ import {
     AnnotationInfo
 } from '../../models/spring-types';
 
-suite('🧪 Phase 2 Type Definitions Test Suite', () => {
+suite('Type Definitions Test Suite', () => {
     
     suite('ConstructorInfo Interface', () => {
         
@@ -36,13 +36,13 @@ suite('🧪 Phase 2 Type Definitions Test Suite', () => {
             };
             
             // Assert
-            assert.ok(constructorInfo.parameters, 'parameters 속성이 존재해야 함');
-            assert.ok(constructorInfo.position, 'position 속성이 존재해야 함');
-            assert.ok(constructorInfo.range, 'range 속성이 존재해야 함');
-            assert.strictEqual(typeof constructorInfo.hasAutowiredAnnotation, 'boolean', 'hasAutowiredAnnotation은 boolean이어야 함');
+            assert.ok(constructorInfo.parameters, 'parameters property should exist');
+            assert.ok(constructorInfo.position, 'position property should exist');
+            assert.ok(constructorInfo.range, 'range property should exist');
+            assert.strictEqual(typeof constructorInfo.hasAutowiredAnnotation, 'boolean', 'hasAutowiredAnnotation should be boolean');
             
-            assert.strictEqual(constructorInfo.parameters.length, 2, '매개변수가 2개여야 함');
-            assert.strictEqual(constructorInfo.hasAutowiredAnnotation, false, '@Autowired 어노테이션이 없어야 함');
+            assert.strictEqual(constructorInfo.parameters.length, 2, 'should have 2 parameters');
+            assert.strictEqual(constructorInfo.hasAutowiredAnnotation, false, 'should not have @Autowired annotation');
         });
         
         test('should_handleAutowiredConstructor_when_autowiredAnnotationPresent', () => {
@@ -61,8 +61,8 @@ suite('🧪 Phase 2 Type Definitions Test Suite', () => {
             };
             
             // Assert
-            assert.strictEqual(autowiredConstructorInfo.hasAutowiredAnnotation, true, '@Autowired 어노테이션이 있어야 함');
-            assert.strictEqual(autowiredConstructorInfo.parameters.length, 1, '매개변수가 1개여야 함');
+            assert.strictEqual(autowiredConstructorInfo.hasAutowiredAnnotation, true, 'should have @Autowired annotation');
+            assert.strictEqual(autowiredConstructorInfo.parameters.length, 1, 'should have 1 parameter');
         });
         
         test('should_handleEmptyParameters_when_noParameterConstructor', () => {
@@ -75,8 +75,8 @@ suite('🧪 Phase 2 Type Definitions Test Suite', () => {
             };
             
             // Assert
-            assert.strictEqual(emptyConstructorInfo.parameters.length, 0, '매개변수가 없어야 함');
-            assert.strictEqual(emptyConstructorInfo.hasAutowiredAnnotation, false, '@Autowired 어노테이션이 없어야 함');
+            assert.strictEqual(emptyConstructorInfo.parameters.length, 0, 'should have no parameters');
+            assert.strictEqual(emptyConstructorInfo.hasAutowiredAnnotation, false, 'should not have @Autowired annotation');
         });
     });
     
@@ -109,16 +109,16 @@ suite('🧪 Phase 2 Type Definitions Test Suite', () => {
             };
             
             // Assert
-            assert.ok(methodInfo.name, 'name 속성이 존재해야 함');
-            assert.ok(methodInfo.parameters, 'parameters 속성이 존재해야 함');
-            assert.ok(methodInfo.position, 'position 속성이 존재해야 함');
-            assert.ok(methodInfo.range, 'range 속성이 존재해야 함');
-            assert.ok(methodInfo.annotations, 'annotations 속성이 존재해야 함');
-            assert.strictEqual(typeof methodInfo.isSetterMethod, 'boolean', 'isSetterMethod는 boolean이어야 함');
+            assert.ok(methodInfo.name, 'name property should exist');
+            assert.ok(methodInfo.parameters, 'parameters property should exist');
+            assert.ok(methodInfo.position, 'position property should exist');
+            assert.ok(methodInfo.range, 'range property should exist');
+            assert.ok(methodInfo.annotations, 'annotations property should exist');
+            assert.strictEqual(typeof methodInfo.isSetterMethod, 'boolean', 'isSetterMethod should be boolean');
             
-            assert.strictEqual(methodInfo.name, 'setUserService', '메소드 이름이 올바르지 않음');
-            assert.strictEqual(methodInfo.isSetterMethod, true, 'setter 메소드로 인식되어야 함');
-            assert.strictEqual(methodInfo.annotations.length, 1, '어노테이션이 1개여야 함');
+            assert.strictEqual(methodInfo.name, 'setUserService', 'method name should be correct');
+            assert.strictEqual(methodInfo.isSetterMethod, true, 'should be recognized as setter method');
+            assert.strictEqual(methodInfo.annotations.length, 1, 'should have 1 annotation');
         });
         
         test('should_identifySetterMethod_when_isSetterMethodTrue', () => {
@@ -146,9 +146,9 @@ suite('🧪 Phase 2 Type Definitions Test Suite', () => {
             };
             
             // Assert
-            assert.strictEqual(setterMethodInfo.isSetterMethod, true, 'setter 메소드로 식별되어야 함');
-            assert.ok(setterMethodInfo.name.startsWith('set'), '메소드 이름이 set으로 시작해야 함');
-            assert.strictEqual(setterMethodInfo.parameters.length, 1, 'setter는 매개변수가 1개여야 함');
+            assert.strictEqual(setterMethodInfo.isSetterMethod, true, 'should be identified as setter method');
+            assert.ok(setterMethodInfo.name.startsWith('set'), 'method name should start with set');
+            assert.strictEqual(setterMethodInfo.parameters.length, 1, 'setter should have 1 parameter');
         });
         
         test('should_identifyNonSetterMethod_when_isSetterMethodFalse', () => {
@@ -176,8 +176,8 @@ suite('🧪 Phase 2 Type Definitions Test Suite', () => {
             };
             
             // Assert
-            assert.strictEqual(nonSetterMethodInfo.isSetterMethod, false, 'setter 메소드가 아님을 식별해야 함');
-            assert.ok(!nonSetterMethodInfo.name.startsWith('set'), '메소드 이름이 set으로 시작하지 않아야 함');
+            assert.strictEqual(nonSetterMethodInfo.isSetterMethod, false, 'should be identified as non-setter method');
+            assert.ok(!nonSetterMethodInfo.name.startsWith('set'), 'method name should not start with set');
         });
         
         test('should_handleMultipleParameters_when_methodHasMultipleParams', () => {
@@ -203,8 +203,8 @@ suite('🧪 Phase 2 Type Definitions Test Suite', () => {
             };
             
             // Assert
-            assert.strictEqual(multiParamMethodInfo.parameters.length, 2, '매개변수가 2개여야 함');
-            assert.strictEqual(multiParamMethodInfo.isSetterMethod, false, 'setter가 아니어야 함 (매개변수가 2개)');
+            assert.strictEqual(multiParamMethodInfo.parameters.length, 2, 'should have 2 parameters');
+            assert.strictEqual(multiParamMethodInfo.isSetterMethod, false, 'should not be setter (has 2 parameters)');
         });
     });
     
@@ -219,13 +219,13 @@ suite('🧪 Phase 2 Type Definitions Test Suite', () => {
             };
             
             // Assert
-            assert.ok(parameterInfo.name, 'name 속성이 존재해야 함');
-            assert.ok(parameterInfo.type, 'type 속성이 존재해야 함');
-            assert.ok(parameterInfo.position, 'position 속성이 존재해야 함');
+            assert.ok(parameterInfo.name, 'name property should exist');
+            assert.ok(parameterInfo.type, 'type property should exist');
+            assert.ok(parameterInfo.position, 'position property should exist');
             
-            assert.strictEqual(typeof parameterInfo.name, 'string', 'name은 string이어야 함');
-            assert.strictEqual(typeof parameterInfo.type, 'string', 'type은 string이어야 함');
-            assert.ok(parameterInfo.position instanceof vscode.Position, 'position은 vscode.Position이어야 함');
+            assert.strictEqual(typeof parameterInfo.name, 'string', 'name should be string');
+            assert.strictEqual(typeof parameterInfo.type, 'string', 'type should be string');
+            assert.ok(parameterInfo.position instanceof vscode.Position, 'position should be vscode.Position');
         });
         
         test('should_handleComplexTypes_when_genericOrInterfaceTypes', () => {
@@ -249,37 +249,37 @@ suite('🧪 Phase 2 Type Definitions Test Suite', () => {
             ];
             
             // Assert
-            assert.strictEqual(complexParameters[0].type, 'List<User>', '제네릭 타입이 올바르게 저장되어야 함');
-            assert.strictEqual(complexParameters[1].type, 'Optional<EmailService>', 'Optional 제네릭 타입이 올바르게 저장되어야 함');
-            assert.strictEqual(complexParameters[2].type, 'UserRepository', '일반 타입이 올바르게 저장되어야 함');
+            assert.strictEqual(complexParameters[0].type, 'List<User>', 'generic type should be stored correctly');
+            assert.strictEqual(complexParameters[1].type, 'Optional<EmailService>', 'Optional generic type should be stored correctly');
+            assert.strictEqual(complexParameters[2].type, 'UserRepository', 'regular type should be stored correctly');
         });
     });
     
     suite('InjectionType Enum Extension', () => {
         
-        test('should_includeNewInjectionTypes_when_phase2TypesAdded', () => {
-            // Assert - Phase 2에서 추가되는 타입들
-            assert.ok(InjectionType.CONSTRUCTOR, 'CONSTRUCTOR 타입이 존재해야 함');
-            assert.ok(InjectionType.SETTER, 'SETTER 타입이 존재해야 함');
+        test('should_includeNewInjectionTypes_when_injectionTypesAdded', () => {
+            // Assert - New injection types should exist
+            assert.ok(InjectionType.CONSTRUCTOR, 'CONSTRUCTOR type should exist');
+            assert.ok(InjectionType.SETTER, 'SETTER type should exist');
             
-            // Phase 1에서 존재하던 타입들
-            assert.ok(InjectionType.FIELD, 'FIELD 타입이 존재해야 함');
+            // Verify existing types still exist
+            assert.ok(InjectionType.FIELD, 'FIELD type should exist');
             
-            // Phase 3에서 추가될 타입 (현재는 존재해야 함)
-            assert.ok(InjectionType.LOMBOK, 'LOMBOK 타입이 존재해야 함');
+            // Additional injection type
+            assert.ok(InjectionType.LOMBOK, 'LOMBOK type should exist');
             
-            // 값 검증
-            assert.strictEqual(InjectionType.CONSTRUCTOR, 'constructor', 'CONSTRUCTOR 값이 올바르지 않음');
-            assert.strictEqual(InjectionType.SETTER, 'setter', 'SETTER 값이 올바르지 않음');
-            assert.strictEqual(InjectionType.FIELD, 'field', 'FIELD 값이 올바르지 않음');
-            assert.strictEqual(InjectionType.LOMBOK, 'lombok', 'LOMBOK 값이 올바르지 않음');
+            // Verify values
+            assert.strictEqual(InjectionType.CONSTRUCTOR, 'constructor', 'CONSTRUCTOR value should be correct');
+            assert.strictEqual(InjectionType.SETTER, 'setter', 'SETTER value should be correct');
+            assert.strictEqual(InjectionType.FIELD, 'field', 'FIELD value should be correct');
+            assert.strictEqual(InjectionType.LOMBOK, 'lombok', 'LOMBOK value should be correct');
         });
     });
     
     suite('Integration Tests', () => {
         
         test('should_workTogether_when_allTypesUsedInCombination', () => {
-            // Arrange - 복합적인 생성자 정보 생성
+            // Arrange - Create complex constructor info
             const parameters: ParameterInfo[] = [
                 {
                     name: 'userRepository',
@@ -322,18 +322,18 @@ suite('🧪 Phase 2 Type Definitions Test Suite', () => {
                 isSetterMethod: true
             };
             
-            // Assert - 모든 타입이 함께 올바르게 작동하는지 검증
-            assert.strictEqual(constructorInfo.parameters.length, 2, '생성자 매개변수가 2개여야 함');
-            assert.strictEqual(constructorInfo.hasAutowiredAnnotation, true, '생성자에 @Autowired가 있어야 함');
+            // Assert - Verify all types work correctly together
+            assert.strictEqual(constructorInfo.parameters.length, 2, 'constructor should have 2 parameters');
+            assert.strictEqual(constructorInfo.hasAutowiredAnnotation, true, 'constructor should have @Autowired');
             
-            assert.strictEqual(setterMethod.isSetterMethod, true, 'setter 메소드여야 함');
-            assert.strictEqual(setterMethod.parameters.length, 1, 'setter 매개변수가 1개여야 함');
-            assert.strictEqual(setterMethod.annotations.length, 1, 'setter에 어노테이션이 1개여야 함');
+            assert.strictEqual(setterMethod.isSetterMethod, true, 'should be setter method');
+            assert.strictEqual(setterMethod.parameters.length, 1, 'setter should have 1 parameter');
+            assert.strictEqual(setterMethod.annotations.length, 1, 'setter should have 1 annotation');
             
-            // 매개변수 타입 검증
-            assert.strictEqual(constructorInfo.parameters[0].type, 'UserRepository', '첫 번째 매개변수 타입이 올바르지 않음');
-            assert.strictEqual(constructorInfo.parameters[1].type, 'EmailService', '두 번째 매개변수 타입이 올바르지 않음');
-            assert.strictEqual(setterMethod.parameters[0].type, 'SmsService', 'setter 매개변수 타입이 올바르지 않음');
+            // Verify parameter types
+            assert.strictEqual(constructorInfo.parameters[0].type, 'UserRepository', 'first parameter type should be correct');
+            assert.strictEqual(constructorInfo.parameters[1].type, 'EmailService', 'second parameter type should be correct');
+            assert.strictEqual(setterMethod.parameters[0].type, 'SmsService', 'setter parameter type should be correct');
         });
     });
 }); 

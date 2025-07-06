@@ -1,0 +1,335 @@
+# Spring Bean Navigator Coding Style Guide
+
+## TypeScript Coding Standards
+
+### Naming Conventions
+- **Classes**: PascalCase (`SpringBeanDetector`, `CodeLensProvider`)
+- **Interfaces**: PascalCase, no 'I' prefix (`BeanDefinition`, `NavigationService`)
+- **Variables/Functions**: camelCase (`beanDefinitions`, `findBeanImplementation`)
+- **Constants**: SCREAMING_SNAKE_CASE (`MAX_SEARCH_DEPTH`, `DEFAULT_TIMEOUT`)
+- **Filenames**: kebab-case (`spring-bean-detector.ts`, `navigation-provider.ts`)
+- **Directories**: kebab-case (`src/providers`, `src/utils`)
+
+### File Structure Rules
+```
+src/
+├── extension.ts              # Main entry point
+├── providers/               # VSCode providers
+│   ├── code-lens-provider.ts
+│   ├── navigation-provider.ts
+│   └── definition-provider.ts
+├── detectors/              # Bean detection logic
+│   ├── autowired-detector.ts
+│   ├── constructor-detector.ts
+│   └── lombok-detector.ts
+├── parsers/               # File parsing logic
+│   ├── java-parser.ts
+│   └── kotlin-parser.ts
+├── models/               # Data models
+│   ├── bean-definition.ts
+│   └── injection-point.ts
+└── utils/               # Utility functions
+    ├── file-utils.ts
+    └── logger.ts
+```
+
+## Code Quality Standards
+
+### Function Principles
+- **Single Responsibility**: Each function should do one thing
+- **Function Length**: Maximum 50 lines
+- **Parameters**: Up to 4; use an object for more
+- **Return Types**: Always explicit
+- **Comments**: Write all comments in English
+- **Naming**: Avoid development process terms in function names
+- **Self-Documenting Code**: Use clear, descriptive names that eliminate the need for comments
+
+```typescript
+// ✅ Good Example - Clear names, no comment needed
+async function findBeanDefinition(
+    className: string, 
+    searchPath: string
+): Promise<BeanDefinition | undefined> {
+    const normalizedPath = path.normalize(searchPath);
+    const beanCache = this.getBeanCache();
+    return beanCache.get(className);
+}
+
+// ✅ Good Example - Complex logic needs explanation
+function calculateBeanPriority(bean: BeanDefinition): number {
+    // Primary beans have higher priority to ensure they're injected first
+    // when multiple candidates exist for the same interface
+    if (bean.isPrimary) return 100;
+    if (bean.isQualified) return 50;
+    return 10;
+}
+
+// ❌ Bad Example - Unclear names
+function find(c, p, t, o) {
+    // implementation
+}
+
+// ❌ Bad Example - Redundant comment
+// This function finds a bean by name
+function findBeanByName(name: string): Bean {
+    return this.beans.find(b => b.name === name);
+}
+```
+
+### Class Design Principles
+- **Constructor**: Use dependency injection
+- **Method Order**: public → protected → private
+- **Access Modifiers**: Always explicit
+- **Documentation**: Write all JSDoc and comments in English
+
+```typescript
+export class SpringBeanDetector {
+    constructor(
+        private readonly fileSystem: FileSystemService,
+        private readonly logger: Logger
+    ) {}
+
+    public async detectBeans(filePath: string): Promise<BeanDefinition[]> {
+        // public method
+    }
+
+    protected validateFilePath(path: string): boolean {
+        // protected method
+    }
+
+    private parseJavaFile(content: string): ParseResult {
+        // private method
+    }
+}
+```
+
+## Code Formatting
+
+### ESLint Compliance
+- Follow [eslint.config.mjs]
+- Enable auto-format on save
+- Lint must pass before build
+
+### Key Formatting Rules
+- **Indentation**: 4 spaces (no tabs)
+- **Semicolons**: Required
+- **Quotes**: Use single quotes
+- **Trailing Commas**: Use in arrays/objects
+- **Line Length**: Max 120 characters
+
+```typescript
+// ✅ Good Example
+const beanConfig: BeanConfiguration = {
+    className: 'UserService',
+    injectionType: InjectionType.AUTOWIRED,
+    fieldName: 'userRepository',
+};
+
+// ❌ Bad Example
+const beanConfig:BeanConfiguration={className:"UserService",injectionType:InjectionType.AUTOWIRED,fieldName:"userRepository"}
+```
+
+## Comments & Documentation
+
+### JSDoc Standard
+- All public methods require JSDoc comments
+- Add inline comments for complex logic
+- **Write all comments in English**
+
+```typescript
+/**
+ * Detects Spring Bean injection points.
+ * 
+ * @param filePath - Path to the Java file to analyze
+ * @param content - File content
+ * @returns Array of bean injection points
+ * @throws {Error} If file parsing fails
+ */
+public async detectInjectionPoints(
+    filePath: string, 
+    content: string
+): Promise<InjectionPoint[]> {
+    // implementation
+}
+```
+
+### Comment Guidelines
+- Prefer comments explaining **Why**
+- Avoid comments explaining **What**—use clear code instead
+- TODO/FIXME comments must include issue number
+- **All comments must be written in English**
+- **Avoid development process terms** (Task, Phase, Step, etc.) in comments and code
+- **Do not add comments for self-explanatory code**
+- Remove redundant comments that simply describe what the code does
+- Let clear variable and function names speak for themselves
+
+```typescript
+// ✅ Good Example - Explains WHY
+// Lombok's @RequiredArgsConstructor only includes final fields in the constructor
+const finalFields = fields.filter(field => field.isFinal);
+
+// ✅ Good Example - No comment needed for clear code
+const userRepositoryBeans = beans.filter(bean => bean.type === 'UserRepository');
+const isValidEmail = email.includes('@') && email.includes('.');
+
+// ❌ Bad Example - Redundant comment
+// Filter final fields
+const finalFields = fields.filter(field => field.isFinal);
+
+// ❌ Bad Example - Obvious comment
+// Set user name to 'John'
+user.name = 'John';
+
+// ❌ Bad Example - Using development terms
+// Phase 1: Filter final fields for Task #123
+const finalFields = fields.filter(field => field.isFinal);
+```
+
+## Error Handling
+
+### Exception Principles
+- Use specific error types
+- Always log errors
+- Provide user-friendly messages
+- **Write all error messages in English**
+
+```typescript
+try {
+    const beans = await this.detectBeans(filePath);
+    return beans;
+} catch (error) {
+    this.logger.error(`Bean detection failed: ${filePath}`, error);
+    
+    if (error instanceof SyntaxError) {
+        throw new BeanDetectionError(`File syntax error: ${error.message}`);
+    }
+    
+    throw new BeanDetectionError('An unexpected error occurred during bean detection.');
+}
+```
+
+## Test Code Style
+
+### Test Structure
+- **Test Framework**: Use VSCode Test API with `suite()` and `test()` functions
+- **AAA Pattern**: Arrange, Act, Assert with clear comment separation
+- **Test Names**: Use descriptive format `should_expectedBehavior_when_condition`
+- **Setup/Teardown**: Use `setup()` and `teardown()` for test initialization
+- **Assertions**: Use Node.js `assert` module for consistency
+- **File Organization**: Separate test file per class with `.test.ts` extension
+- **Avoid Development Terms**: Don't use Task, Phase, Step, etc. in test names or descriptions
+
+### Test Naming Convention
+```typescript
+// ✅ Good Examples
+test('should_parseValidJavaFile_when_simpleAutowiredClassProvided', async () => {
+test('should_detectSetterInjection_when_autowiredSetterExists', () => {
+test('should_returnTrue_when_javaFileProvided', () => {
+
+// ❌ Bad Examples
+test('parseJavaFile', () => {
+test('test autowired detection', () => {
+test('should_completePhase1_when_taskFinished', () => {
+```
+
+### Test File Structure
+```typescript
+import * as assert from 'assert';
+import * as vscode from 'vscode';
+import { ClassUnderTest } from '../../src/class-under-test';
+import { TestUtils } from '../helpers/test-utils';
+
+suite('ClassUnderTest', () => {
+    let instance: ClassUnderTest;
+    let mockUri: vscode.Uri;
+
+    setup(() => {
+        instance = new ClassUnderTest();
+        mockUri = TestUtils.createMockUri('/test/TestFile.java');
+    });
+
+    teardown(() => {
+        // Cleanup if needed
+    });
+
+    suite('methodName', () => {
+        test('should_expectedBehavior_when_condition', () => {
+            // Arrange
+            const input = 'test input';
+            const expected = 'expected output';
+
+            // Act
+            const result = instance.methodName(input);
+
+            // Assert
+            assert.strictEqual(result, expected);
+        });
+    });
+});
+```
+
+### Test Utilities
+- **Use TestUtils**: Leverage `TestUtils` class for creating mock objects
+- **Sample Generators**: Use `JavaSampleGenerator` for test Java code
+- **Mock Helpers**: Use specialized mock helpers for complex objects
+- **Assertion Helpers**: Use `AssertionHelper` for complex validations
+
+### Error Handling Tests
+```typescript
+suite('Error Handling', () => {
+    test('should_throwError_when_nullContentProvided', async () => {
+        // Arrange
+        const content = null as any;
+
+        // Act & Assert
+        try {
+            await parser.parseJavaFile(mockUri, content);
+            assert.fail('Should throw error for null content');
+        } catch (error) {
+            assert.ok(error instanceof Error);
+        }
+    });
+});
+```
+
+### Async Test Patterns
+```typescript
+test('should_parseAsyncContent_when_validContentProvided', async () => {
+    // Arrange
+    const content = JavaSampleGenerator.simpleAutowiredClass();
+
+    // Act
+    const result = await parser.parseJavaFile(mockUri, content);
+
+    // Assert
+    assert.strictEqual(result.errors.length, 0);
+    assert.strictEqual(result.classes.length, 1);
+});
+```
+
+## Performance Optimization Guide
+
+### Async Processing
+- Prefer async/await over Promises
+- Use Promise.all for parallel tasks
+- Use streams for large file processing
+
+### Memory Management
+- Release unnecessary object references
+- Process large data in chunks
+- Use WeakMap/WeakSet to prevent memory leaks
+
+```typescript
+// ✅ Parallel processing
+const [javaBeans, kotlinBeans] = await Promise.all([
+    this.detectJavaBeans(javaFiles),
+    this.detectKotlinBeans(kotlinFiles),
+]);
+
+// ❌ Sequential processing
+const javaBeans = await this.detectJavaBeans(javaFiles);
+const kotlinBeans = await this.detectKotlinBeans(kotlinFiles);
+```
+
+const kotlinBeans = await this.detectKotlinBeans(kotlinFiles);
+```
