@@ -17,7 +17,7 @@ import { PositionCalculator } from '../parsers/core/position-calculator';
 import { ErrorHandler } from '../parsers/core/parser-errors';
 
 /**
- * Spring Bean을 탐지하고 Bean 정의를 생성하는 클래스
+ * Detects Spring Beans and creates Bean definitions.
  */
 export class SpringBeanDetector {
     private constructorDetector: ConstructorInjectionDetector;
@@ -35,45 +35,43 @@ export class SpringBeanDetector {
     }
 
     /**
-     * Java 파일 파싱 결과에서 Spring Bean들을 탐지합니다.
+     * Detects Spring Beans from Java file parse result.
      * 
-     * @param parseResult Java 파일 파싱 결과
-     * @param fileUri 파일 URI
-     * @returns 발견된 Bean 정의들
+     * @param parseResult Java file parse result
+     * @param fileUri File URI
+     * @returns Detected Bean definitions
      */
     public detectBeansInParseResult(parseResult: JavaFileParseResult, fileUri: vscode.Uri): BeanDefinition[] {
         const beans: BeanDefinition[] = [];
         
         try {
-            // 각 클래스에서 Bean 정의 추출
             for (const classInfo of parseResult.classes) {
                 const classBeans = this.extractBeansFromClass(classInfo, fileUri);
                 beans.push(...classBeans);
             }
             
         } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, 'Bean 탐지');
+            const parsingError = ErrorHandler.handleParsingError(error, 'Detecting beans');
             ErrorHandler.logError(parsingError, { 
                 fileUri: fileUri.toString(),
                 classCount: parseResult.classes.length 
             });
-            // 에러가 발생해도 빈 배열 반환 (테스트 요구사항)
+            // Return empty array on error (test requirement)
         }
         
         return beans;
     }
 
     /**
-     * 클래스에서 Bean 정의들을 추출합니다.
+     * Extracts Bean definitions from a class.
      * 
-     * @param classInfo 파싱된 클래스 정보
-     * @param fileUri 파일 URI
-     * @returns Bean 정의들
+     * @param classInfo Parsed class information
+     * @param fileUri File URI
+     * @returns Bean definitions
      */
     private extractBeansFromClass(classInfo: ClassInfo, fileUri: vscode.Uri): BeanDefinition[] {
         const beans: BeanDefinition[] = [];
         
-        // 클래스 레벨 Spring 어노테이션 확인
         for (const annotation of classInfo.annotations) {
             if (this.isSpringBeanAnnotation(annotation.type)) {
                 const beanDefinition = this.createBeanDefinitionFromClass(classInfo, annotation.type, fileUri);
@@ -81,7 +79,6 @@ export class SpringBeanDetector {
             }
         }
         
-        // @Configuration 클래스인 경우 @Bean 메소드도 확인
         const hasConfiguration = classInfo.annotations.some(
             annotation => annotation.type === SpringAnnotationType.CONFIGURATION
         );
@@ -95,12 +92,12 @@ export class SpringBeanDetector {
     }
 
     /**
-     * 클래스에서 Bean 정의를 생성합니다.
+     * Creates Bean definition from a class.
      * 
-     * @param classInfo 클래스 정보
-     * @param annotationType 어노테이션 타입
-     * @param fileUri 파일 URI
-     * @returns Bean 정의
+     * @param classInfo Class information
+     * @param annotationType Annotation type
+     * @param fileUri File URI
+     * @returns Bean definition
      */
     private createBeanDefinitionFromClass(
         classInfo: ClassInfo, 
@@ -109,7 +106,6 @@ export class SpringBeanDetector {
     ): BeanDefinition {
         const className = classInfo.name;
         
-        // 커스텀 Bean 이름 확인
         const customBeanName = this.extractCustomBeanName(classInfo, annotationType);
         const beanName = customBeanName || this.generateBeanName(className);
         
@@ -123,14 +119,13 @@ export class SpringBeanDetector {
             position: classInfo.position,
             definitionType: 'class',
             annotation: annotationType,
-            // 편의 속성들
+            // Convenience properties
             beanName,
             className,
             annotationType,
             fullyQualifiedName
         };
 
-        // 인터페이스 정보가 있으면 Bean 정의에 포함
         const interfaces = (classInfo as any).interfaces as string[] | undefined;
         if (interfaces && interfaces.length > 0) {
             (beanDefinition as any).interfaces = interfaces;
@@ -140,19 +135,17 @@ export class SpringBeanDetector {
     }
 
     /**
-     * @Configuration 클래스에서 @Bean 메소드들을 추출합니다.
+     * Extracts @Bean methods from @Configuration class.
      * 
-     * @param classInfo 클래스 정보
-     * @param fileUri 파일 URI
-     * @returns @Bean 메소드들의 Bean 정의들
+     * @param classInfo Class information
+     * @param fileUri File URI
+     * @returns Bean definitions from @Bean methods
      */
     private extractBeanMethods(classInfo: ClassInfo, fileUri: vscode.Uri): BeanDefinition[] {
         const beans: BeanDefinition[] = [];
         
-        // 클래스의 모든 메서드 확인
         if (classInfo.methods) {
             for (const method of classInfo.methods) {
-                // @Bean 어노테이션이 있는 메서드 확인
                 const beanAnnotation = method.annotations.find(
                     annotation => annotation.type === SpringAnnotationType.BEAN
                 );
@@ -168,19 +161,18 @@ export class SpringBeanDetector {
     }
     
     /**
-     * @Bean 메서드에서 Bean 정의를 생성합니다.
+     * Creates Bean definition from @Bean method.
      * 
-     * @param method 메서드 정보
-     * @param classInfo 클래스 정보
-     * @param fileUri 파일 URI
-     * @returns Bean 정의
+     * @param method Method information
+     * @param classInfo Class information
+     * @param fileUri File URI
+     * @returns Bean definition
      */
     private createBeanDefinitionFromMethod(
         method: MethodInfo, 
         classInfo: ClassInfo, 
         fileUri: vscode.Uri
     ): BeanDefinition {
-        // @Bean 어노테이션에서 커스텀 이름 확인
         const beanAnnotation = method.annotations.find(
             annotation => annotation.type === SpringAnnotationType.BEAN
         );
@@ -206,17 +198,15 @@ export class SpringBeanDetector {
     }
     
     /**
-     * 어노테이션에서 커스텀 Bean 이름을 추출합니다.
+     * Extracts custom Bean name from annotation.
      * 
-     * @param annotation 어노테이션 정보
-     * @returns 커스텀 Bean 이름 (없으면 undefined)
+     * @param annotation Annotation information
+     * @returns Custom Bean name or undefined
      */
     private extractCustomBeanNameFromAnnotation(annotation: AnnotationInfo): string | undefined {
         if (annotation && annotation.parameters) {
-            // value 또는 name 매개변수 확인
             const value = annotation.parameters.get('value') || annotation.parameters.get('name');
             if (value) {
-                // 따옴표 제거
                 return value.replace(/["']/g, '');
             }
         }
@@ -225,20 +215,18 @@ export class SpringBeanDetector {
     }
 
     /**
-     * 어노테이션에서 커스텀 Bean 이름을 추출합니다.
+     * Extracts custom Bean name from annotation.
      * 
-     * @param classInfo 클래스 정보
-     * @param annotationType 어노테이션 타입
-     * @returns 커스텀 Bean 이름 (없으면 undefined)
+     * @param classInfo Class information
+     * @param annotationType Annotation type
+     * @returns Custom Bean name or undefined
      */
     private extractCustomBeanName(classInfo: ClassInfo, annotationType: SpringAnnotationType): string | undefined {
         const annotation = classInfo.annotations.find(ann => ann.type === annotationType);
         
         if (annotation && annotation.parameters) {
-            // value 매개변수 확인
             const value = annotation.parameters.get('value') || annotation.parameters.get('name');
             if (value) {
-                // 따옴표 제거
                 return value.replace(/["']/g, '');
             }
         }
@@ -247,11 +235,11 @@ export class SpringBeanDetector {
     }
 
     /**
-     * 클래스 이름으로부터 Bean 이름을 생성합니다.
-     * Spring의 기본 규칙: 첫 글자를 소문자로 변경
+     * Generates Bean name from class name.
+     * Spring's default rule: lowercase first letter
      * 
-     * @param className 클래스 이름
-     * @returns Bean 이름
+     * @param className Class name
+     * @returns Bean name
      */
     public generateBeanName(className: string): string {
         if (!className || className.length === 0) {
@@ -266,10 +254,10 @@ export class SpringBeanDetector {
     }
 
     /**
-     * 주어진 어노테이션이 Spring Bean을 정의하는 어노테이션인지 확인합니다.
+     * Checks if the given annotation defines a Spring Bean.
      * 
-     * @param annotationType 어노테이션 타입
-     * @returns Bean 어노테이션 여부
+     * @param annotationType Annotation type
+     * @returns Whether it's a Bean annotation
      */
     public isSpringBeanAnnotation(annotationType: SpringAnnotationType): boolean {
         const beanAnnotations = new Set([
@@ -285,13 +273,11 @@ export class SpringBeanDetector {
         return beanAnnotations.has(annotationType);
     }
 
-    // ===== Phase 2: 생성자 주입 및 Setter 주입 탐지 =====
-
     /**
-     * 클래스에서 모든 타입의 주입을 탐지합니다 (필드 + 생성자 + setter).
+     * Detects all types of injections in a class (field + constructor + setter).
      * 
-     * @param classInfo 분석할 클래스 정보
-     * @returns 발견된 모든 주입 정보들
+     * @param classInfo Class information to analyze
+     * @returns All detected injections
      */
     public detectAllInjectionTypes(classInfo: ClassInfo): InjectionInfo[] {
         const injections: InjectionInfo[] = [];
@@ -301,28 +287,28 @@ export class SpringBeanDetector {
         }
 
         try {
-            // 1. 필드 주입 탐지 (@Autowired 필드)
+            // 1. Field injection detection (@Autowired fields)
             const fieldInjections = this.autowiredDetector.detectAllInjections([classInfo]);
             injections.push(...fieldInjections);
 
-            // 2. 생성자 주입 탐지
+            // 2. Constructor injection detection
             const constructorInjections = this.constructorDetector.detectAllInjections([classInfo]);
             injections.push(...constructorInjections);
 
-            // 3. Setter 주입 탐지
+            // 3. Setter injection detection
             const setterInjections = this.setterDetector.detectAllInjections([classInfo]);
             injections.push(...setterInjections);
 
-            // 4. Lombok 주입 탐지 (Phase 3)
+            // 4. Lombok injection detection
             const lombokInjections = this.lombokDetector.detectAllInjections([classInfo]);
             injections.push(...lombokInjections);
 
-            // 5. Bean 메서드 매개변수 주입 탐지 (Phase 4)
+            // 5. Bean method parameter injection detection
             const beanMethodInjections = this.beanMethodDetector.detectInjections(classInfo);
             injections.push(...beanMethodInjections);
 
         } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, '주입 탐지');
+            const parsingError = ErrorHandler.handleParsingError(error, 'Detecting injections');
             ErrorHandler.logError(parsingError, { 
                 className: classInfo?.name || 'Unknown',
                 fullyQualifiedName: classInfo?.fullyQualifiedName 
@@ -333,10 +319,10 @@ export class SpringBeanDetector {
     }
 
     /**
-     * 여러 클래스에서 모든 주입을 탐지합니다.
+     * Detects all injections in multiple classes.
      * 
-     * @param classes 분석할 클래스들
-     * @returns 발견된 모든 주입 정보들
+     * @param classes Classes to analyze
+     * @returns All detected injections
      */
     public detectAllInjectionsInClasses(classes: ClassInfo[]): InjectionInfo[] {
         const allInjections: InjectionInfo[] = [];

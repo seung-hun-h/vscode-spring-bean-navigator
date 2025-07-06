@@ -3,58 +3,48 @@ import { AbstractInjectionDetector } from './abstract-injection-detector';
 import { ErrorHandler } from '../parsers/core/parser-errors';
 
 /**
- * @Bean 메서드 매개변수 주입을 감지하는 클래스
- * @Configuration 클래스 내의 @Bean 메서드 매개변수들을 Spring 주입 포인트로 감지합니다.
+ * Detects @Bean method parameter injections.
+ * Identifies Spring injection points from @Bean method parameters in @Configuration classes.
  */
 export class BeanMethodInjectionDetector extends AbstractInjectionDetector {
-
-    /**
-     * Detector 이름을 반환합니다.
-     * 
-     * @returns Detector 이름
-     */
     protected getDetectorName(): string {
         return 'BeanMethodInjectionDetector';
     }
 
     /**
-     * 단일 클래스에서 Bean 메서드 매개변수 주입을 감지합니다.
-     * AbstractInjectionDetector의 Template Method Pattern에서 호출됩니다.
+     * Detects Bean method parameter injections in a single class.
+     * Called by AbstractInjectionDetector's Template Method Pattern.
      * 
-     * @param classInfo - 분석할 클래스 정보
-     * @returns 감지된 Bean 메서드 매개변수 주입 정보 배열
+     * @param classInfo - Class information to analyze
+     * @returns Array of detected Bean method parameter injections
      */
     protected detectInjectionsForClass(classInfo: ClassInfo): InjectionInfo[] {
         return this.detectInjections(classInfo);
     }
 
     /**
-     * 클래스에서 @Bean 메서드 매개변수 주입을 감지합니다.
+     * Detects @Bean method parameter injections in a class.
      * 
-     * @param classInfo - 분석할 클래스 정보
-     * @returns 감지된 Bean 메서드 매개변수 주입 정보 배열
+     * @param classInfo - Class information to analyze
+     * @returns Array of detected Bean method parameter injections
      */
     public detectInjections(classInfo: ClassInfo): InjectionInfo[] {
         const injections: InjectionInfo[] = [];
 
         try {
-            // @Configuration 클래스인지 확인
             if (!this.isConfigurationClass(classInfo)) {
                 return injections;
             }
 
-            // 클래스의 모든 메서드 검사
             if (!classInfo.methods || classInfo.methods.length === 0) {
                 return injections;
             }
 
             for (const method of classInfo.methods) {
-                // @Bean 어노테이션이 있는 메서드인지 확인
                 if (!this.isBeanMethod(method)) {
                     continue;
                 }
 
-                // 메서드의 모든 매개변수를 주입 포인트로 감지
                 if (method.parameters && method.parameters.length > 0) {
                     for (const parameter of method.parameters) {
                         const injection: InjectionInfo = {
@@ -73,7 +63,7 @@ export class BeanMethodInjectionDetector extends AbstractInjectionDetector {
             return injections;
 
         } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, 'Bean 메서드 매개변수 주입 감지');
+            const parsingError = ErrorHandler.handleParsingError(error, 'Detecting Bean method parameter injections');
             ErrorHandler.logError(parsingError, {
                 detectorName: this.getDetectorName(),
                 className: classInfo.name,
@@ -84,10 +74,10 @@ export class BeanMethodInjectionDetector extends AbstractInjectionDetector {
     }
 
     /**
-     * 클래스가 @Configuration 클래스인지 확인합니다.
+     * Checks if a class is a @Configuration class.
      * 
-     * @param classInfo - 확인할 클래스 정보
-     * @returns @Configuration 클래스 여부
+     * @param classInfo - Class information to check
+     * @returns Whether the class is a @Configuration class
      */
     private isConfigurationClass(classInfo: ClassInfo): boolean {
         if (!classInfo.annotations || classInfo.annotations.length === 0) {
@@ -100,10 +90,10 @@ export class BeanMethodInjectionDetector extends AbstractInjectionDetector {
     }
 
     /**
-     * 메서드가 @Bean 메서드인지 확인합니다.
+     * Checks if a method is a @Bean method.
      * 
-     * @param method - 확인할 메서드 정보
-     * @returns @Bean 메서드 여부
+     * @param method - Method information to check
+     * @returns Whether the method is a @Bean method
      */
     private isBeanMethod(method: any): boolean {
         if (!method.annotations || method.annotations.length === 0) {
@@ -116,19 +106,17 @@ export class BeanMethodInjectionDetector extends AbstractInjectionDetector {
     }
 
     /**
-     * Bean 메서드 매개변수 주입이 올바른지 검증합니다.
+     * Validates Bean method parameter injection.
      * 
-     * @param classInfo - 클래스 정보
-     * @returns 검증 결과
+     * @param classInfo - Class information
+     * @returns Validation result
      */
     public validateInjection(classInfo: ClassInfo): boolean {
         try {
-            // @Configuration 클래스여야 함
             if (!this.isConfigurationClass(classInfo)) {
                 return false;
             }
 
-            // @Bean 메서드가 최소 하나는 있어야 함
             if (!classInfo.methods || classInfo.methods.length === 0) {
                 return false;
             }
@@ -137,7 +125,7 @@ export class BeanMethodInjectionDetector extends AbstractInjectionDetector {
             return beanMethods.length > 0;
 
         } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, 'Bean 메서드 주입 검증');
+            const parsingError = ErrorHandler.handleParsingError(error, 'Validating Bean method injection');
             ErrorHandler.logError(parsingError, {
                 detectorName: this.getDetectorName(),
                 className: classInfo.name
@@ -147,10 +135,10 @@ export class BeanMethodInjectionDetector extends AbstractInjectionDetector {
     }
 
     /**
-     * 디버깅을 위한 정보를 생성합니다.
+     * Generates debugging information.
      * 
-     * @param classInfo - 클래스 정보
-     * @returns 디버깅 정보
+     * @param classInfo - Class information
+     * @returns Debugging information
      */
     public getDebugInfo(classInfo: ClassInfo): any {
         const isConfiguration = this.isConfigurationClass(classInfo);

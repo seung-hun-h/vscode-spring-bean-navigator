@@ -7,33 +7,28 @@ import { AbstractInjectionDetector } from './abstract-injection-detector';
 import { ErrorHandler } from '../parsers/core/parser-errors';
 
 /**
- * 생성자 주입 패턴을 탐지하는 클래스입니다.
- * Spring Framework 5.0+의 단일 생성자 자동 주입과 @Autowired 생성자를 지원합니다.
+ * Detects constructor injection patterns.
+ * Supports both single constructor auto-injection (Spring Framework 5.0+) and @Autowired constructors.
  */
 export class ConstructorInjectionDetector extends AbstractInjectionDetector {
-
-    /**
-     * Detector 이름을 반환합니다.
-     */
     protected getDetectorName(): string {
         return 'ConstructorInjectionDetector';
     }
 
     /**
-     * 단일 클래스에서 생성자 주입을 탐지합니다.
-     * 단일 생성자 주입과 @Autowired 생성자 주입을 모두 처리합니다.
+     * Detects constructor injections in a single class.
+     * Handles both single constructor injection and @Autowired constructor injection.
      * 
-     * @param classInfo - 분석할 클래스 정보
-     * @returns 탐지된 생성자 주입 정보 배열
+     * @param classInfo - Class information to analyze
+     * @returns Array of detected constructor injections
      */
     protected detectInjectionsForClass(classInfo: ClassInfo): InjectionInfo[] {
         const injections: InjectionInfo[] = [];
 
-        // 단일 생성자 주입 탐지
         const singleConstructorInjections = this.detectSingleConstructorInjection(classInfo);
         injections.push(...singleConstructorInjections);
 
-        // @Autowired 생성자 주입 탐지 (단일 생성자 주입과 중복되지 않도록)
+        // Avoid duplicates with single constructor injection
         if (singleConstructorInjections.length === 0) {
             const autowiredConstructorInjections = this.detectAutowiredConstructorInjection(classInfo);
             injections.push(...autowiredConstructorInjections);
@@ -43,26 +38,25 @@ export class ConstructorInjectionDetector extends AbstractInjectionDetector {
     }
 
     /**
-     * 단일 생성자 주입을 탐지합니다.
-     * Spring 5.0+에서는 생성자가 하나만 있으면 @Autowired 어노테이션 없이도 자동 주입됩니다.
+     * Detects single constructor injection.
+     * In Spring 5.0+, a single constructor is automatically injected without @Autowired annotation.
      * 
-     * @param classInfo - 분석할 클래스 정보
-     * @returns 탐지된 생성자 주입 정보 배열
+     * @param classInfo - Class information to analyze
+     * @returns Array of detected constructor injections
      */
     public detectSingleConstructorInjection(classInfo: ClassInfo): InjectionInfo[] {
         const injections: InjectionInfo[] = [];
 
         try {
-            // null 체크
             if (!classInfo || !classInfo.constructors) {
                 return injections;
             }
 
-            // 생성자가 정확히 하나인 경우만 처리
+            // Process only when there is exactly one constructor
             if (classInfo.constructors.length === 1) {
                 const constructor = classInfo.constructors[0];
                 
-                // 매개변수가 있는 경우에만 주입으로 간주
+                // Only consider as injection if there are parameters
                 if (constructor.parameters && constructor.parameters.length > 0) {
                     for (const parameter of constructor.parameters) {
                         const injection: InjectionInfo = {
@@ -78,7 +72,7 @@ export class ConstructorInjectionDetector extends AbstractInjectionDetector {
             }
 
         } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, '단일 생성자 주입 탐지');
+            const parsingError = ErrorHandler.handleParsingError(error, 'Detecting single constructor injection');
             ErrorHandler.logError(parsingError, { 
                 className: classInfo?.name || 'Unknown',
                 constructorCount: classInfo?.constructors?.length || 0
@@ -89,22 +83,20 @@ export class ConstructorInjectionDetector extends AbstractInjectionDetector {
     }
 
     /**
-     * @Autowired가 붙은 생성자 주입을 탐지합니다.
-     * 다중 생성자가 있는 경우 @Autowired가 붙은 생성자를 찾아 처리합니다.
+     * Detects @Autowired constructor injection.
+     * When multiple constructors exist, finds and processes the constructor with @Autowired annotation.
      * 
-     * @param classInfo - 분석할 클래스 정보
-     * @returns 탐지된 @Autowired 생성자 주입 정보 배열
+     * @param classInfo - Class information to analyze
+     * @returns Array of detected @Autowired constructor injections
      */
     public detectAutowiredConstructorInjection(classInfo: ClassInfo): InjectionInfo[] {
         const injections: InjectionInfo[] = [];
 
         try {
-            // null 체크
             if (!classInfo || !classInfo.constructors) {
                 return injections;
             }
 
-            // @Autowired가 붙은 첫 번째 생성자 찾기
             const autowiredConstructor = classInfo.constructors.find(constructor => 
                 constructor.hasAutowiredAnnotation
             );
@@ -123,7 +115,7 @@ export class ConstructorInjectionDetector extends AbstractInjectionDetector {
             }
 
         } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, '@Autowired 생성자 주입 탐지');
+            const parsingError = ErrorHandler.handleParsingError(error, 'Detecting @Autowired constructor injection');
             ErrorHandler.logError(parsingError, { 
                 className: classInfo?.name || 'Unknown',
                 constructorCount: classInfo?.constructors?.length || 0

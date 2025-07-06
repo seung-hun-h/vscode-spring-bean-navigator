@@ -13,32 +13,26 @@ import {
 import { AbstractInjectionDetector } from './abstract-injection-detector';
 
 /**
- * Lombok 어노테이션 기반 의존성 주입을 탐지하는 클래스 (Phase 3)
- * 컴파일 타임에 생성되는 Lombok 생성자를 가상으로 시뮬레이션하여 주입 정보를 제공합니다.
+ * Detects Lombok annotation-based dependency injection.
+ * Simulates Lombok constructors generated at compile time to provide injection information.
  */
 export class LombokInjectionDetector extends AbstractInjectionDetector {
-
-    /**
-     * Detector 이름을 반환합니다.
-     */
     protected getDetectorName(): string {
         return 'LombokInjectionDetector';
     }
 
     /**
-     * 단일 클래스에서 Lombok 기반 의존성 주입을 탐지합니다.
+     * Detects Lombok-based dependency injections in a single class.
      * 
-     * @param classInfo - 분석할 클래스 정보
-     * @returns 탐지된 Lombok 주입 정보 배열
+     * @param classInfo - Class information to analyze
+     * @returns Array of detected Lombok injections
      */
     protected detectInjectionsForClass(classInfo: ClassInfo): InjectionInfo[] {
         const injections: InjectionInfo[] = [];
 
-        // @RequiredArgsConstructor 주입 탐지
         const requiredArgsInjections = this.detectRequiredArgsConstructorInjections(classInfo);
         injections.push(...requiredArgsInjections);
 
-        // @AllArgsConstructor 주입 탐지
         const allArgsInjections = this.detectAllArgsConstructorInjections(classInfo);
         injections.push(...allArgsInjections);
 
@@ -46,10 +40,10 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
     }
 
     /**
-     * @RequiredArgsConstructor에서 주입 정보를 탐지합니다.
+     * Detects injection information from @RequiredArgsConstructor.
      * 
-     * @param classInfo - 분석할 클래스 정보
-     * @returns 탐지된 주입 정보 배열
+     * @param classInfo - Class information to analyze
+     * @returns Array of detected injections
      */
     public detectRequiredArgsConstructorInjections(classInfo: ClassInfo): InjectionInfo[] {
         const virtualConstructor = this.detectRequiredArgsConstructor(classInfo);
@@ -61,10 +55,10 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
     }
 
     /**
-     * @AllArgsConstructor에서 주입 정보를 탐지합니다.
+     * Detects injection information from @AllArgsConstructor.
      * 
-     * @param classInfo - 분석할 클래스 정보
-     * @returns 탐지된 주입 정보 배열
+     * @param classInfo - Class information to analyze
+     * @returns Array of detected injections
      */
     public detectAllArgsConstructorInjections(classInfo: ClassInfo): InjectionInfo[] {
         const virtualConstructor = this.detectAllArgsConstructor(classInfo);
@@ -76,11 +70,11 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
     }
 
     /**
-     * 가상 생성자 정보를 주입 정보로 변환합니다.
+     * Converts virtual constructor information to injection information.
      * 
-     * @param virtualConstructor - 가상 생성자 정보
-     * @param classInfo - 클래스 정보
-     * @returns 변환된 주입 정보 배열
+     * @param virtualConstructor - Virtual constructor information
+     * @param classInfo - Class information
+     * @returns Array of converted injections
      */
     private convertVirtualConstructorToInjections(
         virtualConstructor: VirtualConstructorInfo, 
@@ -89,7 +83,6 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
         const injections: InjectionInfo[] = [];
 
         for (const parameter of virtualConstructor.parameters) {
-            // 각 매개변수에 해당하는 실제 필드 찾기
             const correspondingField = classInfo.fields.find(field => 
                 field.name === parameter.name && field.type === parameter.type
             );
@@ -97,7 +90,7 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
             const injection: InjectionInfo = {
                 targetType: parameter.type,
                 targetName: parameter.name,
-                injectionType: InjectionType.CONSTRUCTOR_LOMBOK, // Lombok 생성자 주입을 구분
+                injectionType: InjectionType.CONSTRUCTOR_LOMBOK,
                 position: correspondingField?.position || parameter.position || classInfo.position,
                 range: correspondingField?.range || classInfo.range
             };
@@ -109,18 +102,17 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
     }
 
     /**
-     * @RequiredArgsConstructor 어노테이션의 가상 생성자를 탐지하고 생성합니다.
-     * final 필드와 @NonNull 필드들을 매개변수로 하는 생성자를 시뮬레이션합니다.
+     * Detects and creates virtual constructor for @RequiredArgsConstructor annotation.
+     * Simulates a constructor with final fields and @NonNull fields as parameters.
      * 
-     * @param classInfo - 분석할 클래스 정보
-     * @returns 생성된 가상 생성자 정보 또는 undefined
+     * @param classInfo - Class information to analyze
+     * @returns Virtual constructor information or undefined
      */
     public detectRequiredArgsConstructor(classInfo: ClassInfo): VirtualConstructorInfo | undefined {
         if (!classInfo) {
-            throw new Error('ClassInfo는 null일 수 없습니다');
+            throw new Error('ClassInfo cannot be null');
         }
 
-        // @RequiredArgsConstructor 어노테이션 확인
         const requiredArgsAnnotation = classInfo.annotations.find(
             annotation => annotation.type === SpringAnnotationType.LOMBOK_REQUIRED_ARGS_CONSTRUCTOR
         );
@@ -129,12 +121,10 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
             return undefined;
         }
 
-        // final 필드들 추출 (static 제외)
         const finalFields = classInfo.fields.filter(field => 
             field.isFinal && !field.isStatic
         );
 
-        // @NonNull 필드들 추출 (final이 아닌 것들)
         const nonNullFields = classInfo.fields.filter(field => 
             !field.isFinal && !field.isStatic &&
             field.annotations.some(annotation => 
@@ -142,7 +132,6 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
             )
         );
 
-        // 생성자 매개변수 생성 (필드 순서 유지)
         const requiredFields = [...finalFields, ...nonNullFields];
         const parameters: ParameterInfo[] = requiredFields.map(field => ({
             name: field.name,
@@ -150,10 +139,8 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
             position: field.position
         }));
 
-        // Lombok 설정 확인 (access level 등)
         const visibility = this.extractLombokAccessLevel(requiredArgsAnnotation) || 'public';
 
-        // 가상 생성자 정보 생성
         const virtualConstructor: VirtualConstructorInfo = {
             parameters: parameters,
             range: classInfo.range,
@@ -168,18 +155,17 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
     }
 
     /**
-     * @AllArgsConstructor 어노테이션의 가상 생성자를 탐지하고 생성합니다.
-     * 모든 필드들을 매개변수로 하는 생성자를 시뮬레이션합니다 (static 필드 제외).
+     * Detects and creates virtual constructor for @AllArgsConstructor annotation.
+     * Simulates a constructor with all fields as parameters (excluding static fields).
      * 
-     * @param classInfo - 분석할 클래스 정보
-     * @returns 생성된 가상 생성자 정보 또는 undefined
+     * @param classInfo - Class information to analyze
+     * @returns Virtual constructor information or undefined
      */
     public detectAllArgsConstructor(classInfo: ClassInfo): VirtualConstructorInfo | undefined {
         if (!classInfo) {
-            throw new Error('ClassInfo는 null일 수 없습니다');
+            throw new Error('ClassInfo cannot be null');
         }
 
-        // @AllArgsConstructor 어노테이션 확인
         const allArgsAnnotation = classInfo.annotations.find(
             annotation => annotation.type === SpringAnnotationType.LOMBOK_ALL_ARGS_CONSTRUCTOR
         );
@@ -188,20 +174,16 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
             return undefined;
         }
 
-        // 모든 필드들 추출 (static 제외)
         const allFields = classInfo.fields.filter(field => !field.isStatic);
 
-        // 생성자 매개변수 생성 (필드 순서 유지)
         const parameters: ParameterInfo[] = allFields.map(field => ({
             name: field.name,
             type: field.type,
             position: field.position
         }));
 
-        // Lombok 설정 확인
         const visibility = this.extractLombokAccessLevel(allArgsAnnotation) || 'public';
 
-        // 가상 생성자 정보 생성
         const virtualConstructor: VirtualConstructorInfo = {
             parameters: parameters,
             range: classInfo.range,
@@ -216,41 +198,37 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
     }
 
     /**
-     * 클래스의 Lombok 어노테이션을 종합적으로 분석하여 가상 생성자들을 시뮬레이션합니다.
+     * Comprehensively analyzes Lombok annotations in a class to simulate virtual constructors.
      * 
-     * @param classInfo - 분석할 클래스 정보
-     * @returns Lombok 시뮬레이션 결과
+     * @param classInfo - Class information to analyze
+     * @returns Lombok simulation result
      */
     public simulateLombokGeneration(classInfo: ClassInfo): LombokSimulationResult {
         try {
             if (!classInfo) {
-                return this.createFailedResult(['ClassInfo가 제공되지 않았습니다']);
+                return this.createFailedResult(['ClassInfo not provided']);
             }
 
             const virtualConstructors: VirtualConstructorInfo[] = [];
             const fieldAnalysisList: LombokFieldAnalysis[] = [];
             const errors: string[] = [];
 
-            // 잘못된 어노테이션 타입 검증
             for (const annotation of classInfo.annotations) {
                 if (annotation.type && annotation.type.toString().includes('INVALID')) {
-                    errors.push(`잘못된 어노테이션 타입: ${annotation.type}`);
+                    errors.push(`Invalid annotation type: ${annotation.type}`);
                 }
             }
 
-            // @RequiredArgsConstructor 시뮬레이션
             const requiredArgsConstructor = this.detectRequiredArgsConstructor(classInfo);
             if (requiredArgsConstructor) {
                 virtualConstructors.push(requiredArgsConstructor);
             }
 
-            // @AllArgsConstructor 시뮬레이션  
             const allArgsConstructor = this.detectAllArgsConstructor(classInfo);
             if (allArgsConstructor) {
                 virtualConstructors.push(allArgsConstructor);
             }
 
-            // 필드 분석 결과 생성 (단일 클래스이므로 하나의 분석 결과)
             const fieldAnalysis: LombokFieldAnalysis = {
                 requiredArgsFields: this.extractRequiredArgsFields(classInfo),
                 allArgsFields: this.extractAllArgsFields(classInfo),
@@ -266,20 +244,19 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
             };
 
         } catch (error) {
-            return this.createFailedResult([`시뮬레이션 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`]);
+            return this.createFailedResult([`Simulation failed: ${error instanceof Error ? error.message : 'Unknown error'}`]);
         }
     }
 
     /**
-     * Lombok 어노테이션의 access level을 추출합니다.
+     * Extracts access level from Lombok annotation.
      * 
-     * @param annotation - Lombok 어노테이션 정보
-     * @returns access level 문자열 또는 undefined
+     * @param annotation - Lombok annotation information
+     * @returns Access level string or undefined
      */
     private extractLombokAccessLevel(annotation: AnnotationInfo): string | undefined {
         if (annotation.parameters && annotation.parameters.has('access')) {
             const accessValue = annotation.parameters.get('access');
-            // AccessLevel.PROTECTED → protected 변환
             if (accessValue === 'PROTECTED' || accessValue === 'protected') {
                 return 'protected';
             }
@@ -290,69 +267,14 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
                 return '';
             }
         }
-        return 'public'; // 기본값
+        return 'public';
     }
 
     /**
-     * 주어진 어노테이션 타입이 Lombok 어노테이션인지 확인합니다.
+     * Extracts fields to be included in @RequiredArgsConstructor.
      * 
-     * @param annotationType - 확인할 어노테이션 타입
-     * @returns Lombok 어노테이션이면 true
-     */
-    private isLombokAnnotation(annotationType: SpringAnnotationType): boolean {
-        const lombokAnnotations = [
-            SpringAnnotationType.LOMBOK_REQUIRED_ARGS_CONSTRUCTOR,
-            SpringAnnotationType.LOMBOK_ALL_ARGS_CONSTRUCTOR,
-            SpringAnnotationType.LOMBOK_NO_ARGS_CONSTRUCTOR,
-            SpringAnnotationType.LOMBOK_DATA,
-            SpringAnnotationType.LOMBOK_VALUE,
-            SpringAnnotationType.LOMBOK_SLF4J,
-            SpringAnnotationType.LOMBOK_NON_NULL
-        ];
-        
-        return lombokAnnotations.includes(annotationType);
-    }
-
-    /**
-     * Lombok 어노테이션의 설정을 추출합니다.
-     * 
-     * @param annotation - 어노테이션 정보
-     * @returns Lombok 설정 맵
-     */
-    private extractLombokConfig(annotation: AnnotationInfo): Map<string, string> {
-        const config = new Map<string, string>();
-        
-        if (annotation.parameters) {
-            // access level 설정
-            if (annotation.parameters.has('access')) {
-                const accessValue = annotation.parameters.get('access');
-                if (accessValue) {
-                    config.set('access', accessValue);
-                }
-            }
-            
-            // staticName 설정
-            if (annotation.parameters.has('staticName')) {
-                const staticNameValue = annotation.parameters.get('staticName');
-                if (staticNameValue) {
-                    config.set('staticName', staticNameValue);
-                }
-            }
-        }
-        
-        // 기본값 설정
-        if (!config.has('access')) {
-            config.set('access', 'public');
-        }
-        
-        return config;
-    }
-
-    /**
-     * @RequiredArgsConstructor에 포함될 필드들을 추출합니다.
-     * 
-     * @param classInfo - 클래스 정보
-     * @returns final 및 @NonNull 필드들
+     * @param classInfo - Class information
+     * @returns Final and @NonNull fields
      */
     private extractRequiredArgsFields(classInfo: ClassInfo): FieldInfo[] {
         const finalFields = classInfo.fields.filter(field => 
@@ -370,20 +292,20 @@ export class LombokInjectionDetector extends AbstractInjectionDetector {
     }
 
     /**
-     * @AllArgsConstructor에 포함될 필드들을 추출합니다.
+     * Extracts fields to be included in @AllArgsConstructor.
      * 
-     * @param classInfo - 클래스 정보
-     * @returns static이 아닌 모든 필드들
+     * @param classInfo - Class information
+     * @returns All non-static fields
      */
     private extractAllArgsFields(classInfo: ClassInfo): FieldInfo[] {
         return classInfo.fields.filter(field => !field.isStatic);
     }
 
     /**
-     * 실패한 시뮬레이션 결과를 생성합니다.
+     * Creates a failed simulation result.
      * 
-     * @param errors - 에러 메시지들
-     * @returns 실패 결과
+     * @param errors - Error messages
+     * @returns Failed result
      */
     private createFailedResult(errors: string[]): LombokSimulationResult {
         return {
