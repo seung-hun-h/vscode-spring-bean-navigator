@@ -1,9 +1,5 @@
 /**
- * Java 파싱 관련 에러들을 정의하는 모듈
- */
-
-/**
- * Java 파싱 과정에서 발생하는 기본 에러 클래스
+ * Base error class for Java parsing operations
  */
 export class JavaParsingError extends Error {
     constructor(
@@ -14,7 +10,6 @@ export class JavaParsingError extends Error {
         super(message);
         this.name = 'JavaParsingError';
         
-        // Error 체인 설정
         if (cause && 'stack' in cause) {
             this.stack = `${this.stack}\nCaused by: ${cause.stack}`;
         }
@@ -22,7 +17,7 @@ export class JavaParsingError extends Error {
 }
 
 /**
- * CST(Concrete Syntax Tree) 파싱 실패 에러
+ * CST (Concrete Syntax Tree) parsing error
  */
 export class CSTParsingError extends JavaParsingError {
     constructor(
@@ -32,13 +27,13 @@ export class CSTParsingError extends JavaParsingError {
         public readonly column?: number,
         cause?: Error
     ) {
-        super(message, cause, 'CST 파싱');
+        super(message, cause, 'CST parsing');
         this.name = 'CSTParsingError';
     }
 }
 
 /**
- * 어노테이션 파싱 실패 에러
+ * Annotation parsing error
  */
 export class AnnotationParsingError extends JavaParsingError {
     constructor(
@@ -46,13 +41,13 @@ export class AnnotationParsingError extends JavaParsingError {
         public readonly annotationName?: string,
         cause?: Error
     ) {
-        super(message, cause, '어노테이션 파싱');
+        super(message, cause, 'annotation parsing');
         this.name = 'AnnotationParsingError';
     }
 }
 
 /**
- * 필드 추출 실패 에러
+ * Field extraction error
  */
 export class FieldExtractionError extends JavaParsingError {
     constructor(
@@ -61,13 +56,13 @@ export class FieldExtractionError extends JavaParsingError {
         public readonly className?: string,
         cause?: Error
     ) {
-        super(message, cause, '필드 추출');
+        super(message, cause, 'field extraction');
         this.name = 'FieldExtractionError';
     }
 }
 
 /**
- * 클래스 추출 실패 에러
+ * Class extraction error
  */
 export class ClassExtractionError extends JavaParsingError {
     constructor(
@@ -75,13 +70,13 @@ export class ClassExtractionError extends JavaParsingError {
         public readonly className?: string,
         cause?: Error
     ) {
-        super(message, cause, '클래스 추출');
+        super(message, cause, 'class extraction');
         this.name = 'ClassExtractionError';
     }
 }
 
 /**
- * 위치 계산 실패 에러
+ * Position calculation error
  */
 export class PositionCalculationError extends JavaParsingError {
     constructor(
@@ -89,21 +84,21 @@ export class PositionCalculationError extends JavaParsingError {
         public readonly nodeName?: string,
         cause?: Error
     ) {
-        super(message, cause, '위치 계산');
+        super(message, cause, 'position calculation');
         this.name = 'PositionCalculationError';
     }
 }
 
 /**
- * 에러 처리를 위한 유틸리티 클래스
+ * Error handling utility class
  */
 export class ErrorHandler {
     /**
-     * 파싱 에러를 적절한 타입으로 변환합니다.
+     * Converts parsing errors to appropriate types
      * 
-     * @param error - 원본 에러
-     * @param context - 에러 발생 컨텍스트
-     * @returns 적절한 타입의 JavaParsingError
+     * @param error - Original error
+     * @param context - Error context
+     * @returns Appropriate JavaParsingError type
      */
     static handleParsingError(error: unknown, context: string): JavaParsingError {
         if (error instanceof JavaParsingError) {
@@ -111,10 +106,9 @@ export class ErrorHandler {
         }
         
         if (error instanceof Error) {
-            // java-parser 라이브러리의 에러 메시지 패턴 확인
             if (error.message.includes('parsing errors detected')) {
                 return new CSTParsingError(
-                    `CST 파싱 실패: ${error.message}`,
+                    `CST parsing failed: ${error.message}`,
                     undefined,
                     this.extractLineNumber(error.message),
                     this.extractColumnNumber(error.message),
@@ -122,10 +116,9 @@ export class ErrorHandler {
                 );
             }
             
-            // chevrotain lexer 에러 패턴 확인
             if (error.message.includes('Cannot read properties')) {
                 return new CSTParsingError(
-                    `토큰화 실패: ${error.message}`,
+                    `Tokenization failed: ${error.message}`,
                     undefined,
                     undefined,
                     undefined,
@@ -133,17 +126,17 @@ export class ErrorHandler {
                 );
             }
             
-            return new JavaParsingError(`${context} 중 오류 발생: ${error.message}`, error, context);
+            return new JavaParsingError(`Error during ${context}: ${error.message}`, error, context);
         }
         
-        return new JavaParsingError(`${context} 중 알 수 없는 오류 발생`, undefined, context);
+        return new JavaParsingError(`Unknown error during ${context}`, undefined, context);
     }
 
     /**
-     * 안전한 방식으로 에러를 로깅합니다.
+     * Logs errors safely
      * 
-     * @param error - 로깅할 에러
-     * @param additionalInfo - 추가 정보
+     * @param error - Error to log
+     * @param additionalInfo - Additional information
      */
     static logError(error: JavaParsingError, additionalInfo?: Record<string, any>): void {
         const errorInfo = {
@@ -156,17 +149,16 @@ export class ErrorHandler {
         
         console.error(`❌ ${error.name}:`, errorInfo);
         
-        // 스택 트레이스는 디버그 모드에서만 출력
         if (process.env.NODE_ENV === 'development' && error.stack) {
-            console.debug('스택 트레이스:', error.stack);
+            console.debug('Stack trace:', error.stack);
         }
     }
 
     /**
-     * 에러 메시지에서 라인 번호를 추출합니다.
+     * Extracts line number from error message
      * 
-     * @param message - 에러 메시지
-     * @returns 라인 번호 또는 undefined
+     * @param message - Error message
+     * @returns Line number or undefined
      */
     private static extractLineNumber(message: string): number | undefined {
         const lineMatch = message.match(/line:\s*(\d+)/);
@@ -174,10 +166,10 @@ export class ErrorHandler {
     }
 
     /**
-     * 에러 메시지에서 컬럼 번호를 추출합니다.
+     * Extracts column number from error message
      * 
-     * @param message - 에러 메시지
-     * @returns 컬럼 번호 또는 undefined
+     * @param message - Error message
+     * @returns Column number or undefined
      */
     private static extractColumnNumber(message: string): number | undefined {
         const columnMatch = message.match(/column:\s*(\d+)/);
@@ -185,31 +177,31 @@ export class ErrorHandler {
     }
 
     /**
-     * 사용자 친화적인 에러 메시지를 생성합니다.
+     * Creates user-friendly error messages
      * 
-     * @param error - JavaParsingError 인스턴스
-     * @returns 사용자 친화적인 메시지
+     * @param error - JavaParsingError instance
+     * @returns User-friendly message
      */
     static createUserFriendlyMessage(error: JavaParsingError): string {
         if (error instanceof CSTParsingError) {
             if (error.line && error.column) {
-                return `Java 파일 파싱 실패 (라인 ${error.line}, 컬럼 ${error.column}): 문법 오류가 있는지 확인해주세요.`;
+                return `Java file parsing failed (line ${error.line}, column ${error.column}): Please check for syntax errors.`;
             }
-            return 'Java 파일 파싱에 실패했습니다. 파일 문법을 확인해주세요.';
+            return 'Java file parsing failed. Please check the file syntax.';
         }
         
         if (error instanceof AnnotationParsingError) {
-            return `@${error.annotationName || 'Unknown'} 어노테이션 파싱에 실패했습니다.`;
+            return `Failed to parse @${error.annotationName || 'Unknown'} annotation.`;
         }
         
         if (error instanceof FieldExtractionError) {
-            return `필드 '${error.fieldName || 'Unknown'}' 추출에 실패했습니다.`;
+            return `Failed to extract field '${error.fieldName || 'Unknown'}'.`;
         }
         
         if (error instanceof ClassExtractionError) {
-            return `클래스 '${error.className || 'Unknown'}' 추출에 실패했습니다.`;
+            return `Failed to extract class '${error.className || 'Unknown'}'.`;
         }
         
-        return error.message || 'Java 파일 처리 중 오류가 발생했습니다.';
+        return error.message || 'An error occurred while processing the Java file.';
     }
 } 

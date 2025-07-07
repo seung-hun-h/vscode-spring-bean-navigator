@@ -77,7 +77,7 @@ suite('JavaFileParser', () => {
 
             // Assert
             assert.ok(result.errors.length > 0, 'Should have parsing errors');
-            assert.ok(result.errors[0].includes('파싱 실패'), 'Error message should contain parsing failure');
+            assert.ok(result.errors[0].includes('parsing failed') || result.errors[0].includes('Failed'), 'Error message should contain parsing failure');
         });
 
         test('should_handleEmptyFile_when_emptyContentProvided', async () => {
