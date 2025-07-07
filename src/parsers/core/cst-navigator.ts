@@ -8,15 +8,15 @@ import {
 } from '../../models/spring-types';
 
 /**
- * CST(Concrete Syntax Tree) 탐색을 담당하는 클래스
+ * CST (Concrete Syntax Tree) navigator for parsing Java source code
  */
 export class CSTNavigator {
     
     /**
-     * CST에서 패키지 이름을 추출합니다.
+     * Extracts package name from CST.
      * 
-     * @param cst - CST 루트 노드
-     * @returns 패키지 이름 또는 undefined
+     * @param cst - CST root node
+     * @returns Package name or undefined
      */
     public extractPackageName(cst: CompilationUnitNode): string | undefined {
         try {
@@ -24,14 +24,13 @@ export class CSTNavigator {
             if (ordinaryCompUnit?.children?.packageDeclaration) {
                 const packageDecl = ordinaryCompUnit.children.packageDeclaration[0];
                 if (packageDecl.children?.Identifier) {
-                    // 실제 구조: packageDeclaration.children = ['Package', 'Identifier', 'Dot', 'Semicolon']
                     const identifiers = packageDecl.children.Identifier;
                     return identifiers.map((id: IdentifierNode) => id.image).join('.');
                 }
             }
         } catch (error) {
             const cstError = new CSTParsingError(
-                '패키지 이름 추출 실패',
+                'Failed to extract package name',
                 undefined,
                 undefined,
                 undefined,
@@ -43,10 +42,10 @@ export class CSTNavigator {
     }
 
     /**
-     * CST에서 임포트 문들을 추출합니다.
+     * Extracts import statements from CST.
      * 
-     * @param cst - CST 루트 노드
-     * @returns 임포트 문 배열
+     * @param cst - CST root node
+     * @returns Array of import statements
      */
     public extractImports(cst: CompilationUnitNode): string[] {
         const imports: string[] = [];
@@ -65,7 +64,7 @@ export class CSTNavigator {
             }
         } catch (error) {
             const cstError = new CSTParsingError(
-                '임포트 문 추출 실패',
+                'Failed to extract imports',
                 undefined,
                 undefined,
                 undefined,
@@ -78,10 +77,10 @@ export class CSTNavigator {
     }
 
     /**
-     * CST에서 클래스 선언들을 찾습니다.
+     * Finds class declarations in CST.
      * 
-     * @param cst - CST 루트 노드
-     * @returns 클래스 선언 노드 배열
+     * @param cst - CST root node
+     * @returns Array of class declaration nodes
      */
     public findClassDeclarations(cst: CompilationUnitNode): ClassDeclarationNode[] {
         const classDeclarations: ClassDeclarationNode[] = [];
@@ -99,7 +98,7 @@ export class CSTNavigator {
             }
         } catch (error) {
             const cstError = new CSTParsingError(
-                '클래스 선언 찾기 실패',
+                'Failed to find class declarations',
                 undefined,
                 undefined,
                 undefined,
@@ -112,19 +111,17 @@ export class CSTNavigator {
     }
 
     /**
-     * 개별 임포트 이름을 추출합니다.
+     * Extracts import name from import declaration node.
      * 
-     * @param importDecl - 임포트 선언 노드
-     * @returns 임포트 이름 또는 undefined
+     * @param importDecl - Import declaration node
+     * @returns Import name or undefined
      */
     private extractImportName(importDecl: ImportDeclarationNode): string | undefined {
         try {
-            // 일반적인 import 구조 처리
             if (importDecl.children?.packageOrTypeName?.[0]?.children?.Identifier) {
                 const identifiers = importDecl.children.packageOrTypeName[0].children.Identifier;
                 let importName = identifiers.map((id: IdentifierNode) => id.image).join('.');
                 
-                // wildcard import 처리 (import lombok.*;)
                 if (importDecl.children?.Star) {
                     importName += '.*';
                 }
@@ -132,8 +129,7 @@ export class CSTNavigator {
                 return importName;
             }
             
-            // 대안적인 구조 처리 (경우에 따라 다른 구조일 수 있음)
-            // import 문 전체에서 식별자와 * 기호를 찾기
+            // Handle alternative structure when packageOrTypeName is not available
             const allTokens = this.extractAllTokensFromImport(importDecl);
             if (allTokens.length > 0) {
                 let importName = '';
@@ -143,13 +139,11 @@ export class CSTNavigator {
                         importName += '.*';
                     } else if (token === '.') {
                         if (i < allTokens.length - 1 && allTokens[i + 1] === '*') {
-                            // . 다음에 *가 오면 .만 추가하고 다음 루프에서 *를 처리
                             importName += '.';
                         } else {
                             importName += '.';
                         }
                     } else if (token !== 'import' && token !== ';') {
-                        // import 키워드와 세미콜론은 제외
                         if (importName && !importName.endsWith('.')) {
                             importName += '.';
                         }
@@ -164,7 +158,7 @@ export class CSTNavigator {
             
         } catch (error) {
             const cstError = new CSTParsingError(
-                '임포트 이름 추출 실패',
+                'Failed to extract import name',
                 undefined,
                 undefined,
                 undefined,
@@ -176,10 +170,10 @@ export class CSTNavigator {
     }
 
     /**
-     * import 노드에서 모든 토큰들을 추출합니다.
+     * Extracts all tokens from import node.
      * 
-     * @param importDecl - 임포트 선언 노드
-     * @returns 추출된 토큰 배열
+     * @param importDecl - Import declaration node
+     * @returns Array of extracted tokens
      */
     private extractAllTokensFromImport(importDecl: ImportDeclarationNode): string[] {
         const tokens: string[] = [];
@@ -188,7 +182,7 @@ export class CSTNavigator {
             this.collectTokensRecursively(importDecl, tokens);
         } catch (error) {
             const cstError = new CSTParsingError(
-                '토큰 재귀 수집 실패',
+                'Failed to collect tokens',
                 undefined,
                 undefined,
                 undefined,
@@ -201,10 +195,10 @@ export class CSTNavigator {
     }
 
     /**
-     * CST 노드에서 재귀적으로 모든 토큰을 수집합니다.
+     * Recursively collects all tokens from CST node.
      * 
-     * @param node - 탐색할 노드
-     * @param tokens - 수집된 토큰을 저장할 배열
+     * @param node - Node to traverse
+     * @param tokens - Array to store collected tokens
      */
     private collectTokensRecursively(node: CSTNode, tokens: string[]): void {
         if (!node) {
@@ -212,13 +206,11 @@ export class CSTNavigator {
         }
         
         try {
-            // 노드가 토큰(image 속성이 있는 리프 노드)인 경우
             if (node.image && typeof node.image === 'string') {
                 tokens.push(node.image);
                 return;
             }
             
-            // 자식 노드들을 재귀적으로 탐색
             if (node.children) {
                 for (const key of Object.keys(node.children)) {
                     if (Array.isArray(node.children[key])) {
@@ -230,7 +222,7 @@ export class CSTNavigator {
             }
         } catch (error) {
             const cstError = new CSTParsingError(
-                '토큰 재귀 수집 실패',
+                'Failed to collect tokens recursively',
                 undefined,
                 undefined,
                 undefined,
