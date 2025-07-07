@@ -4,7 +4,10 @@
 
 ### Structure
 ```
-<type>: <subject under 50 characters>
+<type>: <description under 50 characters>
+
+- <detail line 1>
+- <detail line 2>
 ```
 
 ### Type Categories
@@ -17,13 +20,20 @@
 - **chore**: Build process or auxiliary tool changes
 
 ### Commit Message Rules
+#### Description (First Line)
 - Use imperative mood ("add" not "added" or "adds")
 - No capitalization of first letter
 - No period at the end
-- **Maximum 50 characters total**
+- **Maximum 50 characters**
 - **Write in English only**
 - Be specific and descriptive
-- Single line only - no body or details
+
+#### Details (Body)
+- Optional: Add if more context needed
+- **Maximum 150 characters total for all detail lines**
+- Use bullet points starting with `-`
+- Blank line between description and details
+- Each detail line should be concise
 
 ## Commit Guidelines
 
@@ -41,18 +51,57 @@ Only commit when:
 
 ### TDD Commit Pattern
 Follow the Red-Green-Refactor cycle:
-1. **Red**: `test: add failing test for <feature>`
-2. **Green**: `feat: implement <feature> to pass test`
-3. **Refactor**: `refactor: extract method for better readability`
+1. **Red**: 
+   ```
+   test: add failing test for user authentication
+   
+   - Test login with valid credentials
+   - Test login with invalid credentials
+   ```
+2. **Green**: 
+   ```
+   feat: implement user authentication
+   
+   - Add password validation
+   - Return auth token on success
+   ```
+3. **Refactor**: 
+   ```
+   refactor: extract password validation logic
+   
+   - Move to separate utility class
+   - Improve readability
+   ```
 
 ## Examples
 
 ### Good Examples
 ```
 feat: add @Autowired field detection
+
+- Support for private/public fields
+- Handle @Qualifier annotations
+
+---
+
 refactor: extract annotation parsing logic
+
+---
+
 test: add constructor injection test
+
+- Cover single parameter case
+- Test multiple parameters with @Qualifier
+
+---
+
 fix: resolve null pointer in bean detector
+
+- Check for null CST nodes
+- Add defensive null handling
+
+---
+
 docs: update README with usage examples
 ```
 
@@ -61,7 +110,7 @@ docs: update README with usage examples
 // ❌ Too vague
 fix: bug fix
 
-// ❌ Multiple changes
+// ❌ Multiple changes in one commit
 feat: add detector and fix parser bug
 
 // ❌ Wrong type (should be refactor)
@@ -70,8 +119,14 @@ feat: rename method for clarity
 // ❌ Too generic
 test: add test
 
-// ❌ Too long (over 50 characters)
-feat: implement comprehensive Spring Bean detection system with @Autowired support
+// ❌ Description too long (over 50 characters)
+feat: implement comprehensive Spring Bean detection system
+
+// ❌ Details too long (over 150 characters total)
+fix: resolve parsing error
+
+- Fixed issue where the parser would fail when encountering complex generic types in Spring components
+- Added additional error handling for edge cases in annotation processing
 
 // ❌ Not in English
 feat: 스프링 빈 탐지 기능 추가
@@ -97,23 +152,31 @@ feat: 스프링 빈 탐지 기능 추가
 ### Feature Development
 ```
 feat: <description under 50 characters>
+
+- <what was added>
+- <why it was needed>
 ```
 
 ### Bug Fix
 ```
 fix: <description under 50 characters>
+
+- <what was broken>
+- <how it was fixed>
 ```
 
 ### Refactoring
 ```
 refactor: <description under 50 characters>
+
+- <what was changed>
+- <why it improves code>
 ```
 
 ### Test
 ```
 test: <description under 50 characters>
-```
 
-```
-test: <description under 50 characters>
+- <what is being tested>
+- <test scenarios covered>
 ```
