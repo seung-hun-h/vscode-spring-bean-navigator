@@ -6,6 +6,7 @@
 ```
 <type>: <description under 50 characters>
 
+[Optional details]
 - <detail line 1>
 - <detail line 2>
 ```
@@ -29,11 +30,12 @@
 - Be specific and descriptive
 
 #### Details (Body)
-- Optional: Add if more context needed
+- **OPTIONAL**: Only add when description alone is not sufficient
 - **Maximum 150 characters total for all detail lines**
 - Use bullet points starting with `-`
 - Blank line between description and details
 - Each detail line should be concise
+- Most commits don't need details if description is clear
 
 ## Commit Guidelines
 
@@ -77,6 +79,7 @@ Follow the Red-Green-Refactor cycle:
 
 ### Good Examples
 ```
+# With details (when more context is helpful)
 feat: add @Autowired field detection
 
 - Support for private/public fields
@@ -84,10 +87,12 @@ feat: add @Autowired field detection
 
 ---
 
+# Without details (when description is sufficient)
 refactor: extract annotation parsing logic
 
 ---
 
+# With details for complex test
 test: add constructor injection test
 
 - Cover single parameter case
@@ -95,6 +100,7 @@ test: add constructor injection test
 
 ---
 
+# With details for bug fix
 fix: resolve null pointer in bean detector
 
 - Check for null CST nodes
@@ -102,7 +108,18 @@ fix: resolve null pointer in bean detector
 
 ---
 
+# Without details (simple change)
 docs: update README with usage examples
+
+---
+
+# Without details (straightforward fix)
+style: remove redundant comments
+
+---
+
+# Without details (simple addition)
+test: add unit test for bean resolver
 ```
 
 ### Bad Examples
@@ -153,6 +170,7 @@ feat: 스프링 빈 탐지 기능 추가
 ```
 feat: <description under 50 characters>
 
+[Optional: Add details if needed]
 - <what was added>
 - <why it was needed>
 ```
@@ -161,6 +179,7 @@ feat: <description under 50 characters>
 ```
 fix: <description under 50 characters>
 
+[Optional: Add details if needed]
 - <what was broken>
 - <how it was fixed>
 ```
@@ -169,6 +188,7 @@ fix: <description under 50 characters>
 ```
 refactor: <description under 50 characters>
 
+[Optional: Add details if needed]
 - <what was changed>
 - <why it improves code>
 ```
@@ -177,6 +197,7 @@ refactor: <description under 50 characters>
 ```
 test: <description under 50 characters>
 
+[Optional: Add details if needed]
 - <what is being tested>
 - <test scenarios covered>
 ```
