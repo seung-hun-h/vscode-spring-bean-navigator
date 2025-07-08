@@ -11,7 +11,7 @@ import { ErrorHandler, AnnotationParsingError } from '../core/parser-errors';
 import { PositionCalculator } from '../core/position-calculator';
 
 /**
- * Java 어노테이션 파싱을 담당하는 클래스
+ * Handles Java annotation parsing
  */
 export class AnnotationParser {
     private readonly positionCalculator: PositionCalculator;
@@ -21,11 +21,11 @@ export class AnnotationParser {
     }
 
     /**
-     * 어노테이션을 파싱합니다.
+     * Parses an annotation.
      * 
-     * @param annotation - 어노테이션 노드
-     * @param lines - 파일 라인 배열
-     * @returns 어노테이션 정보 또는 undefined
+     * @param annotation - Annotation node
+     * @param lines - Array of file lines
+     * @returns Annotation information or undefined
      */
     public parseAnnotation(annotation: AnnotationNode, lines: string[]): AnnotationInfo | undefined {
         let annotationName: string | undefined;
@@ -33,7 +33,7 @@ export class AnnotationParser {
         try {
             let parameters = new Map<string, string>();
             
-            // 실제 구조: annotation.children = ['At', 'typeName'] 또는 ['At', 'typeName', 'LParen', 'elementValuePairList', 'RParen']
+            // Actual structure: annotation.children = ['At', 'typeName'] or ['At', 'typeName', 'LParen', 'elementValuePairList', 'RParen']
             if (annotation.children?.typeName?.[0]?.children?.Identifier?.[0]?.image) {
                 annotationName = annotation.children.typeName[0].children.Identifier[0].image;
             } else {
@@ -44,12 +44,10 @@ export class AnnotationParser {
                 return undefined;
             }
 
-            // Spring 어노테이션인지 확인
             if (!JAVA_PARSER_CONFIG.SPRING_ANNOTATIONS.has(annotationName)) {
                 return undefined;
             }
 
-            // 어노테이션 매개변수 파싱 시도
             parameters = this.extractAnnotationParameters(annotation);
 
             const springAnnotationType = this.mapToSpringAnnotationType(annotationName);
@@ -57,7 +55,6 @@ export class AnnotationParser {
                 return undefined;
             }
 
-            // 위치 정보 계산
             const position = this.positionCalculator.calculatePosition(annotation, lines);
 
             const annotationInfo: AnnotationInfo = {
@@ -72,7 +69,7 @@ export class AnnotationParser {
             
         } catch (error) {
             const annotationError = new AnnotationParsingError(
-                '어노테이션 파싱 실패',
+                'Failed to parse annotation',
                 annotationName,
                 error instanceof Error ? error : undefined
             );
@@ -82,33 +79,30 @@ export class AnnotationParser {
     }
 
     /**
-     * 어노테이션 매개변수를 추출합니다.
+     * Extracts annotation parameters.
      * 
-     * @param annotation - 어노테이션 노드
-     * @returns 매개변수 맵
+     * @param annotation - Annotation node
+     * @returns Parameter map
      */
     public extractAnnotationParameters(annotation: AnnotationNode): Map<string, string> {
         const parameters = new Map<string, string>();
         
         try {
-            // @Service("value") 형태의 단일 값
+            // @Service("value") single value format
             if (annotation.children?.LParen && annotation.children?.StringLiteral) {
                 const value = annotation.children.StringLiteral[0].image;
-                // 따옴표 제거
                 const cleanValue = value.replace(/["']/g, '');
                 parameters.set('value', cleanValue);
                 return parameters;
             }
             
-            // elementValuePairList 구조 확인 (향후 확장용)
             if (annotation.children?.elementValuePairList) {
-                // TODO: 더 복잡한 매개변수 구조 파싱
+                // TODO: Parse more complex parameter structures
                 const pairListParams = this.extractElementValuePairList(annotation.children.elementValuePairList[0]);
                 pairListParams.forEach((value, key) => parameters.set(key, value));
                 return parameters;
             }
             
-            // 모든 자식 노드를 탐색해서 문자열 리터럴 찾기
             const literals = this.findStringLiterals(annotation);
             if (literals.length > 0) {
                 parameters.set('value', literals[0]);
@@ -116,7 +110,7 @@ export class AnnotationParser {
             
         } catch (error) {
             const annotationError = new AnnotationParsingError(
-                '어노테이션 매개변수 추출 실패',
+                'Failed to extract annotation parameters',
                 this.getAnnotationName(annotation),
                 error instanceof Error ? error : undefined
             );
@@ -127,14 +121,14 @@ export class AnnotationParser {
     }
 
     /**
-     * 문자열을 SpringAnnotationType으로 매핑합니다. (상수 사용으로 리팩토링)
+     * Maps string to SpringAnnotationType using constants.
      * 
-     * @param annotationName - 어노테이션 이름
-     * @returns SpringAnnotationType 또는 undefined
+     * @param annotationName - Annotation name
+     * @returns SpringAnnotationType or undefined
      */
     private mapToSpringAnnotationType(annotationName: string): SpringAnnotationType | undefined {
         switch (annotationName) {
-            // Spring Framework 어노테이션
+            // Spring Framework annotations
             case SPRING_ANNOTATION_NAMES.COMPONENT: return SpringAnnotationType.COMPONENT;
             case SPRING_ANNOTATION_NAMES.SERVICE: return SpringAnnotationType.SERVICE;
             case SPRING_ANNOTATION_NAMES.REPOSITORY: return SpringAnnotationType.REPOSITORY;
@@ -145,7 +139,7 @@ export class AnnotationParser {
             case SPRING_ANNOTATION_NAMES.AUTOWIRED: return SpringAnnotationType.AUTOWIRED;
             case SPRING_ANNOTATION_NAMES.QUALIFIER: return SpringAnnotationType.QUALIFIER;
             case SPRING_ANNOTATION_NAMES.VALUE: return SpringAnnotationType.VALUE;
-            // Phase 3: Lombok 어노테이션들
+            // Lombok annotations
             case SPRING_ANNOTATION_NAMES.REQUIRED_ARGS_CONSTRUCTOR: return SpringAnnotationType.LOMBOK_REQUIRED_ARGS_CONSTRUCTOR;
             case SPRING_ANNOTATION_NAMES.ALL_ARGS_CONSTRUCTOR: return SpringAnnotationType.LOMBOK_ALL_ARGS_CONSTRUCTOR;
             case SPRING_ANNOTATION_NAMES.NO_ARGS_CONSTRUCTOR: return SpringAnnotationType.LOMBOK_NO_ARGS_CONSTRUCTOR;
@@ -159,10 +153,10 @@ export class AnnotationParser {
     }
 
     /**
-     * elementValuePairList에서 키-값 쌍을 추출합니다.
+     * Extracts key-value pairs from elementValuePairList.
      * 
-     * @param pairList - elementValuePairList 노드
-     * @returns 매개변수 맵
+     * @param pairList - elementValuePairList node
+     * @returns Parameter map
      */
     private extractElementValuePairList(pairList: ElementValuePairListNode): Map<string, string> {
         const parameters = new Map<string, string>();
@@ -182,7 +176,7 @@ export class AnnotationParser {
             }
         } catch (error) {
             const annotationError = new AnnotationParsingError(
-                'elementValuePairList 추출 실패',
+                'Failed to extract elementValuePairList',
                 undefined,
                 error instanceof Error ? error : undefined
             );
@@ -193,10 +187,10 @@ export class AnnotationParser {
     }
 
     /**
-     * elementValuePair에서 키를 추출합니다.
+     * Extracts key from elementValuePair.
      * 
-     * @param pair - elementValuePair 노드
-     * @returns 키 문자열 또는 undefined
+     * @param pair - elementValuePair node
+     * @returns Key string or undefined
      */
     private extractElementKey(pair: ElementValuePairNode): string | undefined {
         try {
@@ -205,7 +199,7 @@ export class AnnotationParser {
             }
         } catch (error) {
             ErrorHandler.logError(new AnnotationParsingError(
-                'element key 추출 실패',
+                'Failed to extract element key',
                 undefined,
                 error instanceof Error ? error : undefined
             ));
@@ -215,23 +209,22 @@ export class AnnotationParser {
     }
 
     /**
-     * elementValuePair에서 값을 추출합니다.
+     * Extracts value from elementValuePair.
      * 
-     * @param pair - elementValuePair 노드
-     * @returns 값 문자열 또는 undefined
+     * @param pair - elementValuePair node
+     * @returns Value string or undefined
      */
     private extractElementValue(pair: ElementValuePairNode): string | undefined {
         try {
             if (pair.children?.elementValue?.[0]) {
                 const elementValue = pair.children.elementValue[0];
                 
-                // String literal 값
                 if (elementValue.children?.conditionalExpression?.[0]?.children?.StringLiteral) {
                     const value = elementValue.children.conditionalExpression[0].children.StringLiteral[0].image;
                     return value.replace(/["']/g, '');
                 }
                 
-                // 다른 형태의 값들도 처리 가능하도록 확장
+                // Handle other value types for extensibility
                 const literals = this.findStringLiterals(elementValue);
                 if (literals.length > 0) {
                     return literals[0];
@@ -239,7 +232,7 @@ export class AnnotationParser {
             }
         } catch (error) {
             ErrorHandler.logError(new AnnotationParsingError(
-                'element value 추출 실패',
+                'Failed to extract element value',
                 undefined,
                 error instanceof Error ? error : undefined
             ));
@@ -249,10 +242,10 @@ export class AnnotationParser {
     }
 
     /**
-     * 노드에서 모든 문자열 리터럴을 재귀적으로 찾습니다.
+     * Recursively finds all string literals in a node.
      * 
-     * @param node - 탐색할 노드
-     * @returns 문자열 리터럴 배열
+     * @param node - Node to search
+     * @returns Array of string literals
      */
     private findStringLiterals(node: CSTNode): string[] {
         const literals: string[] = [];
@@ -273,7 +266,7 @@ export class AnnotationParser {
             }
         } catch (error) {
             ErrorHandler.logError(new AnnotationParsingError(
-                'string literal 찾기 실패',
+                'Failed to find string literals',
                 undefined,
                 error instanceof Error ? error : undefined
             ));
@@ -283,10 +276,10 @@ export class AnnotationParser {
     }
 
     /**
-     * 어노테이션 노드에서 어노테이션 이름을 추출합니다.
+     * Extracts annotation name from annotation node.
      * 
-     * @param annotation - 어노테이션 노드
-     * @returns 어노테이션 이름 또는 'Unknown'
+     * @param annotation - Annotation node
+     * @returns Annotation name or 'Unknown'
      */
     private getAnnotationName(annotation: AnnotationNode): string {
         try {
@@ -294,18 +287,18 @@ export class AnnotationParser {
                 return annotation.children.typeName[0].children.Identifier[0].image;
             }
         } catch (error) {
-            // 에러 로깅은 생략 (너무 많은 로그 방지)
+            // Skip error logging to prevent excessive logs
         }
         
         return 'Unknown';
     }
 
     /**
-     * 특정 어노테이션 타입인지 확인합니다.
+     * Checks if annotation is of specific type.
      * 
-     * @param annotation - 어노테이션 노드
-     * @param targetType - 확인할 타입
-     * @returns 해당 타입이면 true
+     * @param annotation - Annotation node
+     * @param targetType - Type to check
+     * @returns true if annotation is of target type
      */
     public isAnnotationType(annotation: AnnotationNode, targetType: SpringAnnotationType): boolean {
         try {
@@ -317,35 +310,35 @@ export class AnnotationParser {
     }
 
     /**
-     * 어노테이션 배열에서 특정 타입의 어노테이션을 찾습니다.
+     * Finds annotation by type in annotation array.
      * 
-     * @param annotations - 어노테이션 정보 배열
-     * @param targetType - 찾을 타입
-     * @returns 해당 타입의 어노테이션 또는 undefined
+     * @param annotations - Array of annotation info
+     * @param targetType - Type to find
+     * @returns Annotation of target type or undefined
      */
     public findAnnotationByType(annotations: AnnotationInfo[], targetType: SpringAnnotationType): AnnotationInfo | undefined {
         return annotations.find(annotation => annotation.type === targetType);
     }
 
     /**
-     * 어노테이션이 특정 매개변수를 가지고 있는지 확인합니다.
+     * Checks if annotation has specific parameter.
      * 
-     * @param annotation - 어노테이션 정보
-     * @param paramName - 매개변수 이름
-     * @returns 매개변수 값 또는 undefined
+     * @param annotation - Annotation info
+     * @param paramName - Parameter name
+     * @returns Parameter value or undefined
      */
     public getAnnotationParameter(annotation: AnnotationInfo, paramName: string): string | undefined {
         return annotation.parameters?.get(paramName);
     }
 
     /**
-     * 라인들에서 특정 어노테이션을 감지합니다. (메서드/생성자 위의 어노테이션 탐지용)
+     * Detects specific annotation in lines (for method/constructor annotation detection).
      * 
-     * @param lines - Java 파일 라인들
-     * @param startLineIndex - 탐지를 시작할 라인 인덱스
-     * @param annotationType - 찾을 어노테이션 타입
-     * @param maxLookupLines - 최대 탐색 라인 수 (기본값: ANNOTATION_LOOKUP_MAX_LINES)
-     * @returns 어노테이션을 찾았으면 true
+     * @param lines - Java file lines
+     * @param startLineIndex - Line index to start detection
+     * @param annotationType - Annotation type to find
+     * @param maxLookupLines - Maximum lines to search (default: ANNOTATION_LOOKUP_MAX_LINES)
+     * @returns true if annotation found
      */
     public detectAnnotationInLines(
         lines: string[], 
@@ -354,11 +347,11 @@ export class AnnotationParser {
         maxLookupLines: number = PARSING_CONSTANTS.ANNOTATION_LOOKUP_MAX_LINES
     ): boolean {
         try {
-            // 시작 라인부터 역순으로 탐색
+            // Search backwards from start line
             for (let i = startLineIndex; i >= 0 && i >= startLineIndex - maxLookupLines; i--) {
                 const line = lines[i].trim();
                 
-                // @Autowired 패턴 매칭 (상수 사용)
+                // @Autowired pattern matching using constants
                 if (annotationType === SpringAnnotationType.AUTOWIRED) {
                     const autowiredPattern = new RegExp(`^\\s*@${SPRING_ANNOTATION_NAMES.AUTOWIRED}\\b`);
                     const autowiredFullPattern = new RegExp(`^\\s*@${SPRING_ANNOTATION_PACKAGES.AUTOWIRED_FULL.replace('.', '\\.')}\\b`);
@@ -367,7 +360,7 @@ export class AnnotationParser {
                     }
                 }
                 
-                // Lombok 어노테이션들 (상수 사용)
+                // Lombok annotations using constants
                 if (annotationType === SpringAnnotationType.LOMBOK_REQUIRED_ARGS_CONSTRUCTOR) {
                     const requiredArgsPattern = new RegExp(`^\\s*@${SPRING_ANNOTATION_NAMES.REQUIRED_ARGS_CONSTRUCTOR}\\b`);
                     const requiredArgsFullPattern = new RegExp(`^\\s*@${SPRING_ANNOTATION_PACKAGES.LOMBOK_REQUIRED_ARGS_CONSTRUCTOR_FULL.replace('.', '\\.')}\\b`);
@@ -384,17 +377,17 @@ export class AnnotationParser {
                     }
                 }
                 
-                // 빈 라인이나 주석은 건너뛰기
+                // Skip empty lines and comments
                 if (line === '' || line.startsWith('//') || line.startsWith('/*') || line.startsWith('*')) {
                     continue;
                 }
                 
-                // 다른 어노테이션은 계속 확인
+                // Continue checking for other annotations
                 if (line.startsWith('@')) {
                     continue;
                 }
                 
-                // 어노테이션이 아닌 실제 코드가 나오면 중단
+                // Stop when actual code is found
                 if (line && (line.includes('{') || line.includes('}') || line.includes(';') || 
                            line.includes('public ') || line.includes('private ') || line.includes('protected '))) {
                     break;
@@ -403,7 +396,7 @@ export class AnnotationParser {
             
         } catch (error) {
             const annotationError = new AnnotationParsingError(
-                '라인 어노테이션 감지 실패',
+                'Failed to detect annotation in lines',
                 annotationType.toString(),
                 error instanceof Error ? error : undefined
             );
@@ -414,12 +407,12 @@ export class AnnotationParser {
     }
 
     /**
-     * 라인들에서 메서드의 모든 어노테이션들을 추출합니다.
+     * Extracts all method annotations from lines.
      * 
-     * @param lines - Java 파일 라인들
-     * @param methodLineIndex - 메서드 라인 인덱스
-     * @param maxLookupLines - 최대 탐색 라인 수 (기본값: ANNOTATION_LOOKUP_MAX_LINES)
-     * @returns 추출된 어노테이션 정보 배열
+     * @param lines - Java file lines
+     * @param methodLineIndex - Method line index
+     * @param maxLookupLines - Maximum lines to search (default: ANNOTATION_LOOKUP_MAX_LINES)
+     * @returns Array of extracted annotation info
      */
     public extractMethodAnnotationsFromLines(
         lines: string[], 
@@ -432,13 +425,11 @@ export class AnnotationParser {
             for (let i = methodLineIndex - 1; i >= 0 && i >= methodLineIndex - maxLookupLines; i--) {
                 const line = lines[i].trim();
                 
-                // 어노테이션 패턴 찾기
                 if (line.startsWith('@')) {
                     const annotationMatch = line.match(/@(\w+)/);
                     if (annotationMatch) {
                         const annotationName = annotationMatch[1];
                         
-                        // 어노테이션 타입 매핑
                         const annotationType = this.mapToSpringAnnotationType(annotationName);
                         if (annotationType) {
                             annotations.push({
@@ -446,13 +437,13 @@ export class AnnotationParser {
                                 type: annotationType,
                                 line: i,
                                 column: 0,
-                                parameters: new Map() // 라인 파싱에서는 매개변수 추출 생략
+                                parameters: new Map() // Skip parameter extraction in line parsing
                             });
                         }
                     }
                 }
                 
-                // 다른 어노테이션이나 주석이 아닌 실제 코드가 나오면 중단
+                // Stop when actual code is found (not annotation or comment)
                 if (line && !line.startsWith('@') && !line.startsWith('//') && !line.startsWith('/*') && !line.startsWith('*') && line !== '') {
                     break;
                 }
@@ -460,7 +451,7 @@ export class AnnotationParser {
             
         } catch (error) {
             const annotationError = new AnnotationParsingError(
-                '메서드 어노테이션 추출 실패',
+                'Failed to extract method annotations',
                 undefined,
                 error instanceof Error ? error : undefined
             );
@@ -469,4 +460,4 @@ export class AnnotationParser {
         
         return annotations;
     }
-} 
+}  
