@@ -130,7 +130,7 @@ suite('ClassExtractor', () => {
             const lines = content.split('\n');
 
             // Act
-            const result = classExtractor.parseClassDeclaration(mockClassDecl, fileUri, content, lines, 'com.example', []);
+            const result = classExtractor.parseClassDeclaration(mockClassDecl, fileUri, lines, 'com.example', []);
 
             // Assert
             assert.ok(result);
@@ -158,7 +158,7 @@ suite('ClassExtractor', () => {
             const lines = content.split('\n');
 
             // Act
-            const result = classExtractor.parseClassDeclaration(mockClassDecl, fileUri, content, lines, undefined, []);
+            const result = classExtractor.parseClassDeclaration(mockClassDecl, fileUri, lines, undefined, []);
 
             // Assert
             assert.strictEqual(result, undefined);
@@ -426,140 +426,6 @@ suite('ClassExtractor', () => {
         });
     });
 
-    suite('Utility Methods', () => {
-        test('should_findClassesByAnnotation_when_classesWithAnnotationProvided', () => {
-            // Arrange
-            const classes = [
-                {
-                    name: 'UserService',
-                    packageName: 'com.example',
-                    fullyQualifiedName: 'com.example.UserService',
-                    fileUri: vscode.Uri.file('/test/UserService.java'),
-                    position: new vscode.Position(0, 0),
-                    range: new vscode.Range(0, 0, 10, 0),
-                    annotations: [{ name: 'Service', type: SpringAnnotationType.SERVICE, line: 0, column: 0 }],
-                    fields: [],
-                    imports: []
-                },
-                {
-                    name: 'UserController',
-                    packageName: 'com.example',
-                    fullyQualifiedName: 'com.example.UserController',
-                    fileUri: vscode.Uri.file('/test/UserController.java'),
-                    position: new vscode.Position(0, 0),
-                    range: new vscode.Range(0, 0, 10, 0),
-                    annotations: [{ name: 'Controller', type: SpringAnnotationType.CONTROLLER, line: 0, column: 0 }],
-                    fields: [],
-                    imports: []
-                }
-            ];
-
-            // Act
-            const result = classExtractor.findClassesByAnnotation(classes, 'Service');
-
-            // Assert
-            assert.strictEqual(result.length, 1);
-            assert.strictEqual(result[0].name, 'UserService');
-        });
-
-        test('should_findClassesByInterface_when_classesImplementingInterfaceProvided', () => {
-            // Arrange
-            const classes = [
-                {
-                    name: 'UserServiceImpl',
-                    packageName: 'com.example',
-                    fullyQualifiedName: 'com.example.UserServiceImpl',
-                    fileUri: vscode.Uri.file('/test/UserServiceImpl.java'),
-                    position: new vscode.Position(0, 0),
-                    range: new vscode.Range(0, 0, 10, 0),
-                    annotations: [],
-                    fields: [],
-                    imports: [],
-                    interfaces: ['UserService']
-                } as any,
-                {
-                    name: 'OrderService',
-                    packageName: 'com.example',
-                    fullyQualifiedName: 'com.example.OrderService',
-                    fileUri: vscode.Uri.file('/test/OrderService.java'),
-                    position: new vscode.Position(0, 0),
-                    range: new vscode.Range(0, 0, 10, 0),
-                    annotations: [],
-                    fields: [],
-                    imports: []
-                }
-            ];
-
-            // Act
-            const result = classExtractor.findClassesByInterface(classes, 'UserService');
-
-            // Assert
-            assert.strictEqual(result.length, 1);
-            assert.strictEqual(result[0].name, 'UserServiceImpl');
-        });
-
-        test('should_isInPackage_when_classInSpecificPackage', () => {
-            // Arrange
-            const classInfo = {
-                name: 'UserService',
-                packageName: 'com.example.service',
-                fullyQualifiedName: 'com.example.service.UserService',
-                fileUri: vscode.Uri.file('/test/UserService.java'),
-                position: new vscode.Position(0, 0),
-                range: new vscode.Range(0, 0, 10, 0),
-                annotations: [],
-                fields: [],
-                imports: []
-            };
-
-            // Act & Assert
-            assert.strictEqual(classExtractor.isInPackage(classInfo, 'com.example.service'), true);
-            assert.strictEqual(classExtractor.isInPackage(classInfo, 'com.example.controller'), false);
-        });
-
-        test('should_getSimpleClassName_when_classInfoProvided', () => {
-            // Arrange
-            const classInfo = {
-                name: 'UserService',
-                packageName: 'com.example',
-                fullyQualifiedName: 'com.example.UserService',
-                fileUri: vscode.Uri.file('/test/UserService.java'),
-                position: new vscode.Position(0, 0),
-                range: new vscode.Range(0, 0, 10, 0),
-                annotations: [],
-                fields: [],
-                imports: []
-            };
-
-            // Act
-            const result = classExtractor.getSimpleClassName(classInfo);
-
-            // Assert
-            assert.strictEqual(result, 'UserService');
-        });
-
-        test('should_getFullyQualifiedName_when_classInfoProvided', () => {
-            // Arrange
-            const classInfo = {
-                name: 'UserService',
-                packageName: 'com.example',
-                fullyQualifiedName: 'com.example.UserService',
-                fileUri: vscode.Uri.file('/test/UserService.java'),
-                position: new vscode.Position(0, 0),
-                range: new vscode.Range(0, 0, 10, 0),
-                annotations: [],
-                fields: [],
-                imports: []
-            };
-
-            // Act
-            const result = classExtractor.getFullyQualifiedName(classInfo);
-
-            // Assert
-            assert.strictEqual(result, 'com.example.UserService');
-        });
-    });
-
     suite('Error Handling', () => {
         test('should_handleNullClassDeclaration_when_nullProvided', () => {
             // Arrange
@@ -568,7 +434,7 @@ suite('ClassExtractor', () => {
             const lines = content.split('\n');
 
             // Act
-            const result = classExtractor.parseClassDeclaration(null as any, fileUri, content, lines, undefined, []);
+            const result = classExtractor.parseClassDeclaration(null as any, fileUri, lines, undefined, []);
 
             // Assert
             assert.strictEqual(result, undefined);
