@@ -4,26 +4,24 @@ import { ErrorHandler, PositionCalculationError } from './parser-errors';
 import { CSTNode } from '../../models/spring-types';
 
 /**
- * AST 노드의 위치 및 범위 계산을 담당하는 클래스
+ * Handles position and range calculations for AST nodes
  */
 export class PositionCalculator {
     
     /**
-     * CST 노드의 위치 정보를 계산합니다.
+     * Calculates the position information of a CST node.
      * 
-     * @param node - CST 노드
-     * @param lines - 파일 라인 배열
+     * @param node - CST node
+     * @param lines - Array of file lines
      * @returns VSCode Position
      */
     public calculatePosition(node: CSTNode, lines: string[]): vscode.Position {
         try {
-            // CST에서 실제 위치 정보 추출 시도
             if (node?.location?.startLine !== undefined && node?.location?.startColumn !== undefined) {
-                // 1-based를 0-based로 변환
+                // Convert 1-based to 0-based
                 return new vscode.Position(node.location.startLine - 1, node.location.startColumn - 1);
             }
             
-            // image가 있는 경우 파일 내용에서 해당 텍스트 찾기
             if (node?.image && typeof node.image === 'string') {
                 const position = this.findTextPosition(node.image, lines);
                 if (position) {
@@ -31,7 +29,6 @@ export class PositionCalculator {
                 }
             }
             
-            // 하위 노드에서 위치 정보 찾기
             const childPosition = this.findPositionInChildren(node, lines);
             if (childPosition) {
                 return childPosition;
@@ -39,14 +36,13 @@ export class PositionCalculator {
             
         } catch (error) {
             const positionError = new PositionCalculationError(
-                '위치 계산 실패',
+                'Failed to calculate position',
                 this.getNodeName(node),
                 error instanceof Error ? error : undefined
             );
             ErrorHandler.logError(positionError);
         }
         
-        // fallback: 설정값 반환
         return new vscode.Position(
             JAVA_PARSER_CONFIG.POSITION_FALLBACK.line, 
             JAVA_PARSER_CONFIG.POSITION_FALLBACK.character
@@ -54,15 +50,14 @@ export class PositionCalculator {
     }
 
     /**
-     * CST 노드의 범위 정보를 계산합니다.
+     * Calculates the range information of a CST node.
      * 
-     * @param node - CST 노드
-     * @param lines - 파일 라인 배열
+     * @param node - CST node
+     * @param lines - Array of file lines
      * @returns VSCode Range
      */
     public calculateRange(node: CSTNode, lines: string[]): vscode.Range {
         try {
-            // CST에서 실제 범위 정보 추출 시도
             if (node?.location?.startLine !== undefined && 
                 node?.location?.startColumn !== undefined &&
                 node?.location?.endLine !== undefined && 
@@ -73,7 +68,6 @@ export class PositionCalculator {
                 return new vscode.Range(start, end);
             }
             
-            // image가 있는 경우 텍스트 길이를 기반으로 범위 계산
             if (node?.image && typeof node.image === 'string') {
                 const start = this.findTextPosition(node.image, lines);
                 if (start) {
@@ -82,7 +76,6 @@ export class PositionCalculator {
                 }
             }
             
-            // 하위 노드를 기반으로 범위 계산
             const childRange = this.calculateRangeFromChildren(node, lines);
             if (childRange) {
                 return childRange;
@@ -90,14 +83,13 @@ export class PositionCalculator {
             
         } catch (error) {
             const positionError = new PositionCalculationError(
-                '범위 계산 실패',
+                'Failed to calculate range',
                 this.getNodeName(node),
                 error instanceof Error ? error : undefined
             );
             ErrorHandler.logError(positionError);
         }
         
-        // fallback: 기본 범위 반환
         const fallbackStart = new vscode.Position(
             JAVA_PARSER_CONFIG.POSITION_FALLBACK.line,
             JAVA_PARSER_CONFIG.POSITION_FALLBACK.character
@@ -110,11 +102,11 @@ export class PositionCalculator {
     }
 
     /**
-     * 파일 내용에서 특정 텍스트의 위치를 찾습니다.
+     * Finds the position of specific text within file content.
      * 
-     * @param text - 찾을 텍스트
-     * @param lines - 파일 라인 배열
-     * @returns 위치 정보 또는 undefined
+     * @param text - Text to find
+     * @param lines - Array of file lines
+     * @returns Position information or undefined
      */
     private findTextPosition(text: string, lines: string[]): vscode.Position | undefined {
         try {
@@ -126,7 +118,7 @@ export class PositionCalculator {
             }
         } catch (error) {
             const positionError = new PositionCalculationError(
-                '텍스트 위치 찾기 실패',
+                'Failed to find text position',
                 text,
                 error instanceof Error ? error : undefined
             );
@@ -137,11 +129,11 @@ export class PositionCalculator {
     }
 
     /**
-     * 하위 노드에서 위치 정보를 찾습니다.
+     * Finds position information from child nodes.
      * 
-     * @param node - 부모 노드
-     * @param lines - 파일 라인 배열
-     * @returns 위치 정보 또는 undefined
+     * @param node - Parent node
+     * @param lines - Array of file lines
+     * @returns Position information or undefined
      */
     private findPositionInChildren(node: CSTNode, lines: string[]): vscode.Position | undefined {
         if (!node?.children) {
@@ -168,7 +160,7 @@ export class PositionCalculator {
             }
         } catch (error) {
             const positionError = new PositionCalculationError(
-                '하위 노드 위치 찾기 실패',
+                'Failed to find position in child nodes',
                 this.getNodeName(node),
                 error instanceof Error ? error : undefined
             );
@@ -179,11 +171,11 @@ export class PositionCalculator {
     }
 
     /**
-     * 하위 노드들을 기반으로 범위를 계산합니다.
+     * Calculates range based on child nodes.
      * 
-     * @param node - 부모 노드
-     * @param lines - 파일 라인 배열
-     * @returns 범위 정보 또는 undefined
+     * @param node - Parent node
+     * @param lines - Array of file lines
+     * @returns Range information or undefined
      */
     private calculateRangeFromChildren(node: CSTNode, lines: string[]): vscode.Range | undefined {
         if (!node?.children) {
@@ -215,7 +207,7 @@ export class PositionCalculator {
             }
         } catch (error) {
             const positionError = new PositionCalculationError(
-                '하위 노드 범위 계산 실패',
+                'Failed to calculate range from child nodes',
                 this.getNodeName(node),
                 error instanceof Error ? error : undefined
             );
@@ -226,32 +218,32 @@ export class PositionCalculator {
     }
 
     /**
-     * 첫 번째 위치가 두 번째 위치보다 앞에 있는지 확인합니다.
+     * Checks if the first position is before the second position.
      * 
-     * @param pos1 - 첫 번째 위치
-     * @param pos2 - 두 번째 위치
-     * @returns pos1이 pos2보다 앞에 있으면 true
+     * @param pos1 - First position
+     * @param pos2 - Second position
+     * @returns true if pos1 is before pos2
      */
     private isPositionBefore(pos1: vscode.Position, pos2: vscode.Position): boolean {
         return pos1.line < pos2.line || (pos1.line === pos2.line && pos1.character < pos2.character);
     }
 
     /**
-     * 첫 번째 위치가 두 번째 위치보다 뒤에 있는지 확인합니다.
+     * Checks if the first position is after the second position.
      * 
-     * @param pos1 - 첫 번째 위치
-     * @param pos2 - 두 번째 위치
-     * @returns pos1이 pos2보다 뒤에 있으면 true
+     * @param pos1 - First position
+     * @param pos2 - Second position
+     * @returns true if pos1 is after pos2
      */
     private isPositionAfter(pos1: vscode.Position, pos2: vscode.Position): boolean {
         return pos1.line > pos2.line || (pos1.line === pos2.line && pos1.character > pos2.character);
     }
 
     /**
-     * 노드의 이름이나 타입을 추출합니다.
+     * Extracts the name or type of a node.
      * 
-     * @param node - 노드
-     * @returns 노드 이름 또는 'Unknown'
+     * @param node - Node
+     * @returns Node name or 'Unknown'
      */
     private getNodeName(node: CSTNode): string {
         if (node?.image && typeof node.image === 'string') {
@@ -270,29 +262,28 @@ export class PositionCalculator {
     }
 
     /**
-     * 특정 필드의 실제 위치를 파일 내용에서 찾습니다.
+     * Finds the actual position of a specific field in file content.
      * 
-     * @param fieldName - 필드 이름
-     * @param fieldType - 필드 타입
-     * @param lines - 파일 라인 배열
-     * @returns 필드 위치 또는 undefined
+     * @param fieldName - Field name
+     * @param fieldType - Field type
+     * @param lines - Array of file lines
+     * @returns Field position or undefined
      */
     public findFieldPosition(fieldName: string, fieldType: string, lines: string[]): vscode.Position | undefined {
         try {
-            // @Autowired와 필드 선언 패턴 찾기
             for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
                 const line = lines[lineIndex];
                 
-                // @Autowired 어노테이션 찾기
                 if (line.includes('@Autowired')) {
-                    // 다음 몇 줄에서 해당 필드 찾기
+                    // Check next few lines for field declaration since @Autowired
+                    // typically appears immediately before the field declaration
                     for (let nextLineIndex = lineIndex + 1; 
                          nextLineIndex < Math.min(lineIndex + JAVA_PARSER_CONFIG.MAX_FIELD_SEARCH_LINES, lines.length); 
                          nextLineIndex++) {
                         
                         const nextLine = lines[nextLineIndex];
                         
-                        // 필드 선언 패턴: "타입 필드명" 또는 "private 타입 필드명"
+                        // Match field declaration patterns: "Type fieldName" or "private Type fieldName"
                         const fieldPattern = new RegExp(`\\b${fieldType}\\s+${fieldName}\\b`);
                         if (fieldPattern.test(nextLine)) {
                             const columnIndex = nextLine.indexOf(fieldName);
@@ -305,7 +296,7 @@ export class PositionCalculator {
             }
         } catch (error) {
             const positionError = new PositionCalculationError(
-                '필드 위치 찾기 실패',
+                'Failed to find field position',
                 `${fieldType} ${fieldName}`,
                 error instanceof Error ? error : undefined
             );
