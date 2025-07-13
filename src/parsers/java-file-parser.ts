@@ -10,7 +10,6 @@ import { AnnotationParser } from './extractors/annotation-parser';
 import { FieldExtractor } from './extractors/field-extractor';
 import { ClassExtractor } from './extractors/class-extractor';
 import { ConstructorExtractor } from './extractors/constructor-extractor';
-import { SetterExtractor } from './extractors/setter-extractor';
 import { MethodExtractor } from './extractors/method-extractor';
 import { SpringBeanDetector } from '../detectors/spring-bean-detector';
 
@@ -24,7 +23,6 @@ export class JavaFileParser {
     private readonly fieldExtractor: FieldExtractor;
     private readonly classExtractor: ClassExtractor;
     private readonly constructorExtractor: ConstructorExtractor;
-    private readonly setterExtractor: SetterExtractor;
     private readonly methodExtractor: MethodExtractor;
     private readonly springBeanDetector: SpringBeanDetector;
 
@@ -35,7 +33,6 @@ export class JavaFileParser {
         this.fieldExtractor = new FieldExtractor(this.positionCalculator, this.annotationParser);
         this.classExtractor = new ClassExtractor(this.cstNavigator, this.positionCalculator, this.annotationParser, this.fieldExtractor);
         this.constructorExtractor = new ConstructorExtractor();
-        this.setterExtractor = new SetterExtractor();
         this.methodExtractor = new MethodExtractor(this.annotationParser);
         this.springBeanDetector = new SpringBeanDetector();
     }
