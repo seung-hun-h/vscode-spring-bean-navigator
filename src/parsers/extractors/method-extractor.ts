@@ -5,8 +5,7 @@ import { ErrorHandler } from '../core/parser-errors';
 import { PARSING_CONSTANTS } from '../config/java-parser-config';
 
 /**
- * Java 클래스에서 모든 메서드를 추출하는 클래스
- * @Bean 메서드와 일반 메서드를 모두 감지합니다.
+ * Extracts all methods from Java classes including @Bean methods and regular methods.
  */
 export class MethodExtractor {
     private readonly annotationParser: AnnotationParser;
@@ -16,10 +15,11 @@ export class MethodExtractor {
     }
     
     /**
-     * Java 파일 내용에서 모든 메서드들을 추출합니다.
-     * @param content Java 파일 내용
-     * @param uri 파일 URI
-     * @returns 추출된 메서드 정보 배열
+     * Extracts all methods from Java file content.
+     * 
+     * @param content - Java file content
+     * @param uri - File URI
+     * @returns Array of extracted method information
      */
     extractAllMethods(content: string, uri: vscode.Uri): MethodInfo[] {
         if (!content || content.trim() === '') {
@@ -33,14 +33,14 @@ export class MethodExtractor {
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
                 
-                // 메서드 선언 패턴 찾기: public/private/protected ... methodName(...) - 한 줄 또는 여러 줄 처리
+                // Find method declaration pattern: public/private/protected ... methodName(...) - single or multi-line
                 const methodRegex = /\b(public|private|protected)\s+[\w<>,\s]+\s+(\w+)\s*\(/;
-                const methodStartRegex = /\b(public|private|protected)\s+([\w<>,\s]+\s+)?(\w+)\s*$/; // 다음 줄에 괄호
+                const methodStartRegex = /\b(public|private|protected)\s+([\w<>,\s]+\s+)?(\w+)\s*$/; // Parenthesis on next line
                 
-                // 여러 줄에 걸친 메서드를 위한 추가 검사
+                // Additional check for multi-line methods
                 let isMethodDeclaration = false;
                 if (methodStartRegex.test(line)) {
-                    // 다음 줄에 여는 괄호가 있는지 확인
+                    // Check if opening parenthesis is on next line
                     for (let j = i + PARSING_CONSTANTS.ARRAY_OFFSET.NEXT; j < Math.min(i + PARSING_CONSTANTS.SETTER_METHOD_SEARCH_RANGE, lines.length); j++) {
                         const nextLine = lines[j].trim();
                         if (nextLine.includes('(')) {
@@ -48,7 +48,7 @@ export class MethodExtractor {
                             break;
                         }
                         if (nextLine && !nextLine.startsWith('@')) {
-                            break; // 어노테이션이 아닌 다른 코드가 나오면 중단
+                            break; // Stop if non-annotation code appears
                         }
                     }
                 }
@@ -56,7 +56,6 @@ export class MethodExtractor {
                 if (methodRegex.test(line) || isMethodDeclaration) {
                     const methodInfo = this.parseMethodFromLines(lines, i, uri);
                     if (methodInfo) {
-                        // 모든 어노테이션을 한 번에 추출
                         const allAnnotations = this.extractMethodAnnotations(lines, i);
                         methodInfo.annotations = allAnnotations;
                         
@@ -67,7 +66,7 @@ export class MethodExtractor {
             
             return methods;
         } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, '메서드 추출');
+            const parsingError = ErrorHandler.handleParsingError(error, 'Method extraction');
             ErrorHandler.logError(parsingError, { 
                 fileName: uri.toString(),
                 contentLength: content.length
@@ -77,19 +76,19 @@ export class MethodExtractor {
     }
     
     /**
-     * 메서드 선언을 정확한 매개변수 문자열과 함께 파싱합니다.
-     * @param methodDeclaration 메서드 선언문
-     * @param parametersString 정확하게 추출된 매개변수 문자열
-     * @returns 파싱된 메서드 정보 또는 undefined
+     * Parses method declaration with its parameters.
+     * 
+     * @param methodDeclaration - Method declaration string
+     * @param parametersString - Exactly extracted parameter string
+     * @returns Parsed method information or undefined
      */
     parseMethodDeclarationWithParameters(methodDeclaration: string, parametersString: string): { name: string; returnType: string; parameters: ParameterInfo[] } | undefined {
         try {
-            // 필드 선언이면 무시
+            // Ignore field declarations
             if (methodDeclaration.includes(';') && !methodDeclaration.includes('(')) {
                 return undefined;
             }
             
-            // 메서드 패턴: [접근제어자] [반환타입] [메서드명]([매개변수])
             const methodMatch = methodDeclaration.match(/\b(public|private|protected)\s+([\w<>,\s]+)\s+(\w+)\s*\(/);
             if (!methodMatch) {
                 return undefined;
@@ -97,8 +96,6 @@ export class MethodExtractor {
             
             const returnType = methodMatch[2].trim();
             const methodName = methodMatch[3].trim();
-            
-            // 정확하게 추출된 매개변수 문자열 사용
             const parameters = this.extractParametersFromDeclaration(parametersString);
             
             return {
@@ -107,7 +104,7 @@ export class MethodExtractor {
                 parameters
             };
         } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, '매개변수와 함께 메서드 선언 파싱');
+            const parsingError = ErrorHandler.handleParsingError(error, 'Parse method declaration with parameters');
             ErrorHandler.logError(parsingError, { 
                 methodDeclaration: methodDeclaration?.substring(PARSING_CONSTANTS.MIN_ARRAY_INDEX, PARSING_CONSTANTS.ERROR_MESSAGE_MAX_LENGTH) || 'Unknown',
                 parametersString: parametersString?.substring(PARSING_CONSTANTS.MIN_ARRAY_INDEX, PARSING_CONSTANTS.PARAMETER_STRING_MAX_LENGTH) || 'Unknown'
@@ -117,19 +114,26 @@ export class MethodExtractor {
     }
     
     /**
-     * setter 메서드인지 판별합니다.
-     * @param methodName 메서드 이름
-     * @param parameterCount 매개변수 개수
-     * @returns setter 메서드 여부
+     * Determines if it's a setter method.
+     * 
+     * @param methodName - Method name
+     * @param parameterCount - Number of parameters
+     * @returns Whether it's a setter method
      */
     isSetterMethod(methodName: string, parameterCount: number): boolean {
         try {
-            // setXxx 패턴이고 매개변수가 1개 이상이어야 함
-            return methodName.startsWith('set') && 
-                   methodName.length > PARSING_CONSTANTS.SETTER_PREFIX_LENGTH && 
-                   parameterCount > PARSING_CONSTANTS.MIN_ARRAY_INDEX;
+            // Setter pattern: starts with 'set' followed by uppercase letter
+            if (!methodName.startsWith('set') || methodName.length <= PARSING_CONSTANTS.SETTER_PREFIX_LENGTH) {
+                return false;
+            }
+            
+            // Check if the character after 'set' is uppercase
+            const fourthChar = methodName.charAt(PARSING_CONSTANTS.SETTER_PREFIX_LENGTH);
+            const isUppercase = fourthChar === fourthChar.toUpperCase() && fourthChar !== fourthChar.toLowerCase();
+            
+            return isUppercase && parameterCount > PARSING_CONSTANTS.MIN_ARRAY_INDEX;
         } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, 'Setter 메서드 판별');
+            const parsingError = ErrorHandler.handleParsingError(error, 'Determine setter method');
             ErrorHandler.logError(parsingError, { 
                 methodName: methodName || 'Unknown',
                 parameterCount: parameterCount || PARSING_CONSTANTS.MIN_ARRAY_INDEX
@@ -139,103 +143,21 @@ export class MethodExtractor {
     }
     
     /**
-     * 라인들에서 메서드 정보를 파싱합니다.
+     * Parses method information from lines.
      */
     private parseMethodFromLines(lines: string[], startIndex: number, uri: vscode.Uri): MethodInfo | null {
         try {
-            let methodDeclaration = '';
-            let endIndex = startIndex;
-            let bracketCount = 0;
-            let foundOpenParen = false;
+            const { methodDeclaration, endIndex } = this.extractMethodDeclaration(lines, startIndex);
             
-            // 다중 라인 메서드 처리 - 괄호 매칭으로 정확한 종료점 찾기
-            for (let i = startIndex; i < lines.length; i++) {
-                const line = lines[i];
-                methodDeclaration += line;
-                
-                // 괄호 카운팅 (문자열 리터럴 내부의 괄호는 제외)
-                let inString = false;
-                let stringChar = '';
-                for (let j = PARSING_CONSTANTS.MIN_ARRAY_INDEX; j < line.length; j++) {
-                    const char = line[j];
-                    const prevChar = j > PARSING_CONSTANTS.MIN_ARRAY_INDEX ? line[j + PARSING_CONSTANTS.ARRAY_OFFSET.PREV] : '';
-                    
-                    // 문자열 시작/종료 처리
-                    if ((char === '"' || char === "'") && prevChar !== '\\') {
-                        if (!inString) {
-                            inString = true;
-                            stringChar = char;
-                        } else if (char === stringChar) {
-                            inString = false;
-                            stringChar = '';
-                        }
-                    }
-                    
-                    // 문자열 외부의 괄호만 카운팅
-                    if (!inString) {
-                        if (char === '(') {
-                            bracketCount++;
-                            foundOpenParen = true;
-                        } else if (char === ')') {
-                            bracketCount--;
-                        }
-                    }
-                }
-                
-                // 괄호가 모두 닫혔으면 종료
-                if (foundOpenParen && bracketCount === 0) {
-                    endIndex = i;
-                    break;
-                }
-                
-                // 문자열 외부에서 중괄호나 세미콜론 발견 시 종료 (메서드 본문 시작)
-                let foundBodyStart = false;
-                inString = false;
-                stringChar = '';
-                for (let k = PARSING_CONSTANTS.MIN_ARRAY_INDEX; k < line.length; k++) {
-                    const char = line[k];
-                    const prevChar = k > PARSING_CONSTANTS.MIN_ARRAY_INDEX ? line[k + PARSING_CONSTANTS.ARRAY_OFFSET.PREV] : '';
-                    
-                    if ((char === '"' || char === "'") && prevChar !== '\\') {
-                        if (!inString) {
-                            inString = true;
-                            stringChar = char;
-                        } else if (char === stringChar) {
-                            inString = false;
-                            stringChar = '';
-                        }
-                    }
-                    
-                    if (!inString && (char === '{' || char === ';')) {
-                        foundBodyStart = true;
-                        break;
-                    }
-                }
-                
-                if (foundOpenParen && foundBodyStart) {
-                    endIndex = i;
-                    break;
-                }
-                
-                // 다음 줄이 있으면 공백 추가
-                if (i < lines.length + PARSING_CONSTANTS.ARRAY_OFFSET.PREV) {
-                    methodDeclaration += ' ';
-                }
-            }
-            
-            // 메서드 선언 파싱
             const cleanDeclaration = methodDeclaration.replace(/\s+/g, ' ').trim();
             
-            // 여러 줄에 걸친 매개변수를 올바르게 추출하기 위해 정확한 매개변수 추출
             const parametersString = this.extractParametersStringFromDeclaration(cleanDeclaration);
-            
             const parsedMethod = this.parseMethodDeclarationWithParameters(cleanDeclaration, parametersString);
             
             if (!parsedMethod) {
                 return null;
             }
             
-            // 각 매개변수의 정확한 위치 정보 계산
             const parametersWithPositions = this.calculateParameterPositions(
                 parsedMethod.parameters, 
                 lines, 
@@ -243,10 +165,8 @@ export class MethodExtractor {
                 endIndex
             );
             
-            // setter 메서드인지 확인
             const isSetterMethod = this.isSetterMethod(parsedMethod.name, parsedMethod.parameters.length);
             
-            // 위치 정보 생성
             const position = new vscode.Position(startIndex, PARSING_CONSTANTS.DEFAULT_POSITION.CHARACTER);
             const range = new vscode.Range(position, new vscode.Position(endIndex, lines[endIndex].length));
             
@@ -254,13 +174,13 @@ export class MethodExtractor {
                 name: parsedMethod.name,
                 parameters: parametersWithPositions,
                 range,
-                annotations: [], // 나중에 채워짐
+                annotations: [], // Will be filled later
                 isSetterMethod,
                 position,
                 returnType: parsedMethod.returnType
             };
         } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, '메서드 라인 파싱');
+            const parsingError = ErrorHandler.handleParsingError(error, 'Parse method lines');
             ErrorHandler.logError(parsingError, { 
                 startIndex: startIndex,
                 fileName: uri.toString()
@@ -268,18 +188,130 @@ export class MethodExtractor {
             return null;
         }
     }
+
+    /**
+     * Extracts method declaration from lines.
+     * 
+     * @param lines - All lines of the file
+     * @param startIndex - Start line index
+     * @returns Method declaration string and end index
+     */
+    private extractMethodDeclaration(lines: string[], startIndex: number): { methodDeclaration: string; endIndex: number } {
+        let methodDeclaration = '';
+        let endIndex = startIndex;
+        let bracketCount = 0;
+        let foundOpenParen = false;
+        
+        for (let i = startIndex; i < lines.length; i++) {
+            const line = lines[i];
+            methodDeclaration += line;
+            
+            const { openCount, closeCount, hasOpened } = this.countParentheses(line);
+            bracketCount += openCount - closeCount;
+            foundOpenParen = foundOpenParen || hasOpened;
+            
+            if (foundOpenParen && bracketCount === 0) {
+                endIndex = i;
+                break;
+            }
+            
+            if (foundOpenParen && this.hasMethodBodyStart(line)) {
+                endIndex = i;
+                break;
+            }
+            
+            if (i < lines.length + PARSING_CONSTANTS.ARRAY_OFFSET.PREV) {
+                methodDeclaration += ' ';
+            }
+        }
+        
+        return { methodDeclaration, endIndex };
+    }
+
+    /**
+     * Counts parentheses in a line, excluding string literals.
+     * 
+     * @param line - Line to analyze
+     * @returns Count of open and close parentheses and whether it has opened
+     */
+    private countParentheses(line: string): { openCount: number; closeCount: number; hasOpened: boolean } {
+        let openCount = 0;
+        let closeCount = 0;
+        let hasOpened = false;
+        let inString = false;
+        let stringChar = '';
+        
+        for (let j = PARSING_CONSTANTS.MIN_ARRAY_INDEX; j < line.length; j++) {
+            const char = line[j];
+            const prevChar = j > PARSING_CONSTANTS.MIN_ARRAY_INDEX ? line[j + PARSING_CONSTANTS.ARRAY_OFFSET.PREV] : '';
+            
+            if ((char === '"' || char === "'") && prevChar !== '\\') {
+                if (!inString) {
+                    inString = true;
+                    stringChar = char;
+                } else if (char === stringChar) {
+                    inString = false;
+                    stringChar = '';
+                }
+            }
+            
+            if (!inString) {
+                if (char === '(') {
+                    openCount++;
+                    hasOpened = true;
+                } else if (char === ')') {
+                    closeCount++;
+                }
+            }
+        }
+        
+        return { openCount, closeCount, hasOpened };
+    }
+
+    /**
+     * Checks if a line contains method body start.
+     * 
+     * @param line - Line to check
+     * @returns True if line contains '{' or ';' outside string literals
+     */
+    private hasMethodBodyStart(line: string): boolean {
+        let inString = false;
+        let stringChar = '';
+        
+        for (let k = PARSING_CONSTANTS.MIN_ARRAY_INDEX; k < line.length; k++) {
+            const char = line[k];
+            const prevChar = k > PARSING_CONSTANTS.MIN_ARRAY_INDEX ? line[k + PARSING_CONSTANTS.ARRAY_OFFSET.PREV] : '';
+            
+            if ((char === '"' || char === "'") && prevChar !== '\\') {
+                if (!inString) {
+                    inString = true;
+                    stringChar = char;
+                } else if (char === stringChar) {
+                    inString = false;
+                    stringChar = '';
+                }
+            }
+            
+            if (!inString && (char === '{' || char === ';')) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
     
     /**
-     * 메서드의 어노테이션들을 추출합니다.
+     * Extracts annotations for a method.
      */
     private extractMethodAnnotations(lines: string[], methodLineIndex: number): AnnotationInfo[] {
         return this.annotationParser.extractMethodAnnotationsFromLines(lines, methodLineIndex);
     }
     
     /**
-     * 매개변수 선언에서 매개변수들을 추출합니다.
-     * @param parametersDeclaration 매개변수 선언 문자열
-     * @returns 추출된 매개변수 정보 배열
+     * Extracts parameters from parameter declaration.
+     * 
+     * @param parametersDeclaration - Parameter declaration string
+     * @returns Array of extracted parameter information
      */
     private extractParametersFromDeclaration(parametersDeclaration: string): ParameterInfo[] {
         if (!parametersDeclaration || parametersDeclaration.trim() === '') {
@@ -288,8 +320,6 @@ export class MethodExtractor {
         
         try {
             const parameters: ParameterInfo[] = [];
-            
-            // 매개변수들을 쉼표로 분리 (제네릭 고려)
             const parameterStrings = this.splitParameters(parametersDeclaration);
             
             for (const paramStr of parameterStrings) {
@@ -301,7 +331,7 @@ export class MethodExtractor {
             
             return parameters;
         } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, '메서드 매개변수 추출');
+            const parsingError = ErrorHandler.handleParsingError(error, 'Extract method parameters');
             ErrorHandler.logError(parsingError, { 
                 parametersDeclaration: parametersDeclaration?.substring(PARSING_CONSTANTS.MIN_ARRAY_INDEX, PARSING_CONSTANTS.ERROR_MESSAGE_MAX_LENGTH) || 'Unknown'
             });
@@ -310,7 +340,10 @@ export class MethodExtractor {
     }
     
     /**
-     * 매개변수를 제네릭을 고려하여 분리합니다.
+     * Splits parameters considering generics.
+     * 
+     * @param parametersDeclaration - Parameters declaration string
+     * @returns Array of parameter strings
      */
     private splitParameters(parametersDeclaration: string): string[] {
         const parameters: string[] = [];
@@ -341,23 +374,23 @@ export class MethodExtractor {
     }
     
     /**
-     * 메서드 선언에서 매개변수 문자열을 정확하게 추출합니다.
+     * Extracts the exact parameter string from the method declaration.
+     * 
+     * @param declaration - Method declaration string
+     * @returns Parameter string between parentheses
      */
     private extractParametersStringFromDeclaration(declaration: string): string {
         try {
-            // 메서드 이름 뒤의 첫 번째 여는 괄호 찾기
             let methodParenStart = -1;
             let methodParenEnd = -1;
             let bracketCount = 0;
             let inString = false;
             let stringChar = '';
             
-            // 첫 번째 여는 괄호 찾기
             for (let i = 0; i < declaration.length; i++) {
                 const char = declaration[i];
                 const prevChar = i > 0 ? declaration[i-1] : '';
                 
-                // 문자열 처리
                 if ((char === '"' || char === "'") && prevChar !== '\\') {
                     if (!inString) {
                         inString = true;
@@ -390,7 +423,7 @@ export class MethodExtractor {
             
             return '';
         } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, '메서드 매개변수 문자열 추출');
+            const parsingError = ErrorHandler.handleParsingError(error, 'Extract method parameter string');
             ErrorHandler.logError(parsingError, { 
                 declaration: declaration?.substring(PARSING_CONSTANTS.MIN_ARRAY_INDEX, PARSING_CONSTANTS.ERROR_MESSAGE_MAX_LENGTH) || 'Unknown'
             });
@@ -399,26 +432,26 @@ export class MethodExtractor {
     }
     
     /**
-     * 단일 매개변수를 파싱합니다.
+     * Parses a single parameter.
+     * 
+     * @param parameterString - Parameter string to parse
+     * @returns Parameter info or null if invalid
      */
     private parseParameter(parameterString: string): ParameterInfo | null {
         try {
-            // 어노테이션 제거
             let cleanParam = parameterString.replace(/@\w+(\([^)]*\))?\s*/g, '');
             
-            // 타입과 변수명 분리
             const parts = cleanParam.trim().split(/\s+/);
             if (parts.length < 2) {
                 return null;
             }
             
-            // 마지막이 변수명, 나머지가 타입
             const name = parts[parts.length - 1];
             const type = parts.slice(0, -1).join(' ');
             
             return { name, type };
         } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, '메서드 매개변수 파싱');
+            const parsingError = ErrorHandler.handleParsingError(error, 'Parse method parameter');
             ErrorHandler.logError(parsingError, { 
                 parameterString: parameterString?.substring(PARSING_CONSTANTS.MIN_ARRAY_INDEX, PARSING_CONSTANTS.PARAMETER_STRING_MAX_LENGTH) || 'Unknown'
             });
@@ -427,13 +460,13 @@ export class MethodExtractor {
     }
 
     /**
-     * 매개변수들의 정확한 위치 정보를 계산합니다.
+     * Calculates exact position information for parameters.
      * 
-     * @param parameters - 기본 매개변수 정보들
-     * @param lines - 파일의 모든 라인들
-     * @param methodStartIndex - 메서드 시작 라인 인덱스
-     * @param methodEndIndex - 메서드 종료 라인 인덱스
-     * @returns 위치 정보가 포함된 매개변수 배열
+     * @param parameters - Basic parameter information
+     * @param lines - All lines of the file
+     * @param methodStartIndex - Method start line index
+     * @param methodEndIndex - Method end line index
+     * @returns Array of parameters with position information
      */
     private calculateParameterPositions(
         parameters: ParameterInfo[], 
@@ -445,7 +478,6 @@ export class MethodExtractor {
 
         try {
             for (const parameter of parameters) {
-                // 각 매개변수의 위치를 찾기
                 const parameterPosition = this.findParameterPosition(
                     parameter.name, 
                     lines, 
@@ -462,13 +494,12 @@ export class MethodExtractor {
                 parametersWithPositions.push(enhancedParameter);
             }
         } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, '매개변수 위치 계산');
+            const parsingError = ErrorHandler.handleParsingError(error, 'Calculate parameter positions');
             ErrorHandler.logError(parsingError, { 
                 parameterCount: parameters.length,
                 methodStartIndex,
                 methodEndIndex
             });
-            // 에러 발생 시 기본 매개변수 정보 반환
             return parameters;
         }
 
@@ -476,13 +507,13 @@ export class MethodExtractor {
     }
 
     /**
-     * 특정 매개변수의 위치를 찾습니다.
+     * Finds the position of a specific parameter.
      * 
-     * @param parameterName - 찾을 매개변수 이름
-     * @param lines - 파일의 모든 라인들
-     * @param startIndex - 검색 시작 라인 인덱스
-     * @param endIndex - 검색 종료 라인 인덱스
-     * @returns 매개변수의 위치 정보
+     * @param parameterName - Parameter name to find
+     * @param lines - All lines of the file
+     * @param startIndex - Search start line index
+     * @param endIndex - Search end line index
+     * @returns Position information of the parameter
      */
     private findParameterPosition(
         parameterName: string, 
@@ -491,19 +522,15 @@ export class MethodExtractor {
         endIndex: number
     ): { position: vscode.Position; range: vscode.Range } {
         try {
-            // 매개변수 이름이 나타나는 라인을 찾기
             for (let i = startIndex; i <= endIndex && i < lines.length; i++) {
                 const line = lines[i];
                 const parameterIndex = line.indexOf(parameterName);
                 
-                // 매개변수 이름을 찾았고, 이것이 변수명일 가능성이 높은 경우
                 if (parameterIndex !== -1) {
-                    // 변수명 앞뒤의 문자를 확인하여 정확한 매개변수인지 검증
                     const beforeChar = parameterIndex > 0 ? line[parameterIndex - 1] : ' ';
                     const afterIndex = parameterIndex + parameterName.length;
                     const afterChar = afterIndex < line.length ? line[afterIndex] : ' ';
                     
-                    // 단어 경계 확인 (앞뒤가 공백이나 특수문자여야 함)
                     const isWordBoundary = /\s|,|;|\(|\)/.test(beforeChar) && /\s|,|;|\(|\)/.test(afterChar);
                     
                     if (isWordBoundary) {
@@ -518,7 +545,7 @@ export class MethodExtractor {
                 }
             }
         } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, '매개변수 위치 검색');
+            const parsingError = ErrorHandler.handleParsingError(error, 'Find parameter position');
             ErrorHandler.logError(parsingError, { 
                 parameterName,
                 startIndex,
@@ -526,7 +553,6 @@ export class MethodExtractor {
             });
         }
 
-        // 찾지 못한 경우 기본 위치 반환
         const defaultPosition = new vscode.Position(startIndex, 0);
         const defaultRange = new vscode.Range(defaultPosition, defaultPosition);
         return { position: defaultPosition, range: defaultRange };
