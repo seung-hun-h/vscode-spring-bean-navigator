@@ -9,6 +9,15 @@
 - **Constants**: SCREAMING_SNAKE_CASE (`MAX_SEARCH_DEPTH`, `DEFAULT_TIMEOUT`)
 - **Filenames**: kebab-case (`spring-bean-detector.ts`, `navigation-provider.ts`)
 - **Directories**: kebab-case (`src/providers`, `src/utils`)
+- **Utils Files**: Use verb-based naming with `-utils.ts` suffix (`method-classify-utils.ts`, `parameter-parse-utils.ts`)
+  - Use verb-based names that describe the functionality instead of noun-based names
+  - Examples:
+    - ✅ Good: `text-position-calculate-utils.ts` (utilities for calculating text positions)
+    - ✅ Good: `method-classify-utils.ts` (utilities for classifying methods)
+    - ✅ Good: `parameter-parse-utils.ts` (utilities for parsing parameters)
+    - ❌ Bad: `text-position-calculator.ts` (noun-based suffix)
+    - ❌ Bad: `method-classifier.ts` (noun-based suffix)
+    - ❌ Bad: `parameter-parser.ts` (noun-based suffix)
 
 ### File Structure Rules
 ```
