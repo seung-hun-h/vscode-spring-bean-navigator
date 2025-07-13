@@ -4,7 +4,7 @@ import { AnnotationInfo } from '../../models/spring-types';
  * Utility class for classifying Java methods based on their signatures and patterns.
  * Helps identify special method types like setters, getters, and Bean methods.
  */
-export class MethodClassifier {
+export class MethodClassifyUtils {
     
     private static readonly SETTER_PREFIX = 'set';
     private static readonly SETTER_PREFIX_LENGTH = 3;

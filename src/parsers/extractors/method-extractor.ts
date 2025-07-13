@@ -3,11 +3,11 @@ import { MethodInfo, ParameterInfo, AnnotationInfo } from '../../models/spring-t
 import { AnnotationParser } from './annotation-parser';
 import { ErrorHandler } from '../core/parser-errors';
 import { PARSING_CONSTANTS } from '../config/java-parser-config';
-import { ParameterParser } from '../utils/parameter-parser';
+import { ParameterParser } from '../utils/parameter-parse-utils';
 import { JavaSyntaxUtils } from '../utils/java-syntax-utils';
-import { MethodDeclarationParser } from '../utils/method-declaration-parser';
-import { MethodClassifier } from '../utils/method-classifier';
-import { TextPositionCalculator } from '../utils/text-position-calculator';
+import { MethodDeclareUtils } from '../utils/method-declare-utils';
+import { MethodClassifyUtils } from '../utils/method-classify-utils';
+import { TextPositionCalculateUtils } from '../utils/text-position-calculate-utils';
 
 /**
  * Extracts all methods from Java classes including @Bean methods and regular methods.
@@ -118,14 +118,12 @@ export class MethodExtractor {
         }
     }
     
-
-    
     /**
      * Parses method information from lines.
      */
     private parseMethodFromLines(lines: string[], startIndex: number, uri: vscode.Uri): MethodInfo | null {
         try {
-            const { methodDeclaration, endIndex } = MethodDeclarationParser.extractMethodDeclaration(lines, startIndex);
+            const { methodDeclaration, endIndex } = MethodDeclareUtils.extractMethodDeclaration(lines, startIndex);
             
             const cleanDeclaration = methodDeclaration.replace(/\s+/g, ' ').trim();
             
@@ -136,14 +134,14 @@ export class MethodExtractor {
                 return null;
             }
             
-            const parametersWithPositions = TextPositionCalculator.calculateParameterPositions(
+            const parametersWithPositions = TextPositionCalculateUtils.calculateParameterPositions(
                 parsedMethod.parameters, 
                 lines, 
                 startIndex, 
                 endIndex
             );
             
-            const isSetterMethod = MethodClassifier.isSetterMethod(parsedMethod.name, parsedMethod.parameters.length);
+            const isSetterMethod = MethodClassifyUtils.isSetterMethod(parsedMethod.name, parsedMethod.parameters.length);
             
             const position = new vscode.Position(startIndex, PARSING_CONSTANTS.DEFAULT_POSITION.CHARACTER);
             const range = new vscode.Range(position, new vscode.Position(endIndex, lines[endIndex].length));
@@ -167,16 +165,12 @@ export class MethodExtractor {
         }
     }
 
-
-    
     /**
      * Extracts annotations for a method.
      */
     private extractMethodAnnotations(lines: string[], methodLineIndex: number): AnnotationInfo[] {
         return this.annotationParser.extractMethodAnnotationsFromLines(lines, methodLineIndex);
     }
-
-
     
     /**
      * Extracts the exact parameter string from the method declaration.
@@ -187,8 +181,4 @@ export class MethodExtractor {
     private extractParametersStringFromDeclaration(declaration: string): string {
         return JavaSyntaxUtils.extractBetweenParentheses(declaration);
     }
-    
-
-
-
 } 

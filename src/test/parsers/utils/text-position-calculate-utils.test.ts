@@ -1,9 +1,8 @@
 import * as assert from 'assert';
-import * as vscode from 'vscode';
-import { TextPositionCalculator } from '../../../parsers/utils/text-position-calculator';
+import { TextPositionCalculateUtils } from '../../../parsers/utils/text-position-calculate-utils';
 import { ParameterInfo } from '../../../models/spring-types';
 
-suite('TextPositionCalculator Test Suite', () => {
+suite('TextPositionCalculateUtils Test Suite', () => {
     
     suite('findParameterPosition', () => {
         test('should_findParameterPosition_when_singleLineMethod', () => {
@@ -20,7 +19,7 @@ suite('TextPositionCalculator Test Suite', () => {
             const endIndex = 1;
             
             // Act
-            const result = TextPositionCalculator.findParameterPosition(
+            const result = TextPositionCalculateUtils.findParameterPosition(
                 parameterName, 
                 lines, 
                 startIndex, 
@@ -50,7 +49,7 @@ suite('TextPositionCalculator Test Suite', () => {
             const endIndex = 3;
             
             // Act
-            const result = TextPositionCalculator.findParameterPosition(
+            const result = TextPositionCalculateUtils.findParameterPosition(
                 parameterName, 
                 lines, 
                 startIndex, 
@@ -88,7 +87,7 @@ suite('TextPositionCalculator Test Suite', () => {
             const methodEndIndex = 3;
             
             // Act
-            const result = TextPositionCalculator.calculateParameterPositions(
+            const result = TextPositionCalculateUtils.calculateParameterPositions(
                 parameters,
                 lines,
                 methodStartIndex,

@@ -1,8 +1,8 @@
 import * as assert from 'assert';
-import { MethodClassifier } from '../../../parsers/utils/method-classifier';
+import { MethodClassifyUtils } from '../../../parsers/utils/method-classify-utils';
 import { AnnotationInfo, SpringAnnotationType } from '../../../models/spring-types';
 
-suite('MethodClassifier Test Suite', () => {
+suite('MethodClassifyUtils Test Suite', () => {
     
     suite('isSetterMethod', () => {
         test('should_returnTrue_when_standardSetterPattern', () => {
@@ -11,7 +11,7 @@ suite('MethodClassifier Test Suite', () => {
             const parameterCount = 1;
             
             // Act
-            const result = MethodClassifier.isSetterMethod(methodName, parameterCount);
+            const result = MethodClassifyUtils.isSetterMethod(methodName, parameterCount);
             
             // Assert
             assert.strictEqual(result, true);
@@ -23,7 +23,7 @@ suite('MethodClassifier Test Suite', () => {
             const parameterCount = 1;
             
             // Act
-            const result = MethodClassifier.isSetterMethod(methodName, parameterCount);
+            const result = MethodClassifyUtils.isSetterMethod(methodName, parameterCount);
             
             // Assert
             assert.strictEqual(result, false);
@@ -35,7 +35,7 @@ suite('MethodClassifier Test Suite', () => {
             const parameterCount = 1;
             
             // Act
-            const result = MethodClassifier.isSetterMethod(methodName, parameterCount);
+            const result = MethodClassifyUtils.isSetterMethod(methodName, parameterCount);
             
             // Assert
             assert.strictEqual(result, false);
@@ -47,7 +47,7 @@ suite('MethodClassifier Test Suite', () => {
             const parameterCount = 1;
             
             // Act
-            const result = MethodClassifier.isSetterMethod(methodName, parameterCount);
+            const result = MethodClassifyUtils.isSetterMethod(methodName, parameterCount);
             
             // Assert
             assert.strictEqual(result, false);
@@ -59,7 +59,7 @@ suite('MethodClassifier Test Suite', () => {
             const parameterCount = 0;
             
             // Act
-            const result = MethodClassifier.isSetterMethod(methodName, parameterCount);
+            const result = MethodClassifyUtils.isSetterMethod(methodName, parameterCount);
             
             // Assert
             assert.strictEqual(result, false);
@@ -71,7 +71,7 @@ suite('MethodClassifier Test Suite', () => {
             const parameterCount = 2;
             
             // Act
-            const result = MethodClassifier.isSetterMethod(methodName, parameterCount);
+            const result = MethodClassifyUtils.isSetterMethod(methodName, parameterCount);
             
             // Assert
             assert.strictEqual(result, true);
@@ -89,7 +89,7 @@ suite('MethodClassifier Test Suite', () => {
             }];
             
             // Act
-            const result = MethodClassifier.isBeanMethod(annotations);
+            const result = MethodClassifyUtils.isBeanMethod(annotations);
             
             // Assert
             assert.strictEqual(result, true);
@@ -105,7 +105,7 @@ suite('MethodClassifier Test Suite', () => {
             }];
             
             // Act
-            const result = MethodClassifier.isBeanMethod(annotations);
+            const result = MethodClassifyUtils.isBeanMethod(annotations);
             
             // Assert
             assert.strictEqual(result, false);
@@ -116,7 +116,7 @@ suite('MethodClassifier Test Suite', () => {
             const annotations: AnnotationInfo[] = [];
             
             // Act
-            const result = MethodClassifier.isBeanMethod(annotations);
+            const result = MethodClassifyUtils.isBeanMethod(annotations);
             
             // Assert
             assert.strictEqual(result, false);

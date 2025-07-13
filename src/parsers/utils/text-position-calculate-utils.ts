@@ -5,7 +5,7 @@ import { ParameterInfo } from '../../models/spring-types';
  * Utility class for calculating text positions in Java source files.
  * Handles position calculations for methods, parameters, and other elements.
  */
-export class TextPositionCalculator {
+export class TextPositionCalculateUtils {
     
     /**
      * Finds the position of a specific parameter in the source code.

@@ -4,7 +4,7 @@ import { JavaSyntaxUtils } from './java-syntax-utils';
  * Utility class for parsing method declarations from Java source code.
  * Handles multi-line method declarations and various edge cases.
  */
-export class MethodDeclarationParser {
+export class MethodDeclareUtils {
     
     /**
      * Extracts method declaration from lines starting at the given index.

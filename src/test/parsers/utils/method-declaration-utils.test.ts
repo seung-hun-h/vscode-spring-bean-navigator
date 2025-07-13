@@ -1,7 +1,7 @@
 import * as assert from 'assert';
-import { MethodDeclarationParser } from '../../../parsers/utils/method-declaration-parser';
+import { MethodDeclareUtils } from '../../../parsers/utils/method-declare-utils';
 
-suite('MethodDeclarationParser Test Suite', () => {
+suite('MethodDeclareUtils Test Suite', () => {
     
     test('should_extractSingleLineMethodDeclaration_when_methodIsOnOneLine', () => {
         // Arrange
@@ -15,7 +15,7 @@ suite('MethodDeclarationParser Test Suite', () => {
         const startIndex = 1;
         
         // Act
-        const result = MethodDeclarationParser.extractMethodDeclaration(lines, startIndex);
+        const result = MethodDeclareUtils.extractMethodDeclaration(lines, startIndex);
         
         // Assert
         assert.strictEqual(result.methodDeclaration, 'public void doSomething() {');
@@ -36,7 +36,7 @@ suite('MethodDeclarationParser Test Suite', () => {
         const startIndex = 1;
         
         // Act
-        const result = MethodDeclarationParser.extractMethodDeclaration(lines, startIndex);
+        const result = MethodDeclareUtils.extractMethodDeclaration(lines, startIndex);
         
         // Assert
         assert.strictEqual(result.methodDeclaration, 'public void processData( String input, int count) {');
@@ -54,7 +54,7 @@ suite('MethodDeclarationParser Test Suite', () => {
         const startIndex = 1;
         
         // Act
-        const result = MethodDeclarationParser.extractMethodDeclaration(lines, startIndex);
+        const result = MethodDeclareUtils.extractMethodDeclaration(lines, startIndex);
         
         // Assert
         assert.strictEqual(result.methodDeclaration, 'public abstract void doSomething();');
@@ -66,7 +66,7 @@ suite('MethodDeclarationParser Test Suite', () => {
         const methodDeclaration = 'public void doSomething()';
         
         // Act
-        const result = MethodDeclarationParser.parseMethodSignature(methodDeclaration);
+        const result = MethodDeclareUtils.parseMethodSignature(methodDeclaration);
         
         // Assert
         assert.ok(result);

@@ -4,7 +4,7 @@ import { Position } from 'vscode';
 import { AnnotationParser } from './annotation-parser';
 import { ErrorHandler } from '../core/parser-errors';
 import { JavaSyntaxUtils } from '../utils/java-syntax-utils';
-import { ParameterParser } from '../utils/parameter-parser';
+import { ParameterParser } from '../utils/parameter-parse-utils';
 
 /**
  * Extracts constructors from Java classes.
