@@ -4,6 +4,7 @@ import { AnnotationParser } from './annotation-parser';
 import { ErrorHandler } from '../core/parser-errors';
 import { PARSING_CONSTANTS } from '../config/java-parser-config';
 import { ParameterParser } from '../utils/parameter-parser';
+import { JavaSyntaxUtils } from '../utils/java-syntax-utils';
 
 /**
  * Extracts all methods from Java classes including @Bean methods and regular methods.
@@ -236,35 +237,9 @@ export class MethodExtractor {
      * @returns Count of open and close parentheses and whether it has opened
      */
     private countParentheses(line: string): { openCount: number; closeCount: number; hasOpened: boolean } {
-        let openCount = 0;
-        let closeCount = 0;
-        let hasOpened = false;
-        let inString = false;
-        let stringChar = '';
-        
-        for (let j = PARSING_CONSTANTS.MIN_ARRAY_INDEX; j < line.length; j++) {
-            const char = line[j];
-            const prevChar = j > PARSING_CONSTANTS.MIN_ARRAY_INDEX ? line[j + PARSING_CONSTANTS.ARRAY_OFFSET.PREV] : '';
-            
-            if ((char === '"' || char === "'") && prevChar !== '\\') {
-                if (!inString) {
-                    inString = true;
-                    stringChar = char;
-                } else if (char === stringChar) {
-                    inString = false;
-                    stringChar = '';
-                }
-            }
-            
-            if (!inString) {
-                if (char === '(') {
-                    openCount++;
-                    hasOpened = true;
-                } else if (char === ')') {
-                    closeCount++;
-                }
-            }
-        }
+        const openCount = JavaSyntaxUtils.countCharacterOutsideStrings(line, '(');
+        const closeCount = JavaSyntaxUtils.countCharacterOutsideStrings(line, ')');
+        const hasOpened = openCount > 0;
         
         return { openCount, closeCount, hasOpened };
     }
@@ -276,29 +251,9 @@ export class MethodExtractor {
      * @returns True if line contains '{' or ';' outside string literals
      */
     private hasMethodBodyStart(line: string): boolean {
-        let inString = false;
-        let stringChar = '';
-        
-        for (let k = PARSING_CONSTANTS.MIN_ARRAY_INDEX; k < line.length; k++) {
-            const char = line[k];
-            const prevChar = k > PARSING_CONSTANTS.MIN_ARRAY_INDEX ? line[k + PARSING_CONSTANTS.ARRAY_OFFSET.PREV] : '';
-            
-            if ((char === '"' || char === "'") && prevChar !== '\\') {
-                if (!inString) {
-                    inString = true;
-                    stringChar = char;
-                } else if (char === stringChar) {
-                    inString = false;
-                    stringChar = '';
-                }
-            }
-            
-            if (!inString && (char === '{' || char === ';')) {
-                return true;
-            }
-        }
-        
-        return false;
+        const braceCount = JavaSyntaxUtils.countCharacterOutsideStrings(line, '{');
+        const semicolonCount = JavaSyntaxUtils.countCharacterOutsideStrings(line, ';');
+        return braceCount > 0 || semicolonCount > 0;
     }
     
     /**
@@ -317,55 +272,7 @@ export class MethodExtractor {
      * @returns Parameter string between parentheses
      */
     private extractParametersStringFromDeclaration(declaration: string): string {
-        try {
-            let methodParenStart = -1;
-            let methodParenEnd = -1;
-            let bracketCount = 0;
-            let inString = false;
-            let stringChar = '';
-            
-            for (let i = 0; i < declaration.length; i++) {
-                const char = declaration[i];
-                const prevChar = i > 0 ? declaration[i-1] : '';
-                
-                if ((char === '"' || char === "'") && prevChar !== '\\') {
-                    if (!inString) {
-                        inString = true;
-                        stringChar = char;
-                    } else if (char === stringChar) {
-                        inString = false;
-                        stringChar = '';
-                    }
-                }
-                
-                if (!inString && char === '(' && methodParenStart === -1) {
-                    methodParenStart = i;
-                    bracketCount = 1;
-                } else if (!inString && methodParenStart !== -1) {
-                    if (char === '(') {
-                        bracketCount++;
-                    } else if (char === ')') {
-                        bracketCount--;
-                        if (bracketCount === 0) {
-                            methodParenEnd = i;
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            if (methodParenStart !== -1 && methodParenEnd !== -1) {
-                return declaration.substring(methodParenStart + 1, methodParenEnd);
-            }
-            
-            return '';
-        } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, 'Extract method parameter string');
-            ErrorHandler.logError(parsingError, { 
-                declaration: declaration?.substring(PARSING_CONSTANTS.MIN_ARRAY_INDEX, PARSING_CONSTANTS.ERROR_MESSAGE_MAX_LENGTH) || 'Unknown'
-            });
-            return '';
-        }
+        return JavaSyntaxUtils.extractBetweenParentheses(declaration);
     }
     
 

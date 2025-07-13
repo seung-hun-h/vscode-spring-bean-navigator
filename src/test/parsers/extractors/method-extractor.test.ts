@@ -2,6 +2,8 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { MethodExtractor } from '../../../parsers/extractors/method-extractor';
 import { SpringAnnotationType } from '../../../models/spring-types';
+import { ParameterParser } from '../../../parsers/utils/parameter-parser';
+import { JavaSyntaxUtils } from '../../../parsers/utils/java-syntax-utils';
 
 suite('MethodExtractor Test Suite', () => {
     
@@ -536,6 +538,97 @@ suite('MethodExtractor Test Suite', () => {
             method.parameters.forEach((param, index) => {
                 assert.ok(param.position, `Parameter ${index} should have position`);
                 assert.ok(param.range, `Parameter ${index} should have range`);
+            });
+        });
+    });
+    
+    suite('JavaSyntaxUtils compatibility', () => {
+        
+        test('should_compareCountParenthesesWithJavaSyntaxUtils_when_analyzingStrings', () => {
+            // Arrange
+            const testCases = [
+                'public void method(String param)',
+                'public void method(String param1, int param2)',
+                'System.out.println("Hello (world)")',
+                'method("(", ")")',
+                'method(list.get(0), map.get("key"))',
+                'if ((a > b) && (c < d)) { return; }',
+                '"This is a string with (parentheses)"',
+                '\'(\' + \')\''
+            ];
+            
+            // Act & Assert
+            testCases.forEach(testCase => {
+                // Get result from countParentheses
+                const countResult = (methodExtractor as any).countParentheses(testCase);
+                
+                // Get result from JavaSyntaxUtils
+                const openCountUtil = JavaSyntaxUtils.countCharacterOutsideStrings(testCase, '(');
+                const closeCountUtil = JavaSyntaxUtils.countCharacterOutsideStrings(testCase, ')');
+                
+                // Compare results
+                assert.strictEqual(
+                    countResult.openCount,
+                    openCountUtil,
+                    `Open parentheses count mismatch for: ${testCase}`
+                );
+                assert.strictEqual(
+                    countResult.closeCount,
+                    closeCountUtil,
+                    `Close parentheses count mismatch for: ${testCase}`
+                );
+            });
+        });
+        
+        test('should_compareExtractParametersStringWithJavaSyntaxUtils_when_extractingParameters', () => {
+            // Arrange
+            const testCases = [
+                'public void method(String param)',
+                'public void method(String param1, int param2)',
+                'public List<String> getItems(Map<String, List<Integer>> map)',
+                'void print(String msg, Object... args)',
+                'public void method()',
+                'public void nested(List<Map<String, Set<Integer>>> complex)'
+            ];
+            
+            // Act & Assert
+            testCases.forEach(testCase => {
+                // Get result from extractParametersStringFromDeclaration
+                const extractResult = (methodExtractor as any).extractParametersStringFromDeclaration(testCase);
+                
+                // Get result from JavaSyntaxUtils
+                const utilResult = JavaSyntaxUtils.extractBetweenParentheses(testCase);
+                
+                // Compare results
+                assert.strictEqual(
+                    extractResult,
+                    utilResult,
+                    `Parameter extraction mismatch for: ${testCase}`
+                );
+            });
+        });
+        
+        test('should_compareHasMethodBodyStartWithManualCheck_when_checkingMethodBody', () => {
+            // Arrange
+            const testCases = [
+                { line: 'public void method() {', expected: true },
+                { line: 'public abstract void method();', expected: true },
+                { line: 'String text = "method() { return; }";', expected: true }, // Has ; at the end
+                { line: 'String text = "method() { return; }"', expected: false }, // No ; at the end
+                { line: '// This is a comment {', expected: true }, // Note: comments are not string literals
+                { line: 'char c = \'{\';', expected: true }, // Has ; at the end
+                { line: 'char c = \'{\'', expected: false }, // No ; at the end
+                { line: 'return new Object() { };', expected: true }
+            ];
+            
+            // Act & Assert
+            testCases.forEach(testCase => {
+                const result = (methodExtractor as any).hasMethodBodyStart(testCase.line);
+                assert.strictEqual(
+                    result,
+                    testCase.expected,
+                    `Method body start check failed for: ${testCase.line}`
+                );
             });
         });
     });
