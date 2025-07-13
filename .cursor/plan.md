@@ -73,16 +73,20 @@ MethodExtractor가 단일책임 원칙(SRP)을 위반하는 문제를 해결하�
 - [x] Implement: `isBeanMethod` 메서드 구현 (향후 확장 대비)
 - [x] Refactor: MethodExtractor가 MethodClassifier를 사용하도록 변경
   - MethodExtractor 테스트에서 isSetterMethod 테스트 제거
-- [ ] Commit: "refactor: add MethodClassifier utility class"
+- [x] Commit: "refactor: add MethodClassifier utility class"
+  - **완료**: commit a5e4f73
 
-#### 2.3 TextPositionCalculator 생성
-- [ ] Test: TextPositionCalculator가 메서드/파라미터 위치를 올바르게 계산하는지 테스트
-- [ ] Create: `src/parsers/utils/text-position-calculator.ts` 파일 생성
-- [ ] Implement: `calculateMethodPosition` 메서드 구현
-- [ ] Implement: `findParameterPosition` 메서드 구현 (MethodExtractor에서 이동)
-- [ ] Implement: `calculateParameterPositions` 메서드 구현 (MethodExtractor에서 이동)
-- [ ] Refactor: MethodExtractor가 TextPositionCalculator를 사용하도록 변경
-- [ ] Commit: "refactor(parsers): TextPositionCalculator 클래스 추가 (구조적 변경)"
+#### 2.3 TextPositionCalculator 생성 ✅ 완료
+- [x] Test: TextPositionCalculator가 메서드/파라미터 위치를 올바르게 계산하는지 테스트
+  - [x] findParameterPosition 테스트 (단일/멀티라인)
+  - [x] calculateParameterPositions 테스트
+- [x] Create: `src/parsers/utils/text-position-calculator.ts` 파일 생성
+  - static 메서드로 구현 (유틸리티 클래스 패턴)
+- [ ] Implement: `calculateMethodPosition` 메서드 구현 (향후 필요시)
+- [x] Implement: `findParameterPosition` 메서드 구현 (MethodExtractor에서 이동)
+- [x] Implement: `calculateParameterPositions` 메서드 구현 (MethodExtractor에서 이동)
+- [x] Refactor: MethodExtractor가 TextPositionCalculator를 사용하도록 변경
+- [ ] Commit: "refactor: add TextPositionCalculator utility class"
 
 ### Phase 3: MethodExtractor 최종 정리 (구조적 변경)
 
@@ -100,15 +104,17 @@ MethodExtractor가 단일책임 원칙(SRP)을 위반하는 문제를 해결하�
 - [ ] Commit: "test: 리팩토링된 클래스들에 대한 테스트 추가"
 
 ## 진행 현황
-- **현재 파일 크기**: 560줄 → 470줄 → 377줄 → 315줄 → 289줄 (-271줄, 48.4% 감소)
+- **현재 파일 크기**: 560줄 → 470줄 → 377줄 → 315줄 → 289줄 → 193줄 (-367줄, 65.5% 감소)
 - **Phase 1 완료**: ParameterParser와 JavaSyntaxUtils 활용
 - **Phase 2.1 완료**: MethodDeclarationParser 생성
 - **Phase 2.2 완료**: MethodClassifier 생성
-- **모든 테스트 통과**: 31 passing (MethodDeclarationParser 4개, MethodClassifier 9개 추가)
+- **Phase 2.3 완료**: TextPositionCalculator 생성
+- **모든 테스트 통과**: 34 passing (MethodDeclarationParser 4개, MethodClassifier 9개, TextPositionCalculator 3개 추가)
 - **커밋 이력**:
   - af2622d: ParameterParser 활용
   - ea0c0fa: JavaSyntaxUtils 활용
   - e92d304: MethodDeclarationParser 추가
+  - a5e4f73: MethodClassifier 추가
 
 ## 예상 결과
 - MethodExtractor: 560줄 → 약 200-250줄

@@ -7,6 +7,7 @@ import { ParameterParser } from '../utils/parameter-parser';
 import { JavaSyntaxUtils } from '../utils/java-syntax-utils';
 import { MethodDeclarationParser } from '../utils/method-declaration-parser';
 import { MethodClassifier } from '../utils/method-classifier';
+import { TextPositionCalculator } from '../utils/text-position-calculator';
 
 /**
  * Extracts all methods from Java classes including @Bean methods and regular methods.
@@ -135,7 +136,7 @@ export class MethodExtractor {
                 return null;
             }
             
-            const parametersWithPositions = this.calculateParameterPositions(
+            const parametersWithPositions = TextPositionCalculator.calculateParameterPositions(
                 parsedMethod.parameters, 
                 lines, 
                 startIndex, 
@@ -189,102 +190,5 @@ export class MethodExtractor {
     
 
 
-    /**
-     * Calculates exact position information for parameters.
-     * 
-     * @param parameters - Basic parameter information
-     * @param lines - All lines of the file
-     * @param methodStartIndex - Method start line index
-     * @param methodEndIndex - Method end line index
-     * @returns Array of parameters with position information
-     */
-    private calculateParameterPositions(
-        parameters: ParameterInfo[], 
-        lines: string[], 
-        methodStartIndex: number, 
-        methodEndIndex: number
-    ): ParameterInfo[] {
-        const parametersWithPositions: ParameterInfo[] = [];
 
-        try {
-            for (const parameter of parameters) {
-                const parameterPosition = this.findParameterPosition(
-                    parameter.name, 
-                    lines, 
-                    methodStartIndex, 
-                    methodEndIndex
-                );
-
-                const enhancedParameter: ParameterInfo = {
-                    ...parameter,
-                    position: parameterPosition.position,
-                    range: parameterPosition.range
-                };
-
-                parametersWithPositions.push(enhancedParameter);
-            }
-        } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, 'Calculate parameter positions');
-            ErrorHandler.logError(parsingError, { 
-                parameterCount: parameters.length,
-                methodStartIndex,
-                methodEndIndex
-            });
-            return parameters;
-        }
-
-        return parametersWithPositions;
-    }
-
-    /**
-     * Finds the position of a specific parameter.
-     * 
-     * @param parameterName - Parameter name to find
-     * @param lines - All lines of the file
-     * @param startIndex - Search start line index
-     * @param endIndex - Search end line index
-     * @returns Position information of the parameter
-     */
-    private findParameterPosition(
-        parameterName: string, 
-        lines: string[], 
-        startIndex: number, 
-        endIndex: number
-    ): { position: vscode.Position; range: vscode.Range } {
-        try {
-            for (let i = startIndex; i <= endIndex && i < lines.length; i++) {
-                const line = lines[i];
-                const parameterIndex = line.indexOf(parameterName);
-                
-                if (parameterIndex !== -1) {
-                    const beforeChar = parameterIndex > 0 ? line[parameterIndex - 1] : ' ';
-                    const afterIndex = parameterIndex + parameterName.length;
-                    const afterChar = afterIndex < line.length ? line[afterIndex] : ' ';
-                    
-                    const isWordBoundary = /\s|,|;|\(|\)/.test(beforeChar) && /\s|,|;|\(|\)/.test(afterChar);
-                    
-                    if (isWordBoundary) {
-                        const position = new vscode.Position(i, parameterIndex);
-                        const range = new vscode.Range(
-                            position, 
-                            new vscode.Position(i, parameterIndex + parameterName.length)
-                        );
-                        
-                        return { position, range };
-                    }
-                }
-            }
-        } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, 'Find parameter position');
-            ErrorHandler.logError(parsingError, { 
-                parameterName,
-                startIndex,
-                endIndex
-            });
-        }
-
-        const defaultPosition = new vscode.Position(startIndex, 0);
-        const defaultRange = new vscode.Range(defaultPosition, defaultPosition);
-        return { position: defaultPosition, range: defaultRange };
-    }
 } 
