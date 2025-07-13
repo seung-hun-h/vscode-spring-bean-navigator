@@ -9,10 +9,6 @@ import { ErrorHandler, FieldExtractionError } from '../core/parser-errors';
 import { PositionCalculator } from '../core/position-calculator';
 import { AnnotationParser } from './annotation-parser';
 
-/**
- * Extracts field information from Java classes.
- * Parses field declarations, types, names, annotations, and access modifiers.
- */
 export class FieldExtractor {
     private readonly positionCalculator: PositionCalculator;
     private readonly annotationParser: AnnotationParser;
@@ -33,6 +29,92 @@ export class FieldExtractor {
      * @param classDecl - Class declaration CST node
      * @param lines - File content lines
      * @returns Array of extracted field information
+     * 
+     * @example
+     * This method can handle various field declaration structures:
+     * 
+     * 1. Standard field declarations:
+     * ```java
+     * public class MyClass {
+     *     private String name;
+     *     protected int count;
+     *     public static final String CONSTANT = "value";
+     * }
+     * ```
+     * 
+     * 2. Fields with annotations:
+     * ```java
+     * public class Service {
+     *     @Autowired
+     *     private UserRepository repository;
+     *     
+     *     @Value("${app.config}")
+     *     private String config;
+     * }
+     * ```
+     * 
+     * 3. Generic type fields:
+     * ```java
+     * public class Container {
+     *     private List<String> items;
+     *     private Map<String, List<Integer>> complexMap;
+     *     private Optional<User> currentUser;
+     * }
+     * ```
+     * 
+     * 4. Multiple fields in one declaration:
+     * ```java
+     * public class Point {
+     *     private int x, y, z;  // Extracts x, y, z separately
+     * }
+     * ```
+     * 
+     * 5. Interface constants:
+     * ```java
+     * public interface Constants {
+     *     String API_KEY = "xyz";  // Implicit public static final
+     *     int MAX_SIZE = 100;
+     * }
+     * ```
+     * 
+     * 6. Enum fields:
+     * ```java
+     * public enum Status {
+     *     ACTIVE, INACTIVE;
+     *     private String description;  // Instance field
+     *     public static final int CODE = 200;  // Static field
+     * }
+     * ```
+     * 
+     * 7. Nested class fields:
+     * ```java
+     * public class Outer {
+     *     private String outerField;
+     *     
+     *     class Inner {
+     *         private String innerField;
+     *         
+     *         class DeepInner {
+     *             private String deepField;
+     *         }
+     *     }
+     * }
+     * ```
+     * 
+     * 8. Record fields (implicit):
+     * ```java
+     * public record Person(String name, int age) {
+     *     private static final Logger log = getLogger();  // Static fields in records
+     * }
+     * ```
+     * 
+     * 9. Fields with complex modifiers:
+     * ```java
+     * public class Advanced {
+     *     private volatile transient Map<String, Object> cache;
+     *     protected final AtomicInteger counter = new AtomicInteger(0);
+     * }
+     * ```
      */
     public extractFields(classDecl: ClassDeclarationNode, lines: string[]): FieldInfo[] {
         this.exploredNodes.clear();
@@ -107,7 +189,7 @@ export class FieldExtractor {
      */
     private extractFieldsRecursively(node: CSTNode, lines: string[], fieldMap: Map<string, FieldInfo>): void {
         if (!node || this.exploredNodes.has(node)) {
-            return; // Skip already explored nodes
+            return;
         }
         
         this.exploredNodes.add(node);
