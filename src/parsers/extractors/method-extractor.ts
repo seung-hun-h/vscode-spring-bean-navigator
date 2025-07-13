@@ -6,6 +6,7 @@ import { PARSING_CONSTANTS } from '../config/java-parser-config';
 import { ParameterParser } from '../utils/parameter-parser';
 import { JavaSyntaxUtils } from '../utils/java-syntax-utils';
 import { MethodDeclarationParser } from '../utils/method-declaration-parser';
+import { MethodClassifier } from '../utils/method-classifier';
 
 /**
  * Extracts all methods from Java classes including @Bean methods and regular methods.
@@ -116,34 +117,7 @@ export class MethodExtractor {
         }
     }
     
-    /**
-     * Determines if it's a setter method.
-     * 
-     * @param methodName - Method name
-     * @param parameterCount - Number of parameters
-     * @returns Whether it's a setter method
-     */
-    isSetterMethod(methodName: string, parameterCount: number): boolean {
-        try {
-            // Setter pattern: starts with 'set' followed by uppercase letter
-            if (!methodName.startsWith('set') || methodName.length <= PARSING_CONSTANTS.SETTER_PREFIX_LENGTH) {
-                return false;
-            }
-            
-            // Check if the character after 'set' is uppercase
-            const fourthChar = methodName.charAt(PARSING_CONSTANTS.SETTER_PREFIX_LENGTH);
-            const isUppercase = fourthChar === fourthChar.toUpperCase() && fourthChar !== fourthChar.toLowerCase();
-            
-            return isUppercase && parameterCount > PARSING_CONSTANTS.MIN_ARRAY_INDEX;
-        } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, 'Determine setter method');
-            ErrorHandler.logError(parsingError, { 
-                methodName: methodName || 'Unknown',
-                parameterCount: parameterCount || PARSING_CONSTANTS.MIN_ARRAY_INDEX
-            });
-            return false;
-        }
-    }
+
     
     /**
      * Parses method information from lines.
@@ -168,7 +142,7 @@ export class MethodExtractor {
                 endIndex
             );
             
-            const isSetterMethod = this.isSetterMethod(parsedMethod.name, parsedMethod.parameters.length);
+            const isSetterMethod = MethodClassifier.isSetterMethod(parsedMethod.name, parsedMethod.parameters.length);
             
             const position = new vscode.Position(startIndex, PARSING_CONSTANTS.DEFAULT_POSITION.CHARACTER);
             const range = new vscode.Range(position, new vscode.Position(endIndex, lines[endIndex].length));

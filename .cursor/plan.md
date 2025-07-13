@@ -48,7 +48,7 @@ MethodExtractor가 단일책임 원칙(SRP)을 위반하는 문제를 해결하�
 
 ### Phase 2: 새로운 책임 분리 클래스 생성 (구조적 변경)
 
-#### 2.1 MethodDeclarationParser 생성
+#### 2.1 MethodDeclarationParser 생성 ✅ 완료
 - [x] Test: MethodDeclarationParser가 메서드 선언문을 올바르게 추출하는지 테스트
   - [x] 단일 라인 메서드 선언 테스트
   - [x] 멀티라인 메서드 선언 테스트
@@ -58,16 +58,22 @@ MethodExtractor가 단일책임 원칙(SRP)을 위반하는 문제를 해결하�
   - static 메서드로 구현 (유틸리티 클래스 패턴)
 - [x] Implement: `extractMethodDeclaration` 메서드 구현 (MethodExtractor에서 이동)
 - [x] Implement: `parseMethodSignature` 메서드 구현 (parseMethodDeclarationWithParameters 일부)
-- [ ] Refactor: MethodExtractor가 MethodDeclarationParser를 사용하도록 변경
-- [ ] Commit: "refactor(parsers): MethodDeclarationParser 클래스 추가 (구조적 변경)"
+- [x] Refactor: MethodExtractor가 MethodDeclarationParser를 사용하도록 변경
+  - JavaSyntaxUtils 활용으로 문자열 리터럴 처리 개선
+- [x] Commit: "refactor: add MethodDeclarationParser utility class"
+  - **완료**: commit e92d304
 
-#### 2.2 MethodClassifier 생성
-- [ ] Test: MethodClassifier가 setter 메서드를 올바르게 판별하는지 테스트
-- [ ] Create: `src/parsers/utils/method-classifier.ts` 파일 생성
-- [ ] Implement: `isSetterMethod` 메서드 구현 (MethodExtractor에서 이동)
-- [ ] Implement: `isBeanMethod` 메서드 구현 (향후 확장 대비)
-- [ ] Refactor: MethodExtractor가 MethodClassifier를 사용하도록 변경
-- [ ] Commit: "refactor(parsers): MethodClassifier 클래스 추가 (구조적 변경)"
+#### 2.2 MethodClassifier 생성 ✅ 완료
+- [x] Test: MethodClassifier가 setter 메서드를 올바르게 판별하는지 테스트
+  - [x] setter 패턴 테스트 (6개)
+  - [x] Bean 메서드 판별 테스트 (3개)
+- [x] Create: `src/parsers/utils/method-classifier.ts` 파일 생성
+  - static 메서드로 구현 (유틸리티 클래스 패턴)
+- [x] Implement: `isSetterMethod` 메서드 구현 (MethodExtractor에서 이동)
+- [x] Implement: `isBeanMethod` 메서드 구현 (향후 확장 대비)
+- [x] Refactor: MethodExtractor가 MethodClassifier를 사용하도록 변경
+  - MethodExtractor 테스트에서 isSetterMethod 테스트 제거
+- [ ] Commit: "refactor: add MethodClassifier utility class"
 
 #### 2.3 TextPositionCalculator 생성
 - [ ] Test: TextPositionCalculator가 메서드/파라미터 위치를 올바르게 계산하는지 테스트
@@ -94,12 +100,15 @@ MethodExtractor가 단일책임 원칙(SRP)을 위반하는 문제를 해결하�
 - [ ] Commit: "test: 리팩토링된 클래스들에 대한 테스트 추가"
 
 ## 진행 현황
-- **현재 파일 크기**: 560줄 → 470줄 → 377줄 (-183줄, 32.7% 감소)
+- **현재 파일 크기**: 560줄 → 470줄 → 377줄 → 315줄 → 289줄 (-271줄, 48.4% 감소)
 - **Phase 1 완료**: ParameterParser와 JavaSyntaxUtils 활용
-- **모든 테스트 통과**: 21 passing
+- **Phase 2.1 완료**: MethodDeclarationParser 생성
+- **Phase 2.2 완료**: MethodClassifier 생성
+- **모든 테스트 통과**: 31 passing (MethodDeclarationParser 4개, MethodClassifier 9개 추가)
 - **커밋 이력**:
   - af2622d: ParameterParser 활용
   - ea0c0fa: JavaSyntaxUtils 활용
+  - e92d304: MethodDeclarationParser 추가
 
 ## 예상 결과
 - MethodExtractor: 560줄 → 약 200-250줄

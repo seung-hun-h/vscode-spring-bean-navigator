@@ -1,9 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { MethodExtractor } from '../../../parsers/extractors/method-extractor';
 import { SpringAnnotationType } from '../../../models/spring-types';
-import { ParameterParser } from '../../../parsers/utils/parameter-parser';
-import { JavaSyntaxUtils } from '../../../parsers/utils/java-syntax-utils';
+import { MethodExtractor } from '../../../parsers/extractors/method-extractor';
 
 suite('MethodExtractor Test Suite', () => {
     
@@ -327,43 +325,7 @@ suite('MethodExtractor Test Suite', () => {
         });
     });
     
-    suite('isSetterMethod', () => {
-        
-        test('should_returnTrue_when_validSetterPattern', () => {
-            // Arrange
-            const testCases = [
-                { name: 'setName', paramCount: 1, expected: true },
-                { name: 'setUserRepository', paramCount: 1, expected: true },
-                { name: 'setEnabled', paramCount: 1, expected: true },
-                { name: 'setXY', paramCount: 2, expected: true } // Multiple params still setter
-            ];
-            
-            // Act & Assert
-            testCases.forEach(testCase => {
-                const result = methodExtractor.isSetterMethod(testCase.name, testCase.paramCount);
-                assert.strictEqual(result, testCase.expected, 
-                    `Method ${testCase.name} with ${testCase.paramCount} params should be ${testCase.expected}`);
-            });
-        });
-        
-        test('should_returnFalse_when_notSetterPattern', () => {
-            // Arrange
-            const testCases = [
-                { name: 'getName', paramCount: 0, expected: false },
-                { name: 'set', paramCount: 1, expected: false }, // Just 'set'
-                { name: 'setup', paramCount: 1, expected: false }, // Not 'set' prefix
-                { name: 'setName', paramCount: 0, expected: false }, // No parameters
-                { name: 'doSomething', paramCount: 1, expected: false }
-            ];
-            
-            // Act & Assert
-            testCases.forEach(testCase => {
-                const result = methodExtractor.isSetterMethod(testCase.name, testCase.paramCount);
-                assert.strictEqual(result, testCase.expected, 
-                    `Method ${testCase.name} with ${testCase.paramCount} params should be ${testCase.expected}`);
-            });
-        });
-    });
+
     
     suite('Error Handling', () => {
         
