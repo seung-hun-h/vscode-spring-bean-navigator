@@ -5,6 +5,7 @@ import { ErrorHandler } from '../core/parser-errors';
 import { PARSING_CONSTANTS } from '../config/java-parser-config';
 import { ParameterParser } from '../utils/parameter-parser';
 import { JavaSyntaxUtils } from '../utils/java-syntax-utils';
+import { MethodDeclarationParser } from '../utils/method-declaration-parser';
 
 /**
  * Extracts all methods from Java classes including @Bean methods and regular methods.
@@ -149,7 +150,7 @@ export class MethodExtractor {
      */
     private parseMethodFromLines(lines: string[], startIndex: number, uri: vscode.Uri): MethodInfo | null {
         try {
-            const { methodDeclaration, endIndex } = this.extractMethodDeclaration(lines, startIndex);
+            const { methodDeclaration, endIndex } = MethodDeclarationParser.extractMethodDeclaration(lines, startIndex);
             
             const cleanDeclaration = methodDeclaration.replace(/\s+/g, ' ').trim();
             
@@ -191,70 +192,7 @@ export class MethodExtractor {
         }
     }
 
-    /**
-     * Extracts method declaration from lines.
-     * 
-     * @param lines - All lines of the file
-     * @param startIndex - Start line index
-     * @returns Method declaration string and end index
-     */
-    private extractMethodDeclaration(lines: string[], startIndex: number): { methodDeclaration: string; endIndex: number } {
-        let methodDeclaration = '';
-        let endIndex = startIndex;
-        let bracketCount = 0;
-        let foundOpenParen = false;
-        
-        for (let i = startIndex; i < lines.length; i++) {
-            const line = lines[i];
-            methodDeclaration += line;
-            
-            const { openCount, closeCount, hasOpened } = this.countParentheses(line);
-            bracketCount += openCount - closeCount;
-            foundOpenParen = foundOpenParen || hasOpened;
-            
-            if (foundOpenParen && bracketCount === 0) {
-                endIndex = i;
-                break;
-            }
-            
-            if (foundOpenParen && this.hasMethodBodyStart(line)) {
-                endIndex = i;
-                break;
-            }
-            
-            if (i < lines.length + PARSING_CONSTANTS.ARRAY_OFFSET.PREV) {
-                methodDeclaration += ' ';
-            }
-        }
-        
-        return { methodDeclaration, endIndex };
-    }
 
-    /**
-     * Counts parentheses in a line, excluding string literals.
-     * 
-     * @param line - Line to analyze
-     * @returns Count of open and close parentheses and whether it has opened
-     */
-    private countParentheses(line: string): { openCount: number; closeCount: number; hasOpened: boolean } {
-        const openCount = JavaSyntaxUtils.countCharacterOutsideStrings(line, '(');
-        const closeCount = JavaSyntaxUtils.countCharacterOutsideStrings(line, ')');
-        const hasOpened = openCount > 0;
-        
-        return { openCount, closeCount, hasOpened };
-    }
-
-    /**
-     * Checks if a line contains method body start.
-     * 
-     * @param line - Line to check
-     * @returns True if line contains '{' or ';' outside string literals
-     */
-    private hasMethodBodyStart(line: string): boolean {
-        const braceCount = JavaSyntaxUtils.countCharacterOutsideStrings(line, '{');
-        const semicolonCount = JavaSyntaxUtils.countCharacterOutsideStrings(line, ';');
-        return braceCount > 0 || semicolonCount > 0;
-    }
     
     /**
      * Extracts annotations for a method.
