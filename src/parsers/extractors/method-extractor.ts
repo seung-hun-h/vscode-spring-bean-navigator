@@ -3,6 +3,7 @@ import { MethodInfo, ParameterInfo, AnnotationInfo } from '../../models/spring-t
 import { AnnotationParser } from './annotation-parser';
 import { ErrorHandler } from '../core/parser-errors';
 import { PARSING_CONSTANTS } from '../config/java-parser-config';
+import { ParameterParser } from '../utils/parameter-parser';
 
 /**
  * Extracts all methods from Java classes including @Bean methods and regular methods.
@@ -96,7 +97,7 @@ export class MethodExtractor {
             
             const returnType = methodMatch[2].trim();
             const methodName = methodMatch[3].trim();
-            const parameters = this.extractParametersFromDeclaration(parametersString);
+            const parameters = ParameterParser.parseParameters(parametersString);
             
             return {
                 name: methodName,
@@ -306,72 +307,8 @@ export class MethodExtractor {
     private extractMethodAnnotations(lines: string[], methodLineIndex: number): AnnotationInfo[] {
         return this.annotationParser.extractMethodAnnotationsFromLines(lines, methodLineIndex);
     }
-    
-    /**
-     * Extracts parameters from parameter declaration.
-     * 
-     * @param parametersDeclaration - Parameter declaration string
-     * @returns Array of extracted parameter information
-     */
-    private extractParametersFromDeclaration(parametersDeclaration: string): ParameterInfo[] {
-        if (!parametersDeclaration || parametersDeclaration.trim() === '') {
-            return [];
-        }
-        
-        try {
-            const parameters: ParameterInfo[] = [];
-            const parameterStrings = this.splitParameters(parametersDeclaration);
-            
-            for (const paramStr of parameterStrings) {
-                const param = this.parseParameter(paramStr.trim());
-                if (param) {
-                    parameters.push(param);
-                }
-            }
-            
-            return parameters;
-        } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, 'Extract method parameters');
-            ErrorHandler.logError(parsingError, { 
-                parametersDeclaration: parametersDeclaration?.substring(PARSING_CONSTANTS.MIN_ARRAY_INDEX, PARSING_CONSTANTS.ERROR_MESSAGE_MAX_LENGTH) || 'Unknown'
-            });
-            return [];
-        }
-    }
-    
-    /**
-     * Splits parameters considering generics.
-     * 
-     * @param parametersDeclaration - Parameters declaration string
-     * @returns Array of parameter strings
-     */
-    private splitParameters(parametersDeclaration: string): string[] {
-        const parameters: string[] = [];
-        let current = '';
-        let depth = 0;
-        
-        for (let i = 0; i < parametersDeclaration.length; i++) {
-            const char = parametersDeclaration[i];
-            
-            if (char === '<') {
-                depth++;
-            } else if (char === '>') {
-                depth--;
-            } else if (char === ',' && depth === 0) {
-                parameters.push(current.trim());
-                current = '';
-                continue;
-            }
-            
-            current += char;
-        }
-        
-        if (current.trim()) {
-            parameters.push(current.trim());
-        }
-        
-        return parameters;
-    }
+
+
     
     /**
      * Extracts the exact parameter string from the method declaration.
@@ -431,33 +368,7 @@ export class MethodExtractor {
         }
     }
     
-    /**
-     * Parses a single parameter.
-     * 
-     * @param parameterString - Parameter string to parse
-     * @returns Parameter info or null if invalid
-     */
-    private parseParameter(parameterString: string): ParameterInfo | null {
-        try {
-            let cleanParam = parameterString.replace(/@\w+(\([^)]*\))?\s*/g, '');
-            
-            const parts = cleanParam.trim().split(/\s+/);
-            if (parts.length < 2) {
-                return null;
-            }
-            
-            const name = parts[parts.length - 1];
-            const type = parts.slice(0, -1).join(' ');
-            
-            return { name, type };
-        } catch (error) {
-            const parsingError = ErrorHandler.handleParsingError(error, 'Parse method parameter');
-            ErrorHandler.logError(parsingError, { 
-                parameterString: parameterString?.substring(PARSING_CONSTANTS.MIN_ARRAY_INDEX, PARSING_CONSTANTS.PARAMETER_STRING_MAX_LENGTH) || 'Unknown'
-            });
-            return null;
-        }
-    }
+
 
     /**
      * Calculates exact position information for parameters.
