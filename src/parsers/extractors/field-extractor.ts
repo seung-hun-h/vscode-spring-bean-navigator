@@ -412,7 +412,7 @@ export class FieldExtractor {
      */
     private extractGenericTypeArguments(unannType: CSTNode): string | undefined {
         try {
-            const typeArgs = this.findNodeRecursively(unannType, 'typeArguments');
+            const typeArgs = this.cstNavigator.findNodeRecursively(unannType, 'typeArguments');
             if (typeArgs && typeArgs.children) {
                 const argumentTokens = this.cstNavigator.extractAllTokens(typeArgs);
                 if (argumentTokens.length > 0) {
@@ -428,33 +428,7 @@ export class FieldExtractor {
         return undefined;
     }
 
-    /**
-     * Recursively finds node with specific name.
-     * 
-     * @param node - Node to search
-     * @param targetName - Target node name
-     * @returns Found node or undefined
-     */
-    private findNodeRecursively(node: CSTNode, targetName: string): CSTNode | undefined {
-        if (!node) return undefined;
-        
-        if (node.name === targetName) {
-            return node;
-        }
-        
-        if (node.children) {
-            for (const key of Object.keys(node.children)) {
-                if (Array.isArray(node.children[key])) {
-                    for (const child of node.children[key]) {
-                        const result = this.findNodeRecursively(child, targetName);
-                        if (result) return result;
-                    }
-                }
-            }
-        }
-        
-        return undefined;
-    }
+
 
     /**
      * Recursively finds type information from node.

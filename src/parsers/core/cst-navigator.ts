@@ -274,4 +274,34 @@ export class CSTNavigator {
         
         return tokens;
     }
+
+    /**
+     * Recursively finds a node with the specified name in the CST.
+     * 
+     * @param node - CST node to search in
+     * @param targetName - Name of the node to find
+     * @returns Found node or undefined
+     */
+    public findNodeRecursively(node: CSTNode, targetName: string): CSTNode | undefined {
+        if (!node) return undefined;
+        
+        // Check if root node is the target
+        if (node.name === targetName) {
+            return node;
+        }
+        
+        // Recursively search in all children
+        if (node.children) {
+            for (const key of Object.keys(node.children)) {
+                if (Array.isArray(node.children[key])) {
+                    for (const child of node.children[key]) {
+                        const result = this.findNodeRecursively(child, targetName);
+                        if (result) return result;
+                    }
+                }
+            }
+        }
+        
+        return undefined;
+    }
 } 

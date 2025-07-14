@@ -327,6 +327,124 @@ suite('CSTNavigator', () => {
         });
     });
 
+    suite('findNodeRecursively', () => {
+        test('should_findNodeByName_when_directChildHasTargetName', () => {
+            // Arrange
+            const testNode = {
+                name: 'parent',
+                children: {
+                    child1: [{
+                        name: 'typeArguments',
+                        children: {}
+                    }]
+                }
+            };
+
+            // Act
+            const result = navigator.findNodeRecursively(testNode, 'typeArguments');
+
+            // Assert
+            assert.ok(result);
+            assert.strictEqual(result.name, 'typeArguments');
+        });
+
+        test('should_returnUndefined_when_nodeIsNull', () => {
+            // Act
+            const result = navigator.findNodeRecursively(null as any, 'typeArguments');
+
+            // Assert
+            assert.strictEqual(result, undefined);
+        });
+
+        test('should_returnRootNode_when_rootNodeHasTargetName', () => {
+            // Arrange
+            const testNode = {
+                name: 'typeArguments',
+                children: {}
+            };
+
+            // Act
+            const result = navigator.findNodeRecursively(testNode, 'typeArguments');
+
+            // Assert
+            assert.ok(result);
+            assert.strictEqual(result, testNode);
+        });
+
+        test('should_returnUndefined_when_targetNodeNotFound', () => {
+            // Arrange
+            const testNode = {
+                name: 'root',
+                children: {
+                    child1: [{
+                        name: 'something',
+                        children: {}
+                    }]
+                }
+            };
+
+            // Act
+            const result = navigator.findNodeRecursively(testNode, 'typeArguments');
+
+            // Assert
+            assert.strictEqual(result, undefined);
+        });
+
+        test('should_findNodeByName_when_targetInDifferentChildKey', () => {
+            // Arrange
+            const testNode = {
+                name: 'parent',
+                children: {
+                    child1: [{
+                        name: 'notTarget',
+                        children: {}
+                    }],
+                    child2: [{
+                        name: 'typeArguments',
+                        children: {}
+                    }]
+                }
+            };
+
+            // Act
+            const result = navigator.findNodeRecursively(testNode, 'typeArguments');
+
+            // Assert
+            assert.ok(result);
+            assert.strictEqual(result.name, 'typeArguments');
+        });
+
+        test('should_findNodeByName_when_deeplyNestedNodeHasTargetName', () => {
+            // Arrange
+            const testNode = {
+                name: 'root',
+                children: {
+                    level1: [{
+                        name: 'notTarget',
+                        children: {
+                            level2: [{
+                                name: 'alsoNotTarget',
+                                children: {
+                                    level3: [{
+                                        name: 'typeArguments',
+                                        children: {}
+                                    }]
+                                }
+                            }]
+                        }
+                    }]
+                }
+            };
+
+            // Act
+            const result = navigator.findNodeRecursively(testNode, 'typeArguments');
+
+            // Assert
+            assert.ok(result);
+            assert.strictEqual(result.name, 'typeArguments');
+        });
+    });
+
     suite('Error Handling', () => {
         test('should_handleNullCST_when_nullProvided', () => {
             // Act & Assert
