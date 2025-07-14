@@ -21,7 +21,7 @@ suite('ClassExtractor', () => {
         cstNavigator = new CSTNavigator();
         positionCalculator = new PositionCalculator();
         annotationParser = new AnnotationParser(positionCalculator);
-        fieldExtractor = new FieldExtractor(positionCalculator, annotationParser);
+        fieldExtractor = new FieldExtractor(positionCalculator, annotationParser, cstNavigator);
         classExtractor = new ClassExtractor(cstNavigator, positionCalculator, annotationParser, fieldExtractor);
     });
 

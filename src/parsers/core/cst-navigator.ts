@@ -231,4 +231,47 @@ export class CSTNavigator {
             ErrorHandler.logError(cstError);
         }
     }
+
+    /**
+     * Extracts all tokens from a CST node recursively.
+     * Unlike collectTokensRecursively, this method continues to traverse child nodes
+     * even after finding a node with an image property.
+     * 
+     * @param node - CST node to traverse
+     * @returns Array of all tokens found in the node and its children
+     */
+    public extractAllTokens(node: CSTNode): string[] {
+        const tokens: string[] = [];
+        
+        if (!node) {
+            return tokens;
+        }
+        
+        try {
+            if (node.image && typeof node.image === 'string') {
+                tokens.push(node.image);
+            }
+            
+            if (node.children) {
+                for (const key of Object.keys(node.children)) {
+                    if (Array.isArray(node.children[key])) {
+                        for (const child of node.children[key]) {
+                            tokens.push(...this.extractAllTokens(child));
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            const cstError = new CSTParsingError(
+                'Failed to collect all tokens from node',
+                undefined,
+                undefined,
+                undefined,
+                error instanceof Error ? error : undefined
+            );
+            ErrorHandler.logError(cstError);
+        }
+        
+        return tokens;
+    }
 } 

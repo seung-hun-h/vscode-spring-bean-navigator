@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { FieldExtractor } from '../../../parsers/extractors/field-extractor';
 import { PositionCalculator } from '../../../parsers/core/position-calculator';
 import { AnnotationParser } from '../../../parsers/extractors/annotation-parser';
+import { CSTNavigator } from '../../../parsers/core/cst-navigator';
 import { SpringAnnotationType, AnnotationInfo, FieldInfo } from '../../../models/spring-types';
 import { FieldMockBuilder } from '../../helpers/field-mock-builder';
 
@@ -13,11 +14,13 @@ suite('FieldExtractor', () => {
     let fieldExtractor: FieldExtractor;
     let positionCalculator: PositionCalculator;
     let annotationParser: AnnotationParser;
+    let cstNavigator: CSTNavigator;
 
     setup(() => {
         positionCalculator = new PositionCalculator();
         annotationParser = new AnnotationParser(positionCalculator);
-        fieldExtractor = new FieldExtractor(positionCalculator, annotationParser);
+        cstNavigator = new CSTNavigator();
+        fieldExtractor = new FieldExtractor(positionCalculator, annotationParser, cstNavigator);
     });
 
     suite('extractFields', () => {
@@ -999,9 +1002,9 @@ suite('FieldExtractor', () => {
         test('should_classifyRequiredArgsConstructorFields_when_finalAndNonNullFieldsPresent', () => {
             // Arrange
             const fields = [
-                createParsedField(FieldMockBuilder.privateFinalString('name'), ['private final String name;']),
-                createParsedField(FieldMockBuilder.withNonNullAnnotation('userService', 'UserService'), ['@NonNull private UserService userService;']),
-                createParsedField(FieldMockBuilder.create().withName('temp').withType('String').asPrivate().build(), ['private String temp;'])
+                createParsedField(fieldExtractor, FieldMockBuilder.privateFinalString('name'), ['private final String name;']),
+                createParsedField(fieldExtractor, FieldMockBuilder.withNonNullAnnotation('userService', 'UserService'), ['@NonNull private UserService userService;']),
+                createParsedField(fieldExtractor, FieldMockBuilder.create().withName('temp').withType('String').asPrivate().build(), ['private String temp;'])
             ].filter(f => f !== undefined);
 
             // Act
@@ -1018,10 +1021,10 @@ suite('FieldExtractor', () => {
         test('should_classifyAllArgsConstructorFields_when_variousFieldsPresent', () => {
             // Arrange
             const fields = [
-                createParsedField(FieldMockBuilder.privateFinalString('id'), ['private final String id;']),
-                createParsedField(FieldMockBuilder.withNonNullAnnotation('name', 'String'), ['@NonNull private String name;']),
-                createParsedField(FieldMockBuilder.create().withName('description').withType('String').asPrivate().build(), ['private String description;']),
-                createParsedField(FieldMockBuilder.privateStaticFinalString('VERSION'), ['private static final String VERSION;'])
+                createParsedField(fieldExtractor, FieldMockBuilder.privateFinalString('id'), ['private final String id;']),
+                createParsedField(fieldExtractor, FieldMockBuilder.withNonNullAnnotation('name', 'String'), ['@NonNull private String name;']),
+                createParsedField(fieldExtractor, FieldMockBuilder.create().withName('description').withType('String').asPrivate().build(), ['private String description;']),
+                createParsedField(fieldExtractor, FieldMockBuilder.privateStaticFinalString('VERSION'), ['private static final String VERSION;'])
             ].filter(f => f !== undefined) as FieldInfo[];
 
             // Act
@@ -1038,9 +1041,9 @@ suite('FieldExtractor', () => {
         test('should_preserveFieldOrder_when_multipleFieldsPresent', () => {
             // Arrange
             const fields = [
-                createParsedField(FieldMockBuilder.create().withName('first').withType('String').asPrivate().build(), ['private String first;']),
-                createParsedField(FieldMockBuilder.create().withName('second').withPrimitiveType('int').asPrivate().build(), ['private int second;']),
-                createParsedField(FieldMockBuilder.create().withName('third').withPrimitiveType('boolean').asPrivate().build(), ['private boolean third;'])
+                createParsedField(fieldExtractor, FieldMockBuilder.create().withName('first').withType('String').asPrivate().build(), ['private String first;']),
+                createParsedField(fieldExtractor, FieldMockBuilder.create().withName('second').withPrimitiveType('int').asPrivate().build(), ['private int second;']),
+                createParsedField(fieldExtractor, FieldMockBuilder.create().withName('third').withPrimitiveType('boolean').asPrivate().build(), ['private boolean third;'])
             ].filter(f => f !== undefined) as FieldInfo[];
 
             // Act
@@ -1053,6 +1056,7 @@ suite('FieldExtractor', () => {
         test('should_handleEmptyFieldList_when_noEligibleFieldsPresent', () => {
             // Arrange
             const staticField = createParsedField(
+                fieldExtractor,
                 FieldMockBuilder.privateStaticFinalString('CONSTANT1'), 
                 ['private static final String CONSTANT1;']
             );
@@ -1201,9 +1205,6 @@ function createInvalidFieldStructure(): any {
 /**
  * Helper function to create a parsed field using FieldExtractor
  */
-function createParsedField(mockFieldDecl: any, lines: string[]): any {
-    const positionCalculator = new PositionCalculator();
-    const annotationParser = new AnnotationParser(positionCalculator);
-    const fieldExtractor = new FieldExtractor(positionCalculator, annotationParser);
+function createParsedField(fieldExtractor: FieldExtractor, mockFieldDecl: any, lines: string[]): any {
     return fieldExtractor.parseFieldDeclaration(mockFieldDecl, lines);
 } 

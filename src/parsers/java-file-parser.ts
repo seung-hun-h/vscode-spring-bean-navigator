@@ -30,7 +30,7 @@ export class JavaFileParser {
         this.cstNavigator = new CSTNavigator();
         this.positionCalculator = new PositionCalculator();
         this.annotationParser = new AnnotationParser(this.positionCalculator);
-        this.fieldExtractor = new FieldExtractor(this.positionCalculator, this.annotationParser);
+        this.fieldExtractor = new FieldExtractor(this.positionCalculator, this.annotationParser, this.cstNavigator);
         this.classExtractor = new ClassExtractor(this.cstNavigator, this.positionCalculator, this.annotationParser, this.fieldExtractor);
         this.constructorExtractor = new ConstructorExtractor();
         this.methodExtractor = new MethodExtractor(this.annotationParser);

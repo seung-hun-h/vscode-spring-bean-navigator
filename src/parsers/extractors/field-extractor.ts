@@ -8,19 +8,23 @@ import {
 import { ErrorHandler, FieldExtractionError } from '../core/parser-errors';
 import { PositionCalculator } from '../core/position-calculator';
 import { AnnotationParser } from './annotation-parser';
+import { CSTNavigator } from '../core/cst-navigator';
 
 export class FieldExtractor {
     private readonly positionCalculator: PositionCalculator;
     private readonly annotationParser: AnnotationParser;
+    private readonly cstNavigator: CSTNavigator;
     // Performance optimization: exploration cache
     private exploredNodes = new Set<CSTNode>();
 
     constructor(
         positionCalculator: PositionCalculator,
-        annotationParser: AnnotationParser
+        annotationParser: AnnotationParser,
+        cstNavigator: CSTNavigator
     ) {
         this.positionCalculator = positionCalculator;
         this.annotationParser = annotationParser;
+        this.cstNavigator = cstNavigator;
     }
 
     /**
@@ -388,7 +392,7 @@ export class FieldExtractor {
             const unannType = fieldDecl.children?.unannType?.[0];
             if (unannType?.location) {
                 // Collect all tokens from CST node to construct complete type
-                const typeTokens = this.collectAllTokensFromNode(unannType);
+                const typeTokens = this.cstNavigator.extractAllTokens(unannType);
                 if (typeTokens.length > 0) {
                     return typeTokens.join('');
                 }
@@ -401,38 +405,6 @@ export class FieldExtractor {
     }
 
     /**
-     * Collects all tokens from CST node.
-     * 
-     * @param node - CST node
-     * @returns Array of tokens
-     */
-    private collectAllTokensFromNode(node: CSTNode): string[] {
-        const tokens: string[] = [];
-        
-        if (!node) return tokens;
-        
-        try {
-            if (node.image && typeof node.image === 'string') {
-                tokens.push(node.image);
-            }
-            
-            if (node.children) {
-                for (const key of Object.keys(node.children)) {
-                    if (Array.isArray(node.children[key])) {
-                        for (const child of node.children[key]) {
-                            tokens.push(...this.collectAllTokensFromNode(child));
-                        }
-                    }
-                }
-            }
-        } catch (error) {
-            // Ignore error
-        }
-        
-        return tokens;
-    }
-
-    /**
      * Extracts generic type arguments.
      * 
      * @param unannType - unannType CST node
@@ -442,7 +414,7 @@ export class FieldExtractor {
         try {
             const typeArgs = this.findNodeRecursively(unannType, 'typeArguments');
             if (typeArgs && typeArgs.children) {
-                const argumentTokens = this.collectAllTokensFromNode(typeArgs);
+                const argumentTokens = this.cstNavigator.extractAllTokens(typeArgs);
                 if (argumentTokens.length > 0) {
                     // Remove < and >
                     const joined = argumentTokens.join('');
