@@ -199,7 +199,7 @@ export class FieldExtractor {
         this.exploredNodes.add(node);
         
         try {
-            if (node.name === 'fieldDeclaration' || (node.children && this.isFieldDeclarationNode(node))) {
+            if (this.cstNavigator.isNodeOfType(node, 'fieldDeclaration') || (node.children && this.isFieldDeclarationNode(node))) {
                 this.processFieldDeclaration(node, lines, fieldMap);
             }
             

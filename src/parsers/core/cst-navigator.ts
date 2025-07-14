@@ -304,4 +304,15 @@ export class CSTNavigator {
         
         return undefined;
     }
+
+    /**
+     * Checks if a CST node is of a specific type.
+     * 
+     * @param node - CST node to check
+     * @param typeName - Expected type name
+     * @returns true if node type matches, false otherwise
+     */
+    public isNodeOfType(node: any, typeName: string): boolean {
+        return node?.name === typeName;
+    }
 } 

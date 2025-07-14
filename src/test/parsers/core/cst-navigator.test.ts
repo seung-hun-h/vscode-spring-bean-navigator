@@ -498,4 +498,56 @@ suite('CSTNavigator', () => {
             });
         });
     });
+
+    suite('isNodeOfType', () => {
+        test('should return true when node type matches', () => {
+            // Arrange
+            const node = {
+                name: 'fieldDeclaration',
+                children: {}
+            };
+
+            // Act
+            const result = navigator.isNodeOfType(node, 'fieldDeclaration');
+
+            // Assert
+            assert.strictEqual(result, true);
+        });
+
+        test('should return false when node type does not match', () => {
+            // Arrange
+            const node = {
+                name: 'methodDeclaration',
+                children: {}
+            };
+
+            // Act
+            const result = navigator.isNodeOfType(node, 'fieldDeclaration');
+
+            // Assert
+            assert.strictEqual(result, false);
+        });
+
+        test('should return false when node is null', () => {
+            // Act
+            const result = navigator.isNodeOfType(null, 'fieldDeclaration');
+
+            // Assert
+            assert.strictEqual(result, false);
+        });
+
+        test('should return false when node has no name property', () => {
+            // Arrange
+            const node = {
+                children: {},
+                otherProperty: 'someValue'
+            };
+
+            // Act
+            const result = navigator.isNodeOfType(node, 'fieldDeclaration');
+
+            // Assert
+            assert.strictEqual(result, false);
+        });
+    });
 }); 
