@@ -23,7 +23,7 @@ export class ConstructorExtractor {
      * @param uri File URI
      * @returns Array of extracted constructor information
      */
-    extractConstructors(content: string, uri: vscode.Uri): ConstructorInfo[] {
+    public extractConstructors(content: string, uri: vscode.Uri): ConstructorInfo[] {
         if (!content || content.trim() === '') {
             return [];
         }

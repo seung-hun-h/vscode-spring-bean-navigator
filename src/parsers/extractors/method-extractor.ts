@@ -26,7 +26,7 @@ export class MethodExtractor {
      * @param uri - File URI
      * @returns Array of extracted method information
      */
-    extractAllMethods(content: string, uri: vscode.Uri): MethodInfo[] {
+    public extractAllMethods(content: string, uri: vscode.Uri): MethodInfo[] {
         if (!content || content.trim() === '') {
             return [];
         }
@@ -87,7 +87,7 @@ export class MethodExtractor {
      * @param parametersString - Exactly extracted parameter string
      * @returns Parsed method information or undefined
      */
-    parseMethodDeclarationWithParameters(methodDeclaration: string, parametersString: string): { name: string; returnType: string; parameters: ParameterInfo[] } | undefined {
+    public parseMethodDeclarationWithParameters(methodDeclaration: string, parametersString: string): { name: string; returnType: string; parameters: ParameterInfo[] } | undefined {
         try {
             // Ignore field declarations
             if (methodDeclaration.includes(';') && !methodDeclaration.includes('(')) {
