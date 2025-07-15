@@ -24,4 +24,21 @@ suite('SpringInfoCollector', () => {
                 'SpringInfoCollector should extend BaseJavaCstVisitorWithDefaults');
         });
     });
+
+    suite('Class Declaration Visitor', () => {
+        test('should_extractClassName_when_classDeclarationVisited', async () => {
+            // Arrange
+            const source = 'public class UserService {}';
+            const { parse } = await import('java-parser');
+            const cst = parse(source);
+            const collector = await createSpringInfoCollector(mockUri);
+
+            // Act
+            collector.visit(cst);
+
+            // Assert
+            assert.strictEqual((collector as any).classes.length, 1, 'Should extract one class');
+            assert.strictEqual((collector as any).classes[0].name, 'UserService', 'Should extract correct class name');
+        });
+    });
 }); 

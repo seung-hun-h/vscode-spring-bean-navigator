@@ -20,7 +20,7 @@
 - [x] Commit: `feat: create SpringInfoCollector visitor base`
 
 #### 1.1.2 클래스 정보 수집 구현
-- [ ] Test: `visitClassDeclaration`이 클래스 이름을 올바르게 추출하는지 테스트
+- [x] Test: `visitClassDeclaration`이 클래스 이름을 올바르게 추출하는지 테스트
   ```typescript
   test('should extract class name from class declaration', () => {
     const source = 'public class UserService {}';
@@ -28,8 +28,8 @@
     // ... 클래스 이름이 'UserService'인지 확인
   });
   ```
-- [ ] Implement: `visitClassDeclaration` 메서드 구현 (최소 구현)
-- [ ] Run test: 테스트 통과 확인
+- [x] Implement: `visitClassDeclaration` 메서드 구현 (최소 구현)
+- [x] Run test: 테스트 통과 확인
 - [ ] Test: 클래스의 패키지명을 올바르게 추출하는지 테스트
 - [ ] Implement: 패키지명 추출 로직 추가
 - [ ] Run test: 테스트 통과 확인

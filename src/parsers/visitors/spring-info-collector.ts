@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { ClassInfo } from '../../models/spring-types';
 
 // java-parser의 타입을 위한 인터페이스
 let BaseJavaCstVisitorWithDefaults: any;
@@ -9,6 +10,9 @@ let BaseJavaCstVisitorWithDefaults: any;
  */
 export class SpringInfoCollector {
     private static isInitialized = false;
+    
+    // 수집된 클래스 정보
+    public classes: ClassInfo[] = [];
 
     constructor(private fileUri: vscode.Uri) {
     }
@@ -21,6 +25,36 @@ export class SpringInfoCollector {
             const javaParser = await import('java-parser');
             BaseJavaCstVisitorWithDefaults = javaParser.BaseJavaCstVisitorWithDefaults;
             this.isInitialized = true;
+        }
+    }
+
+    /**
+     * CST를 방문합니다.
+     */
+    visit(cst: any): any {
+        // BaseJavaCstVisitorWithDefaults의 visit 메서드 호출
+        return (BaseJavaCstVisitorWithDefaults.prototype.visit as any).call(this, cst);
+    }
+
+    /**
+     * 클래스 선언을 방문합니다.
+     */
+    classDeclaration(ctx: any): void { 
+        // 클래스 이름 추출
+        if (ctx.normalClassDeclaration?.[0]?.children?.typeIdentifier?.[0]?.children?.Identifier?.[0]?.image) {
+            const className = ctx.normalClassDeclaration[0].children.typeIdentifier[0].children.Identifier[0].image;
+            
+            this.classes.push({
+                name: className,
+                packageName: undefined,
+                fullyQualifiedName: className,
+                fileUri: this.fileUri,
+                position: new vscode.Position(0, 0),
+                range: new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 0)),
+                annotations: [],
+                fields: [],
+                imports: []
+            });
         }
     }
 }
