@@ -40,5 +40,25 @@ suite('SpringInfoCollector', () => {
             assert.strictEqual((collector as any).classes.length, 1, 'Should extract one class');
             assert.strictEqual((collector as any).classes[0].name, 'UserService', 'Should extract correct class name');
         });
+
+        test('should_extractPackageName_when_packageDeclarationExists', async () => {
+            // Arrange
+            const source = `package com.example.service;
+            
+            public class UserService {}`;
+            const { parse } = await import('java-parser');
+            const cst = parse(source);
+            const collector = await createSpringInfoCollector(mockUri);
+
+            // Act
+            collector.visit(cst);
+
+            // Assert
+            assert.strictEqual((collector as any).classes.length, 1, 'Should extract one class');
+            assert.strictEqual((collector as any).classes[0].packageName, 'com.example.service', 
+                'Should extract correct package name');
+            assert.strictEqual((collector as any).classes[0].fullyQualifiedName, 'com.example.service.UserService', 
+                'Should construct correct fully qualified name');
+        });
     });
 }); 

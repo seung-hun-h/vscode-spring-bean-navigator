@@ -30,9 +30,9 @@
   ```
 - [x] Implement: `visitClassDeclaration` 메서드 구현 (최소 구현)
 - [x] Run test: 테스트 통과 확인
-- [ ] Test: 클래스의 패키지명을 올바르게 추출하는지 테스트
-- [ ] Implement: 패키지명 추출 로직 추가
-- [ ] Run test: 테스트 통과 확인
+- [x] Test: 클래스의 패키지명을 올바르게 추출하는지 테스트
+- [x] Implement: 패키지명 추출 로직 추가
+- [x] Run test: 테스트 통과 확인
 - [ ] Test: 클래스의 위치 정보(Position, Range)를 올바르게 추출하는지 테스트
 - [ ] Implement: 위치 정보 추출 로직 추가
 - [ ] Run all tests: 모든 테스트 통과 확인

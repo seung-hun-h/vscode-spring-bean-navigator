@@ -13,6 +13,9 @@ export class SpringInfoCollector {
     
     // 수집된 클래스 정보
     public classes: ClassInfo[] = [];
+    
+    // 현재 파일의 패키지명
+    private currentPackageName: string | undefined;
 
     constructor(private fileUri: vscode.Uri) {
     }
@@ -37,17 +40,27 @@ export class SpringInfoCollector {
     }
 
     /**
+     * 패키지 선언을 방문합니다.
+     */
+    packageDeclaration(ctx: any): void {
+        // 패키지명 추출
+        if (ctx.Identifier) {
+            this.currentPackageName = ctx.Identifier.map((id: any) => id.image).join('.');
+        }
+    }
+
+    /**
      * 클래스 선언을 방문합니다.
      */
-    classDeclaration(ctx: any): void { 
+    classDeclaration(ctx: any): void {
         // 클래스 이름 추출
         if (ctx.normalClassDeclaration?.[0]?.children?.typeIdentifier?.[0]?.children?.Identifier?.[0]?.image) {
             const className = ctx.normalClassDeclaration[0].children.typeIdentifier[0].children.Identifier[0].image;
             
             this.classes.push({
                 name: className,
-                packageName: undefined,
-                fullyQualifiedName: className,
+                packageName: this.currentPackageName,
+                fullyQualifiedName: this.currentPackageName ? `${this.currentPackageName}.${className}` : className,
                 fileUri: this.fileUri,
                 position: new vscode.Position(0, 0),
                 range: new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 0)),
