@@ -18,6 +18,7 @@ export class SpringInfoCollector {
     private currentPackageName: string | undefined;
 
     constructor(private fileUri: vscode.Uri) {
+        // validateVisitor는 프로토타입 설정 후에 호출됨
     }
 
     /**
@@ -36,39 +37,67 @@ export class SpringInfoCollector {
      */
     visit(cst: any): any {
         // BaseJavaCstVisitorWithDefaults의 visit 메서드 호출
-        return (BaseJavaCstVisitorWithDefaults.prototype.visit as any).call(this, cst);
+        return BaseJavaCstVisitorWithDefaults.prototype.visit.call(this, cst);
     }
 
     /**
      * 패키지 선언을 방문합니다.
      */
-    packageDeclaration(ctx: any): void {
+    packageDeclaration(ctx: any) {
         // 패키지명 추출
-        if (ctx.Identifier) {
-            this.currentPackageName = ctx.Identifier.map((id: any) => id.image).join('.');
+        const identifiers = ctx.Identifier;
+        if (identifiers) {
+            this.currentPackageName = identifiers.map((id: any) => id.image).join('.');
         }
     }
 
     /**
      * 클래스 선언을 방문합니다.
      */
-    classDeclaration(ctx: any): void {
+    classDeclaration(ctx: any) {
+        // normalClassDeclaration이 없으면 리턴
+        if (!ctx.normalClassDeclaration || ctx.normalClassDeclaration.length === 0) {
+            return;
+        }
+        
+        const normalClass = ctx.normalClassDeclaration[0];
+        
         // 클래스 이름 추출
-        if (ctx.normalClassDeclaration?.[0]?.children?.typeIdentifier?.[0]?.children?.Identifier?.[0]?.image) {
-            const className = ctx.normalClassDeclaration[0].children.typeIdentifier[0].children.Identifier[0].image;
-            
-            this.classes.push({
-                name: className,
-                packageName: this.currentPackageName,
-                fullyQualifiedName: this.currentPackageName ? `${this.currentPackageName}.${className}` : className,
-                fileUri: this.fileUri,
-                position: new vscode.Position(0, 0),
-                range: new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 0)),
-                annotations: [],
-                fields: [],
-                imports: []
+        const className = normalClass.children.typeIdentifier[0].children.Identifier[0].image;
+        
+        // 어노테이션 추출
+        const annotations: any[] = [];
+        if (ctx.classModifier) {
+            ctx.classModifier.forEach((modifier: any) => {
+                if (modifier.children.annotation) {
+                    modifier.children.annotation.forEach((annotation: any) => {
+                        const annotationName = annotation.children.typeName[0].children.Identifier[0].image;
+                        annotations.push({
+                            name: annotationName
+                        });
+                    });
+                }
             });
         }
+        
+        const classInfo: ClassInfo = {
+            name: className,
+            packageName: this.currentPackageName,
+            fullyQualifiedName: this.currentPackageName ? `${this.currentPackageName}.${className}` : className,
+            annotations: annotations,
+            fields: [],
+            methods: [],
+            constructors: [],
+            imports: [],
+            position: new vscode.Position(0, 0),
+            range: new vscode.Range(
+                new vscode.Position(0, 0),
+                new vscode.Position(0, 0)
+            ),
+            fileUri: this.fileUri
+        };
+        
+        this.classes.push(classInfo);
     }
 }
 
@@ -76,12 +105,16 @@ export class SpringInfoCollector {
 export async function createSpringInfoCollector(fileUri: vscode.Uri): Promise<SpringInfoCollector> {
     await SpringInfoCollector.initialize();
     
-    // 프로토타입 체인 설정
-    Object.setPrototypeOf(SpringInfoCollector.prototype, BaseJavaCstVisitorWithDefaults.prototype);
-    
     const collector = new SpringInfoCollector(fileUri);
     
-    // validateVisitor 메서드 호출 (BaseJavaCstVisitorWithDefaults 요구사항)
+    // 프로토타입 체인 설정
+    Object.setPrototypeOf(collector, BaseJavaCstVisitorWithDefaults.prototype);
+    
+    // SpringInfoCollector의 메서드들을 collector에 바인딩
+    collector.packageDeclaration = SpringInfoCollector.prototype.packageDeclaration.bind(collector);
+    collector.classDeclaration = SpringInfoCollector.prototype.classDeclaration.bind(collector);
+    
+    // validateVisitor 호출 (npm 문서 예시 참고)
     if (typeof (collector as any).validateVisitor === 'function') {
         (collector as any).validateVisitor();
     }

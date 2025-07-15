@@ -41,21 +41,21 @@
 ### 1.2 어노테이션 추출 구현
 
 #### 1.2.1 클래스 어노테이션 추출
-- [ ] Test: @Service 어노테이션이 있는 클래스에서 어노테이션을 추출하는지 테스트
+- [x] Test: @Service 어노테이션이 있는 클래스에서 어노테이션을 추출하는지 테스트
   ```typescript
   test('should extract @Service annotation from class', () => {
     const source = '@Service\npublic class UserService {}';
     // ... annotations 배열에 Service 어노테이션이 있는지 확인
   });
   ```
-- [ ] Implement: 클래스 어노테이션 추출 로직 구현
-- [ ] Run test: 테스트 통과 확인
+- [x] Implement: 클래스 어노테이션 추출 로직 구현
+- [x] Run test: 테스트 통과 확인
 - [ ] Test: @Component, @Repository, @Controller 어노테이션 추출 테스트
 - [ ] Run all tests: 모든 테스트 통과 확인
 - [ ] Test: 어노테이션의 파라미터를 추출하는지 테스트 (@Service("userService"))
 - [ ] Implement: 어노테이션 파라미터 추출 로직 구현
 - [ ] Run all tests: 모든 테스트 통과 확인
-- [ ] Commit: `feat: add class annotation extraction`
+- [x] Commit: `feat: add class annotation extraction`
 
 ### 1.3 필드 정보 수집 구현
 

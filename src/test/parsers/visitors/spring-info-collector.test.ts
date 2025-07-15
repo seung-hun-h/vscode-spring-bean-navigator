@@ -29,16 +29,23 @@ suite('SpringInfoCollector', () => {
         test('should_extractClassName_when_classDeclarationVisited', async () => {
             // Arrange
             const source = 'public class UserService {}';
-            const { parse } = await import('java-parser');
-            const cst = parse(source);
-            const collector = await createSpringInfoCollector(mockUri);
-
+            
+            const javaParser = await import('java-parser');
+            const cst = javaParser.parse(source);
+            
             // Act
+            const collector = await createSpringInfoCollector(mockUri);
+            
+            // Debug: validateVisitor가 있는지 확인
+            console.log('collector has validateVisitor:', typeof (collector as any).validateVisitor);
+            console.log('collector has classDeclaration:', typeof (collector as any).classDeclaration);
+            console.log('collector prototype:', Object.getPrototypeOf(collector));
+            
             collector.visit(cst);
-
+            
             // Assert
-            assert.strictEqual((collector as any).classes.length, 1, 'Should extract one class');
-            assert.strictEqual((collector as any).classes[0].name, 'UserService', 'Should extract correct class name');
+            assert.strictEqual(collector.classes.length, 1);
+            assert.strictEqual(collector.classes[0].name, 'UserService');
         });
 
         test('should_extractPackageName_when_packageDeclarationExists', async () => {
@@ -46,19 +53,39 @@ suite('SpringInfoCollector', () => {
             const source = `package com.example.service;
             
             public class UserService {}`;
-            const { parse } = await import('java-parser');
-            const cst = parse(source);
-            const collector = await createSpringInfoCollector(mockUri);
-
+            
+            const javaParser = await import('java-parser');
+            const cst = javaParser.parse(source);
+            
             // Act
+            const collector = await createSpringInfoCollector(mockUri);
             collector.visit(cst);
-
+            
             // Assert
-            assert.strictEqual((collector as any).classes.length, 1, 'Should extract one class');
-            assert.strictEqual((collector as any).classes[0].packageName, 'com.example.service', 
-                'Should extract correct package name');
-            assert.strictEqual((collector as any).classes[0].fullyQualifiedName, 'com.example.service.UserService', 
-                'Should construct correct fully qualified name');
+            assert.strictEqual(collector.classes.length, 1);
+            assert.strictEqual(collector.classes[0].packageName, 'com.example.service');
+            assert.strictEqual(collector.classes[0].fullyQualifiedName, 'com.example.service.UserService');
+        });
+
+        test('should_extractServiceAnnotation_when_classHasServiceAnnotation', async () => {
+            // Arrange
+            const source = `package com.example.service;
+            
+            @Service
+            public class UserService {}`;
+            
+            const javaParser = await import('java-parser');
+            const cst = javaParser.parse(source);
+            
+            // Act
+            const collector = await createSpringInfoCollector(mockUri);
+            collector.visit(cst);
+            
+            // Assert
+            assert.strictEqual(collector.classes.length, 1);
+            assert.ok(collector.classes[0].annotations, 'annotations should be defined');
+            assert.strictEqual(collector.classes[0].annotations.length, 1);
+            assert.strictEqual(collector.classes[0].annotations[0].name, 'Service');
         });
     });
 }); 
