@@ -1,130 +1,203 @@
-# FieldExtractor 리팩토링 계획
+# Java Parser Visitor 패턴 구현 계획 (Phase 1)
 
 ## 목표
-FieldExtractor가 단일책임 원칙(SRP)을 위반하는 문제를 해결하기 위해 책임을 분리하고 기존 유틸리티 클래스를 활용하도록 리팩토링
+현재 CST를 직접 탐색하는 복잡한 코드를 java-parser의 Visitor 패턴을 활용하여 간소화
 
 ## 현재 문제점
-- CST 노드 탐색 로직이 FieldExtractor에 혼재
-- 복잡한 타입 추출 로직이 FieldExtractor 내부에 구현
-- CSTNavigator와 중복되는 토큰 수집 메서드 존재
-- 637줄의 거대한 클래스로 여러 책임이 혼재
+- `java-parser`로 CST만 생성하고, 모든 탐색 로직을 직접 구현
+- 2000줄 이상의 복잡한 파싱 관련 코드
+- CST 노드 구조를 수동으로 탐색하는 비효율적인 방식
 
-## 리팩토링 전략 (Tidy First)
-1. **구조적 변경만 수행**: 기존 동작을 유지하면서 코드 구조 개선
-2. **행동적 변경 없음**: 새로운 기능 추가 없음
-3. **점진적 접근**: 한 번에 하나의 변경사항만 적용
-4. **테스트 우선**: 각 변경 전 테스트 작성
+## Phase 1: Visitor 패턴 구현
 
-## 단계별 계획
+### 1.1 SpringInfoCollector 기본 구조 구현
 
-### Phase 1: 기존 CSTNavigator 활용 (구조적 변경)
+#### 1.1.1 기본 Visitor 클래스 생성
+- [x] Test: SpringInfoCollector가 BaseJavaCstVisitorWithDefaults를 상속하는지 확인
+- [x] Create: `src/parsers/visitors/spring-info-collector.ts` 파일 생성
+- [x] Implement: SpringInfoCollector 클래스 기본 구조
+- [x] Run test: 클래스 생성 테스트 통과
+- [x] Commit: `feat: create SpringInfoCollector visitor base`
 
-#### 1.1 중복 메서드 제거
-- [x] Test: `collectAllTokensFromNode`가 `CSTNavigator.collectTokensRecursively`와 동일한 결과를 반환하는지 확인
-  - **완료**: CSTNavigator에 `extractAllTokens` 메서드 추가하여 동일한 동작 구현
-- [x] Refactor: `collectAllTokensFromNode` 호출을 `CSTNavigator.extractAllTokens`로 대체
-  - **완료**: FieldExtractor에 CSTNavigator 의존성 추가 및 메서드 호출 변경
-- [x] Remove: `collectAllTokensFromNode` 메서드 제거
-  - **완료**: 메서드 제거 및 관련 테스트 제거
-- [x] Run all tests: 모든 테스트 통과 확인
-  - **완료**: 499개 테스트 모두 통과
-- [ ] Commit: `refactor: use CSTNavigator for token collection`
-
-#### 1.2 CSTNavigator 확장
-- [ ] Test: CSTNavigator에 `findNodeRecursively` 메서드 동작 테스트 작성
-- [ ] Implement: CSTNavigator에 `findNodeRecursively` 메서드 추가
-- [ ] Test: CSTNavigator에 `isNodeOfType` 메서드 동작 테스트 작성
-- [ ] Implement: CSTNavigator에 `isNodeOfType` 메서드 추가
-- [ ] Refactor: FieldExtractor의 `findNodeRecursively`를 CSTNavigator 호출로 대체
-- [ ] Remove: FieldExtractor의 `findNodeRecursively` 메서드 제거
+#### 1.1.2 클래스 정보 수집 구현
+- [ ] Test: `visitClassDeclaration`이 클래스 이름을 올바르게 추출하는지 테스트
+  ```typescript
+  test('should extract class name from class declaration', () => {
+    const source = 'public class UserService {}';
+    const collector = new SpringInfoCollector(mockUri);
+    // ... 클래스 이름이 'UserService'인지 확인
+  });
+  ```
+- [ ] Implement: `visitClassDeclaration` 메서드 구현 (최소 구현)
+- [ ] Run test: 테스트 통과 확인
+- [ ] Test: 클래스의 패키지명을 올바르게 추출하는지 테스트
+- [ ] Implement: 패키지명 추출 로직 추가
+- [ ] Run test: 테스트 통과 확인
+- [ ] Test: 클래스의 위치 정보(Position, Range)를 올바르게 추출하는지 테스트
+- [ ] Implement: 위치 정보 추출 로직 추가
 - [ ] Run all tests: 모든 테스트 통과 확인
-- [ ] Commit: `refactor: add node traversal methods to CSTNavigator`
+- [ ] Commit: `feat: implement class declaration visitor`
 
-### Phase 2: JavaTypeExtractor 생성 (구조적 변경)
+### 1.2 어노테이션 추출 구현
 
-#### 2.1 JavaTypeExtractor 클래스 생성
-- [ ] Test: JavaTypeExtractor가 primitive 타입을 올바르게 추출하는지 테스트
-  - [ ] int, boolean, char, byte, short, long, float, double 테스트
-- [ ] Test: JavaTypeExtractor가 reference 타입을 올바르게 추출하는지 테스트
-  - [ ] 단순 클래스명 (String, Integer 등)
-  - [ ] 패키지 포함 타입 (java.util.List 등)
-- [ ] Test: JavaTypeExtractor가 generic 타입을 올바르게 추출하는지 테스트
-  - [ ] List<String>
-  - [ ] Map<String, Integer>
-  - [ ] 중첩 제네릭 List<Map<String, Object>>
-- [ ] Create: `src/parsers/extractors/java-type-extractor.ts` 파일 생성
-- [ ] Implement: `extractType` 메서드 구현
-- [ ] Implement: `extractPrimitiveType` 메서드 구현
-- [ ] Implement: `extractReferenceType` 메서드 구현
-- [ ] Implement: `extractGenericArguments` 메서드 구현
-- [ ] Run all tests: JavaTypeExtractor 테스트 통과 확인
-- [ ] Commit: `feat: add JavaTypeExtractor class`
-
-#### 2.2 FieldExtractor에서 타입 추출 로직 이동
-- [ ] Test: FieldExtractor가 JavaTypeExtractor를 사용해도 동일한 결과를 반환하는지 확인
-- [ ] Refactor: FieldExtractor 생성자에 JavaTypeExtractor 의존성 추가
-- [ ] Refactor: `extractFieldType`이 JavaTypeExtractor를 사용하도록 변경
-- [ ] Remove: `extractFullTypeText` private 메서드 제거
-- [ ] Remove: `extractGenericTypeArguments` private 메서드 제거
-- [ ] Remove: `findTypeRecursively` private 메서드 제거
+#### 1.2.1 클래스 어노테이션 추출
+- [ ] Test: @Service 어노테이션이 있는 클래스에서 어노테이션을 추출하는지 테스트
+  ```typescript
+  test('should extract @Service annotation from class', () => {
+    const source = '@Service\npublic class UserService {}';
+    // ... annotations 배열에 Service 어노테이션이 있는지 확인
+  });
+  ```
+- [ ] Implement: 클래스 어노테이션 추출 로직 구현
+- [ ] Run test: 테스트 통과 확인
+- [ ] Test: @Component, @Repository, @Controller 어노테이션 추출 테스트
 - [ ] Run all tests: 모든 테스트 통과 확인
-- [ ] Commit: `refactor: move type extraction to JavaTypeExtractor`
-
-### Phase 3: FieldExtractor 최종 정리 (구조적 변경)
-
-#### 3.1 의존성 정리 및 구조 개선
-- [ ] Test: 리팩토링된 FieldExtractor가 기존과 동일하게 동작하는지 통합 테스트
-- [ ] Refactor: exploredNodes 캐싱 로직을 별도 메서드로 추출 (선택적)
-- [ ] Refactor: 불필요한 try-catch 블록 정리
-- [ ] Update: FieldExtractor의 JSDoc 주석 업데이트
+- [ ] Test: 어노테이션의 파라미터를 추출하는지 테스트 (@Service("userService"))
+- [ ] Implement: 어노테이션 파라미터 추출 로직 구현
 - [ ] Run all tests: 모든 테스트 통과 확인
-- [ ] Commit: `refactor: clean up FieldExtractor structure`
+- [ ] Commit: `feat: add class annotation extraction`
 
-#### 3.2 코드 품질 개선
-- [ ] Test: 에러 처리가 올바르게 동작하는지 확인
-- [ ] Refactor: 중복 코드 제거
-- [ ] Refactor: 메서드 크기 축소 (필요시 helper 메서드 추출)
+### 1.3 필드 정보 수집 구현
+
+#### 1.3.1 필드 선언 방문자 구현
+- [ ] Test: 필드 이름을 올바르게 추출하는지 테스트
+  ```typescript
+  test('should extract field name from field declaration', () => {
+    const source = `
+      public class UserService {
+        private UserRepository userRepository;
+      }
+    `;
+    // ... field name이 'userRepository'인지 확인
+  });
+  ```
+- [ ] Implement: `visitFieldDeclaration` 메서드 기본 구현
+- [ ] Run test: 테스트 통과 확인
+- [ ] Test: 필드 타입을 올바르게 추출하는지 테스트
+- [ ] Implement: 필드 타입 추출 로직 추가
 - [ ] Run all tests: 모든 테스트 통과 확인
-- [ ] Commit: `refactor: improve FieldExtractor code quality`
+- [ ] Commit: `feat: implement field declaration visitor`
 
-### Phase 4: 다른 Extractor들의 타입 추출 개선 (선택적)
-
-#### 4.1 MethodExtractor 타입 추출 개선
-- [ ] Test: MethodExtractor가 JavaTypeExtractor를 사용해도 동일한 결과를 반환하는지 확인
-- [ ] Refactor: returnType 추출에 JavaTypeExtractor 활용
+#### 1.3.2 @Autowired 필드 감지
+- [ ] Test: @Autowired 어노테이션이 있는 필드를 감지하는지 테스트
+  ```typescript
+  test('should detect @Autowired annotation on field', () => {
+    const source = `
+      public class UserService {
+        @Autowired
+        private UserRepository userRepository;
+      }
+    `;
+    // ... field의 annotations에 Autowired가 있는지 확인
+  });
+  ```
+- [ ] Implement: 필드 어노테이션 추출 로직 구현
+- [ ] Run test: 테스트 통과 확인
+- [ ] Test: @Value, @Qualifier 등 다른 필드 어노테이션 추출 테스트
 - [ ] Run all tests: 모든 테스트 통과 확인
-- [ ] Commit: `refactor: use JavaTypeExtractor in MethodExtractor`
+- [ ] Commit: `feat: add field annotation detection`
 
-#### 4.2 ConstructorExtractor 개선
-- [ ] Test: 생성자 파라미터 타입 추출이 올바르게 동작하는지 확인
-- [ ] Refactor: 필요시 JavaTypeExtractor 활용
+### 1.4 메서드 정보 수집 구현
+
+#### 1.4.1 메서드 선언 방문자 구현
+- [ ] Test: 메서드 이름을 올바르게 추출하는지 테스트
+  ```typescript
+  test('should extract method name from method declaration', () => {
+    const source = `
+      public class UserService {
+        public User findById(Long id) { return null; }
+      }
+    `;
+    // ... method name이 'findById'인지 확인
+  });
+  ```
+- [ ] Implement: `visitMethodDeclaration` 메서드 기본 구현
+- [ ] Run test: 테스트 통과 확인
+- [ ] Commit: `feat: implement method declaration visitor`
+
+#### 1.4.2 @Bean 메서드 감지
+- [ ] Test: @Bean 어노테이션이 있는 메서드를 감지하는지 테스트
+  ```typescript
+  test('should detect @Bean annotation on method', () => {
+    const source = `
+      @Configuration
+      public class AppConfig {
+        @Bean
+        public DataSource dataSource() { return null; }
+      }
+    `;
+    // ... method의 annotations에 Bean이 있는지 확인
+  });
+  ```
+- [ ] Implement: 메서드 어노테이션 추출 로직 구현
+- [ ] Run test: 테스트 통과 확인
+- [ ] Test: setter 메서드의 @Autowired 감지 테스트
 - [ ] Run all tests: 모든 테스트 통과 확인
-- [ ] Commit: `refactor: improve ConstructorExtractor type handling`
+- [ ] Commit: `feat: add method annotation detection`
+
+### 1.5 생성자 정보 수집 구현
+
+#### 1.5.1 생성자 선언 방문자 구현
+- [ ] Test: 생성자를 올바르게 감지하는지 테스트
+  ```typescript
+  test('should detect constructor declaration', () => {
+    const source = `
+      public class UserService {
+        public UserService(UserRepository repository) {}
+      }
+    `;
+    // ... constructor가 감지되는지 확인
+  });
+  ```
+- [ ] Implement: `visitConstructorDeclaration` 메서드 구현
+- [ ] Run test: 테스트 통과 확인
+- [ ] Test: 생성자 파라미터 정보 추출 테스트
+- [ ] Implement: 생성자 파라미터 추출 로직 구현
+- [ ] Run all tests: 모든 테스트 통과 확인
+- [ ] Commit: `feat: implement constructor declaration visitor`
+
+#### 1.5.2 생성자 주입 감지
+- [ ] Test: @Autowired 생성자를 감지하는지 테스트
+- [ ] Test: Lombok @RequiredArgsConstructor 감지 테스트
+- [ ] Implement: 생성자 주입 감지 로직 구현
+- [ ] Run all tests: 모든 테스트 통과 확인
+- [ ] Commit: `feat: add constructor injection detection`
+
+### 1.6 통합 테스트
+
+#### 1.6.1 실제 Java 파일 파싱 테스트
+- [ ] Test: 복잡한 실제 Java 클래스를 파싱하는 통합 테스트
+  ```typescript
+  test('should parse complete Spring service class', () => {
+    const source = JavaSampleGenerator.complexSpringService();
+    const collector = new SpringInfoCollector(mockUri);
+    // ... 모든 정보가 올바르게 추출되는지 확인
+  });
+  ```
+- [ ] Run test: 통합 테스트 통과 확인
+- [ ] Test: 여러 클래스가 있는 파일 파싱 테스트
+- [ ] Run all tests: 모든 테스트 통과 확인
+- [ ] Commit: `test: add integration tests for SpringInfoCollector`
+
+### 1.7 JavaFileParser와 통합
+
+#### 1.7.1 JavaFileParser에서 SpringInfoCollector 사용
+- [ ] Test: JavaFileParser가 SpringInfoCollector를 사용해도 동일한 결과를 반환하는지 테스트
+- [ ] Implement: JavaFileParser에 SpringInfoCollector 통합 (기존 코드와 병행)
+- [ ] Run test: 결과 비교 테스트 통과 확인
+- [ ] Test: 에러 처리가 올바르게 동작하는지 테스트
+- [ ] Run all tests: 모든 테스트 통과 확인
+- [ ] Commit: `feat: integrate SpringInfoCollector with JavaFileParser`
 
 ## 예상 결과
-- FieldExtractor: 637줄 → 약 300-350줄 (45% 감소)
-- 명확한 책임 분리:
-  - FieldExtractor: 필드 추출 및 조합
-  - JavaTypeExtractor: Java 타입 파싱
-  - CSTNavigator: CST 노드 탐색
-- 재사용 가능한 JavaTypeExtractor로 다른 클래스들도 개선 가능
-- 각 클래스가 단일 책임을 가지므로 테스트와 유지보수 용이
+- SpringInfoCollector: 약 200-250줄의 간결한 Visitor 구현
+- 한 번의 CST 순회로 모든 정보 수집
+- java-parser의 location 정보 활용으로 위치 계산 간소화
+- 명확한 Visitor 패턴으로 유지보수 용이
 
 ## 주의사항
-- 모든 변경은 구조적 변경으로, 기존 동작을 변경하지 않음
-- 각 단계마다 모든 테스트가 통과하는지 확인 필수
-- 한 번에 하나의 리팩토링만 수행
-- 커밋 메시지는 영어로 작성하고 50자 이내로 제한
-- Red-Green-Refactor 사이클 준수
-
-## 커밋 메시지 상세 설명 예시
-
-필요시 다음과 같이 상세 설명 추가:
-
-```
-refactor: move type extraction to JavaTypeExtractor
-
-- Extract type parsing logic from FieldExtractor
-- Create dedicated class for Java type handling
-- Reduce FieldExtractor size by ~200 lines
-``` 
+- 모든 변경은 TDD 방식으로 진행 (Red → Green → Refactor)
+- 각 테스트는 하나의 동작만 검증
+- 최소한의 코드로 테스트 통과
+- 기존 구현과 병행하여 결과 비교
+- 커밋은 작은 단위로 자주 수행 
