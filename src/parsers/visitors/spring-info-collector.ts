@@ -1,30 +1,28 @@
 import * as vscode from 'vscode';
 import { ClassInfo } from '../../models/spring-types';
 
-// java-parser의 타입을 위한 인터페이스
+// Dynamic import type for java-parser
 let BaseJavaCstVisitorWithDefaults: any;
 
 /**
- * Spring 정보를 수집하는 Visitor 클래스
- * java-parser의 CST를 순회하며 Spring 관련 정보를 추출합니다.
+ * Collects Spring-related information by traversing the CST using the Visitor pattern.
+ * Extends BaseJavaCstVisitorWithDefaults from java-parser library.
  */
 export class SpringInfoCollector {
     private static isInitialized = false;
     
-    // 수집된 클래스 정보
     public classes: ClassInfo[] = [];
-    
-    // 현재 파일의 패키지명
     private currentPackageName: string | undefined;
 
-    constructor(private fileUri: vscode.Uri) {
-        // validateVisitor는 프로토타입 설정 후에 호출됨
+    constructor(private readonly fileUri: vscode.Uri) {
+        // validateVisitor is called after prototype setup
     }
 
     /**
-     * java-parser 모듈을 동적으로 로드합니다.
+     * Dynamically loads the java-parser module.
+     * This is required because java-parser is an ES module.
      */
-    static async initialize() {
+    public static async initialize(): Promise<void> {
         if (!this.isInitialized) {
             const javaParser = await import('java-parser');
             BaseJavaCstVisitorWithDefaults = javaParser.BaseJavaCstVisitorWithDefaults;
@@ -33,18 +31,22 @@ export class SpringInfoCollector {
     }
 
     /**
-     * CST를 방문합니다.
+     * Visits the CST and collects Spring information.
+     * 
+     * @param cst - The Concrete Syntax Tree from java-parser
+     * @returns The result of the visit operation
      */
-    visit(cst: any): any {
-        // BaseJavaCstVisitorWithDefaults의 visit 메서드 호출
+    public visit(cst: any): any {
         return BaseJavaCstVisitorWithDefaults.prototype.visit.call(this, cst);
     }
 
     /**
-     * 패키지 선언을 방문합니다.
+     * Processes package declaration nodes.
+     * Extracts and stores the current package name for use in fully qualified names.
+     * 
+     * @param ctx - The package declaration context from the CST
      */
-    packageDeclaration(ctx: any) {
-        // 패키지명 추출
+    public packageDeclaration(ctx: any): void {
         const identifiers = ctx.Identifier;
         if (identifiers) {
             this.currentPackageName = identifiers.map((id: any) => id.image).join('.');
@@ -52,38 +54,27 @@ export class SpringInfoCollector {
     }
 
     /**
-     * 클래스 선언을 방문합니다.
+     * Processes class declaration nodes.
+     * Extracts class name, annotations, and creates ClassInfo objects.
+     * 
+     * @param ctx - The class declaration context from the CST
      */
-    classDeclaration(ctx: any) {
-        // normalClassDeclaration이 없으면 리턴
+    public classDeclaration(ctx: any): void {
         if (!ctx.normalClassDeclaration || ctx.normalClassDeclaration.length === 0) {
             return;
         }
         
         const normalClass = ctx.normalClassDeclaration[0];
-        
-        // 클래스 이름 추출
         const className = normalClass.children.typeIdentifier[0].children.Identifier[0].image;
         
-        // 어노테이션 추출
-        const annotations: any[] = [];
-        if (ctx.classModifier) {
-            ctx.classModifier.forEach((modifier: any) => {
-                if (modifier.children.annotation) {
-                    modifier.children.annotation.forEach((annotation: any) => {
-                        const annotationName = annotation.children.typeName[0].children.Identifier[0].image;
-                        annotations.push({
-                            name: annotationName
-                        });
-                    });
-                }
-            });
-        }
+        const annotations = this.extractClassAnnotations(ctx);
         
         const classInfo: ClassInfo = {
             name: className,
             packageName: this.currentPackageName,
-            fullyQualifiedName: this.currentPackageName ? `${this.currentPackageName}.${className}` : className,
+            fullyQualifiedName: this.currentPackageName 
+                ? `${this.currentPackageName}.${className}` 
+                : className,
             annotations: annotations,
             fields: [],
             methods: [],
@@ -99,22 +90,58 @@ export class SpringInfoCollector {
         
         this.classes.push(classInfo);
     }
+
+    /**
+     * Extracts annotations from class modifiers.
+     * 
+     * @param ctx - The class declaration context
+     * @returns Array of annotation information
+     */
+    private extractClassAnnotations(ctx: any): any[] {
+        const annotations: any[] = [];
+        
+        if (ctx.classModifier) {
+            ctx.classModifier.forEach((modifier: any) => {
+                if (modifier.children.annotation) {
+                    modifier.children.annotation.forEach((annotation: any) => {
+                        const annotationName = annotation.children.typeName[0]
+                            .children.Identifier[0].image;
+                        annotations.push({
+                            name: annotationName
+                        });
+                    });
+                }
+            });
+        }
+        
+        return annotations;
+    }
 }
 
-// SpringInfoCollector를 BaseJavaCstVisitorWithDefaults의 프로토타입과 연결
+/**
+ * Creates a SpringInfoCollector instance with proper prototype chain setup.
+ * This factory function is necessary to handle the dynamic import of java-parser
+ * and ensure the visitor methods are properly bound.
+ * 
+ * @param fileUri - The URI of the file being processed
+ * @returns A properly initialized SpringInfoCollector instance
+ */
 export async function createSpringInfoCollector(fileUri: vscode.Uri): Promise<SpringInfoCollector> {
     await SpringInfoCollector.initialize();
     
     const collector = new SpringInfoCollector(fileUri);
     
-    // 프로토타입 체인 설정
+    // Set up prototype chain to inherit from BaseJavaCstVisitorWithDefaults
     Object.setPrototypeOf(collector, BaseJavaCstVisitorWithDefaults.prototype);
     
-    // SpringInfoCollector의 메서드들을 collector에 바인딩
+    // Bind visitor methods to maintain correct 'this' context
     collector.packageDeclaration = SpringInfoCollector.prototype.packageDeclaration.bind(collector);
     collector.classDeclaration = SpringInfoCollector.prototype.classDeclaration.bind(collector);
     
-    // validateVisitor 호출 (npm 문서 예시 참고)
+    // Bind private methods as well
+    (collector as any).extractClassAnnotations = SpringInfoCollector.prototype['extractClassAnnotations'].bind(collector);
+    
+    // Validate the visitor to ensure all methods are properly set up
     if (typeof (collector as any).validateVisitor === 'function') {
         (collector as any).validateVisitor();
     }
