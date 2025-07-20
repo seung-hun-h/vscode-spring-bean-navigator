@@ -65,9 +65,19 @@ export class SpringInfoCollector {
         }
         
         const normalClass = ctx.normalClassDeclaration[0];
-        const className = normalClass.children.typeIdentifier[0].children.Identifier[0].image;
+        const typeIdentifier = normalClass.children.typeIdentifier[0];
+        const className = typeIdentifier.children.Identifier[0].image;
         
         const annotations = this.extractClassAnnotations(ctx);
+
+        const nameLocation = typeIdentifier.location;
+        const position = new vscode.Position(nameLocation.startLine - 1, nameLocation.startColumn - 1);
+
+        const declarationLocation = normalClass.location;
+        const range = new vscode.Range(
+            new vscode.Position(declarationLocation.startLine - 1, declarationLocation.startColumn - 1),
+            new vscode.Position(declarationLocation.endLine - 1, declarationLocation.endColumn)
+        );
         
         const classInfo: ClassInfo = {
             name: className,
@@ -80,11 +90,8 @@ export class SpringInfoCollector {
             methods: [],
             constructors: [],
             imports: [],
-            position: new vscode.Position(0, 0),
-            range: new vscode.Range(
-                new vscode.Position(0, 0),
-                new vscode.Position(0, 0)
-            ),
+            position: position,
+            range: range,
             fileUri: this.fileUri
         };
         

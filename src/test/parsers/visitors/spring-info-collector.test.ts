@@ -87,5 +87,29 @@ suite('SpringInfoCollector', () => {
             assert.strictEqual(collector.classes[0].annotations.length, 1);
             assert.strictEqual(collector.classes[0].annotations[0].name, 'Service');
         });
+
+        test('should_extractLocation_when_classDeclarationVisited', async () => {
+            // Arrange
+            const source = `public class UserService {}`.trim();
+            
+            const javaParser = await import('java-parser');
+            const cst = javaParser.parse(source);
+            
+            // Act
+            const collector = await createSpringInfoCollector(mockUri);
+            collector.visit(cst);
+            
+            // Assert
+            assert.strictEqual(collector.classes.length, 1);
+            const classInfo = collector.classes[0];
+            assert.ok(classInfo.position, 'Position should be defined');
+            assert.strictEqual(classInfo.position.line, 0, 'Line should be 0 (0-indexed)');
+            assert.strictEqual(classInfo.position.character, 13, 'Character should be 13 (0-indexed)');
+            assert.ok(classInfo.range, 'Range should be defined');
+            assert.strictEqual(classInfo.range.start.line, 0, 'Range start line should be 0');
+            assert.strictEqual(classInfo.range.start.character, 7, 'Range start character should be 7');
+            assert.strictEqual(classInfo.range.end.line, 0, 'Range end line should be 0');
+            assert.strictEqual(classInfo.range.end.character, 27, 'Range end character should be 27');
+        });
     });
 }); 
