@@ -111,8 +111,7 @@ export class SpringInfoCollector {
             ctx.classModifier.forEach((modifier: any) => {
                 if (modifier.children.annotation) {
                     modifier.children.annotation.forEach((annotation: any) => {
-                        const annotationName = annotation.children.typeName[0]
-                            .children.Identifier[0].image;
+                        const annotationName = annotation.children.typeName[0].children.Identifier[0].image;
                         annotations.push({
                             name: annotationName
                         });
